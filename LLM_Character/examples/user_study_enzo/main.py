@@ -288,66 +288,23 @@ if __name__ == "__main__":
 
 
         logger.info("Start reflecting and make decision")
-        user = User("GOD")
+        # user = User("GOD")
 
         
-        #TODO add retrieving and planning module ibnbetween here
+        #TODO add planning?
+        #TODO why does run_prompt_insight_and_evidence produce 'this is blank' so often?  => _clean_up_response in insight_and_guidance.py????
+        #TODO why is run_reflect so damn slow? -> optimize?
         #start reflection
         run_reflect(person.scratch, person.a_mem, wrapped_model)
         reset_reflection_counter(person.scratch)
         
-
-        #TODO from reflect.py run_reflect get everything up tp line 121 to get output of convo
-        focal_points = generate_focal_points(person.scratch, person.a_mem, wrapped_model, 3)
-        retrieved = retrieve_focal_points(person.scratch, person.a_mem, focal_points, wrapped_model)
-        thoughts = []
-        for _, nodes in retrieved.items():
-            statements = ""
-            for count, node in enumerate(nodes):
-                statements += f"{str(count)}. {node.embedding_key}\n"
-
-            ret = run_prompt_insight_and_evidence(wrapped_model, 5, statements)[0]
-            thoughts.append(ret)
-        logger.info(thoughts)
-        #validation I am hungry problem def run_prompt_insight_and_evidence(
-        #create prompt for run_prompt_memo_convo
-
-
-        run_prompt_summarize_conversation(wrapped_model, person.a_mem.get_summarized_latest_events())
-
-        #TODO implement and add to run prompt memo convo
-        # run_prompt_summarize_relationship(
-        # iscratch: UserScratch,
-        # tscratch: PersonaScratch,
-        # model: LLM_API,
-        # statements: str,
-
-
             
-
-        logger.info(run_prompt_memo_convo(person.scratch, wrapped_model, "Which of the two participants would you hire?"))
-        # message = "Hi, I'm GOD, your boss. Tell me about the job interview with our candidates! Between Louis or Dan, who do you think is more qualified for the job and why?"
-        # response, emotion, trust, end = chatting(
-        #     user.scratch, person.scratch, person.a_mem, message, wrapped_model
-        # )
-        # assert isinstance(response, str)
-        # assert emotion in [
-        #     "neutral",
-        #     "happy",
-        #     "angry",
-        #     "disgust",
-        #     "fear",
-        #     "surprised",
-        #     "sad",
-        # ]
-        # assert isinstance(trust, int)
-        # assert 0 <= trust <= 10
-        # assert isinstance(end, bool)
-
-        logger.info("data: ")
-        logger.info(f"{response} | Emotion: {emotion}, Trust: {trust}, End: {end}")
-
+        #run prompt to get AI's decision
+        logger.info(run_prompt_memo_convo(person.scratch, wrapped_model, "Which of the two participants (Louis and Dan) would you hire and why?"))
 
         #TODO mabe use this stuff too
-        logger.info(person.a_mem.get_str_seq_thoughts())
-        logger.info(person.a_mem.get_str_seq_chats())
+        # logger.info(person.a_mem.get_str_seq_thoughts())
+        # logger.info(person.a_mem.get_str_seq_chats())
+
+        #TODO ADD memory modules -> LLM has to remember this convo and the decision for later evaluations
+
