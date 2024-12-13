@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import torch.optim as optim
 
+
 def gaussian_3d(x, y, z, x0, y0, z0, sigma, amplitude):
     """
     Computes the 3D Gaussian function.
@@ -15,9 +16,11 @@ def gaussian_3d(x, y, z, x0, y0, z0, sigma, amplitude):
     """
     return amplitude * torch.exp(-((x - x0) ** 2 + (y - y0) ** 2 + (z - z0) ** 2) / (2 * sigma**2))
 
-def generate_3d_gaussian_volume(grid_size, points, sigma):
+
+def generate_3d_gaussian_volume(device, grid_size, points, sigma):
     """
     Creates a 3D volume by adding Gaussian splats for each point using PyTorch tensors.
+    device: 
     grid_size: Tuple (x_size, y_size, z_size) defining the grid size.
     points: Tensor of shape (n_points, 4), where each row is (x0, y0, z0, intensity).
     sigma: Standard deviation for the Gaussian spread.
@@ -29,9 +32,12 @@ def generate_3d_gaussian_volume(grid_size, points, sigma):
     y = torch.linspace(0, y_size - 1, y_size)
     z = torch.linspace(0, z_size - 1, z_size)
     X, Y, Z = torch.meshgrid(x, y, z, indexing="ij")
+    X = X.to(device)
+    Y = Y.to(device)
+    Z = Z.to(device)
 
     # Initialize a 3D volume
-    volume = torch.zeros((x_size, y_size, z_size), dtype=torch.float32)
+    volume = torch.zeros((x_size, y_size, z_size), dtype=torch.float32).to(device)
 
     # Add Gaussian splats for each point
     for point in points:
@@ -39,6 +45,7 @@ def generate_3d_gaussian_volume(grid_size, points, sigma):
         volume += gaussian_3d(X, Y, Z, x0, y0, z0, sigma, intensity)
 
     return volume
+
 
 # Function to project 3D points with a world matrix and a projection matrix
 def project_points_with_world_matrix(points, world_matrix, projection_matrix):
@@ -76,14 +83,16 @@ def project_points_with_world_matrix(points, world_matrix, projection_matrix):
 
     return projected_gaussians
 
+
 # Function to render 2D Gaussians into an image
-def render_gaussians_to_image(gaussians_2d, image_shape):
+def render_gaussians_to_image(gaussians_2d, image_shape, device):
     """
     Renders 2D Gaussians into an image grid.
     
     Parameters:
     - gaussians_2d: List of projected Gaussians [(px, py, intensity, sigma), ...].
     - image_shape: Tuple (height, width) of the output image.
+    - device: device
     
     Returns:
     - A torch tensor representing the rendered image.
@@ -92,9 +101,10 @@ def render_gaussians_to_image(gaussians_2d, image_shape):
     x = torch.linspace(0, width - 1, width)
     y = torch.linspace(0, height - 1, height)
     X, Y = torch.meshgrid(x, y, indexing="xy")
-    
+    X = X.to(device)
+    Y = Y.to(device)
     # Initialize the image
-    image = torch.zeros((height, width), dtype=torch.float32)
+    image = torch.zeros((height, width), dtype=torch.float32).to(device)
     
     # Render each Gaussian onto the grid
     for px, py, intensity, sigma in gaussians_2d:
@@ -104,7 +114,30 @@ def render_gaussians_to_image(gaussians_2d, image_shape):
     return torch.clamp(image, 0, 1)
 
 
-def optimize_gaussians(input_images, initial_gaussians, world_matrices, projection_matrix, image_shape, sigma):
+def move_matrices_to_device(matrices, device):
+    """
+    Moves a list of matrices to the specified device (e.g., GPU).
+
+    Args:
+        matrices (list of torch.Tensor or numpy.ndarray): List of matrices to move.
+        device (torch.device): Target device (e.g., 'cuda' or 'cpu').
+
+    Returns:
+        list of torch.Tensor: List of matrices on the target device.
+    """
+    gpu_matrices = []
+    for matrix in matrices:
+        # Ensure the matrix is a PyTorch tensor
+        if not isinstance(matrix, torch.Tensor):
+            matrix = torch.tensor(matrix)  # Convert to tensor if needed
+        
+        # Move the tensor to the target device
+        gpu_matrices.append(matrix.to(device))
+    
+    return gpu_matrices
+
+
+def optimize_gaussians(input_images, initial_gaussians, world_matrices, projection_matrix, image_shape, sigma, device):
     """
     Optimizes Gaussian parameters to match input images from multiple views.
 
@@ -119,7 +152,10 @@ def optimize_gaussians(input_images, initial_gaussians, world_matrices, projecti
     Returns:
     - Optimized Gaussian parameters (x, y, z, intensity).
     """
-    # Initialize optimizer
+    # Initialize optimizer    
+    initial_gaussians = initial_gaussians.to(device)
+    initial_gaussians = initial_gaussians.detach().clone().requires_grad_(True)
+    initial_gaussians.requires_grad_(True)
     optimizer = optim.Adam([initial_gaussians], lr=0.01)
 
     # Optimization loop
@@ -134,11 +170,11 @@ def optimize_gaussians(input_images, initial_gaussians, world_matrices, projecti
             params = initial_gaussians
             #x, y, z, intensity = params[0], params[1], params[2], params[3]
             projected_gaussians = project_points_with_world_matrix(
-                params, world_matrix, projection_matrix
+                params, world_matrix.to(device), projection_matrix
             )
 
             # Render the current view
-            rendered_image = render_gaussians_to_image(projected_gaussians, image_shape)
+            rendered_image = render_gaussians_to_image(projected_gaussians, image_shape, device)
 
             # Compute MSE loss
             loss = torch.nn.functional.mse_loss(rendered_image, input_image)
@@ -156,6 +192,8 @@ def optimize_gaussians(input_images, initial_gaussians, world_matrices, projecti
 
 # --- --- --- --- ---
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 # Parameters
 # Example 3D points in local space
 points = [
@@ -170,6 +208,7 @@ def add_points(new_points):
     points.extend(new_points)  # Add new points to the existing list
 
 points = torch.tensor(points, dtype=torch.float32)
+#points = tree_points
 
 # Image shape
 image_shape = (100, 100)
@@ -209,26 +248,26 @@ world_matrix_rotated_translated2 = translation @ rotation
 projection_matrix = torch.cat((torch.eye(3), torch.zeros((3, 1))), dim=1)
 
 # Project points for View 1 and View 2
-projected_view_1 = project_points_with_world_matrix(points, world_matrix_rotated_translated, projection_matrix)
-projected_view_2 = project_points_with_world_matrix(points, world_matrix_rotated_translated2, projection_matrix)
+projected_view_1 = move_matrices_to_device(project_points_with_world_matrix(points, world_matrix_rotated_translated, projection_matrix), device)
+projected_view_2 = move_matrices_to_device(project_points_with_world_matrix(points, world_matrix_rotated_translated2, projection_matrix), device)
 
 # Render the two views as images
-rendered_image_1 = render_gaussians_to_image(projected_view_1, image_shape)
-rendered_image_2 = render_gaussians_to_image(projected_view_2, image_shape)
+rendered_image_1 = render_gaussians_to_image(projected_view_1, image_shape, device)
+rendered_image_2 = render_gaussians_to_image(projected_view_2, image_shape, device)
 
 # Visualize the rendered images
 plt.figure(figsize=(10, 5))
 
 plt.subplot(1, 2, 1)
 plt.title("View 1: Identity World Matrix")
-plt.imshow(rendered_image_1.numpy(), cmap="hot", origin="lower")
+plt.imshow(rendered_image_1.cpu().numpy(), cmap="hot", origin="lower")
 plt.colorbar(label="Intensity")
 plt.xlabel("X-axis")
 plt.ylabel("Y-axis")
 
 plt.subplot(1, 2, 2)
 plt.title("View 2: Rotated & Translated World Matrix")
-plt.imshow(rendered_image_2.numpy(), cmap="hot", origin="lower")
+plt.imshow(rendered_image_2.cpu().numpy(), cmap="hot", origin="lower")
 plt.colorbar(label="Intensity")
 plt.xlabel("X-axis")
 plt.ylabel("Y-axis")
@@ -239,10 +278,11 @@ plt.show()
 
 # Parameters
 grid_size = (50, 50, 50)
-sigma = 5  # Spread of the Gaussian
+grid_size = torch.tensor(grid_size).to(device)
+sigma = torch.tensor(5).to(device)  # Spread of the Gaussian
 
 # Generate the 3D Gaussian volume with updated points
-volume = generate_3d_gaussian_volume(grid_size, points, sigma)
+volume = generate_3d_gaussian_volume(device, grid_size, points, sigma)
 
 # Convert PyTorch tensor to NumPy array
 #volume_np = volume.cpu().numpy()  # Ensure it's on the CPU and convert to NumPy
@@ -264,7 +304,7 @@ volume = generate_3d_gaussian_volume(grid_size, points, sigma)
 #plotter.show()
 
 
-input_images = [rendered_image_1, rendered_image_2]
+input_images = [rendered_image_1.to(device), rendered_image_2.to(device)]
 world_matrices = [world_matrix_rotated_translated, world_matrix_rotated_translated2]
 
 # Initial guess for Gaussian parameters (x, y, z, intensity)
@@ -280,27 +320,28 @@ optimized_gaussians = optimize_gaussians(
     world_matrices=world_matrices,
     projection_matrix=projection_matrix,
     image_shape=image_shape,
-    sigma=sigma
+    sigma=sigma,
+    device=device
 )
 
 print(optimized_gaussians)
 optimized = project_points_with_world_matrix(optimized_gaussians, world_matrix_rotated_translated, projection_matrix)
 # Render the two views as images
-optimized_image = render_gaussians_to_image(optimized, image_shape)
+optimized_image = render_gaussians_to_image(optimized, image_shape, device)
 
 # Visualize the rendered images
 plt.figure(figsize=(10, 5))
 
 plt.subplot(1, 2, 1)
 plt.title("View 1: Ground Truth")
-plt.imshow(rendered_image_1.numpy(), cmap="hot", origin="lower")
+plt.imshow(rendered_image_1.cpu().numpy(), cmap="hot", origin="lower")
 plt.colorbar(label="Intensity")
 plt.xlabel("X-axis")
 plt.ylabel("Y-axis")
 
 plt.subplot(1, 2, 2)
 plt.title("View 2: Optimized")
-plt.imshow(optimized_image.detach().numpy(), cmap="hot", origin="lower")
+plt.imshow(optimized_image.cpu().detach().numpy(), cmap="hot", origin="lower")
 plt.colorbar(label="Intensity")
 plt.xlabel("X-axis")
 plt.ylabel("Y-axis")

@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import torch.optim as optim
 
+
 def gaussian_3d(x, y, z, x0, y0, z0, sigma, amplitude):
     """
     Computes the 3D Gaussian function.
@@ -15,9 +16,11 @@ def gaussian_3d(x, y, z, x0, y0, z0, sigma, amplitude):
     """
     return amplitude * torch.exp(-((x - x0) ** 2 + (y - y0) ** 2 + (z - z0) ** 2) / (2 * sigma**2))
 
-def generate_3d_gaussian_volume(grid_size, points, sigma):
+
+def generate_3d_gaussian_volume(device, grid_size, points, sigma):
     """
     Creates a 3D volume by adding Gaussian splats for each point using PyTorch tensors.
+    device: 
     grid_size: Tuple (x_size, y_size, z_size) defining the grid size.
     points: Tensor of shape (n_points, 4), where each row is (x0, y0, z0, intensity).
     sigma: Standard deviation for the Gaussian spread.
@@ -29,9 +32,12 @@ def generate_3d_gaussian_volume(grid_size, points, sigma):
     y = torch.linspace(0, y_size - 1, y_size)
     z = torch.linspace(0, z_size - 1, z_size)
     X, Y, Z = torch.meshgrid(x, y, z, indexing="ij")
+    X = X.to(device)
+    Y = Y.to(device)
+    Z = Z.to(device)
 
     # Initialize a 3D volume
-    volume = torch.zeros((x_size, y_size, z_size), dtype=torch.float32)
+    volume = torch.zeros((x_size, y_size, z_size), dtype=torch.float32).to(device)
 
     # Add Gaussian splats for each point
     for point in points:
@@ -39,6 +45,7 @@ def generate_3d_gaussian_volume(grid_size, points, sigma):
         volume += gaussian_3d(X, Y, Z, x0, y0, z0, sigma, intensity)
 
     return volume
+
 
 # Function to project 3D points with a world matrix and a projection matrix
 def project_points_with_world_matrix(points, world_matrix, projection_matrix):
@@ -75,6 +82,7 @@ def project_points_with_world_matrix(points, world_matrix, projection_matrix):
         projected_gaussians.append((x, y, intensity, torch.tensor(10.0)))  # Default sigma = 10
 
     return projected_gaussians
+
 
 # Function to render 2D Gaussians into an image
 def render_gaussians_to_image(gaussians_2d, image_shape, device):
@@ -169,7 +177,7 @@ def optimize_gaussians(input_images, initial_gaussians, world_matrices, projecti
             rendered_image = render_gaussians_to_image(projected_gaussians, image_shape, device)
 
             # Compute MSE loss
-            loss = torch.nn.functional.mse_loss(rendered_image, input_image.to(device))
+            loss = torch.nn.functional.mse_loss(rendered_image, input_image)
             total_loss += loss
 
         # Backpropagation
@@ -182,6 +190,175 @@ def optimize_gaussians(input_images, initial_gaussians, world_matrices, projecti
 
     return initial_gaussians
 
+
+def generate_tree_point_cloud(device, scale=1.0, n_points_trunk=500, n_points_branches=2000, n_points_leaves=5000):
+    """
+    Generates a sparse 3D point cloud representing a tree.
+    
+    Args:
+        n_points_trunk (int): Number of points for the trunk.
+        n_points_branches (int): Number of points for the branches.
+        n_points_leaves (int): Number of points for the leaves.
+    
+    Returns:
+        torch.Tensor: Sparse point cloud as a tensor of shape (N, 3), where N is the total number of points.
+    """
+    # Trunk (vertical cylinder)
+    trunk_radius = 0.2
+    trunk_height = 3.0
+    trunk_points = []
+    trunk_densities = []
+
+    for _ in range(n_points_trunk):
+        angle = np.random.uniform(0, 2 * np.pi)
+        radius = np.random.uniform(0, trunk_radius)
+        x = radius * np.cos(angle)
+        y = radius * np.sin(angle)
+        z = np.random.uniform(0, trunk_height)
+        
+        # Higher density for trunk points
+        density = 1.0
+        trunk_points.append((x * scale, y * scale, z * scale, density))
+    
+    # Branches (random smaller cylinders extending outward)
+    branches_points = []
+    branches_densities = []
+    n_branches = 5
+    branch_length = 1.5
+    for i in range(n_branches):
+        branch_angle = np.random.uniform(0, 2 * np.pi)
+        branch_height = np.random.uniform(trunk_height * 0.5, trunk_height)  # Branch starts mid-trunk or higher
+        branch_dir = np.array([np.cos(branch_angle), np.sin(branch_angle), 1.0])  # Upward direction with tilt
+        branch_dir /= np.linalg.norm(branch_dir)
+        
+        for _ in range(n_points_branches // n_branches):
+            t = np.random.uniform(0, branch_length)
+            offset = t * branch_dir + np.random.normal(scale=0.05, size=3)  # Add random scatter
+            # Moderate density for branches
+            density = 0.6
+            branches_points.append((offset[0] * scale, offset[1] * scale, (branch_height + offset[2]) * scale, density))
+    
+    # Leaves (ellipsoid canopy)
+    leaves_center = np.array([0, 0, trunk_height + 0.5])  # Above the trunk
+    leaves_radii = np.array([1.5, 1.5, 2.0])  # Ellipsoid radii
+    leaves_points = []
+    leaves_densities = []
+    for _ in range(n_points_leaves):
+        u = np.random.uniform(0, 2 * np.pi)
+        v = np.random.uniform(0, np.pi)
+        x = leaves_radii[0] * np.sin(v) * np.cos(u)
+        y = leaves_radii[1] * np.sin(v) * np.sin(u)
+        z = leaves_radii[2] * np.cos(v)
+        leaves_center + np.array([x, y, z])
+        # Lower density for leaves points
+        density = 0.2
+        leaves_points.append((leaves_center[0] * scale, leaves_center[1] * scale, leaves_center[2] * scale, density))
+    
+    # Combine all points and densities
+    all_points = np.vstack([trunk_points, branches_points, leaves_points])
+    
+    # Convert to PyTorch tensor
+    point_cloud = torch.tensor(all_points, dtype=torch.float32).to(device)
+    return point_cloud
+
+
+
+def visualize_tree_point_cloud_with_density(point_cloud):
+    """
+    Visualizes a 3D point cloud with density values using PyVista.
+    
+    Args:
+        point_cloud (torch.Tensor): Point cloud with coordinates and density values (N, 4).
+    """
+    # Convert to NumPy for visualization
+    point_cloud_np = point_cloud.cpu().numpy()
+    
+    # Create a PyVista point cloud
+    cloud = pv.PolyData(point_cloud_np[:, :3])  # Only use the first 3 columns (x, y, z)
+    
+    # Add density values as point data
+    cloud.point_data["Density"] = point_cloud_np[:, 3]
+    
+    # Plot the point cloud with color based on density
+    plotter = pv.Plotter()
+    plotter.add_mesh(cloud, scalars="Density", cmap="viridis", point_size=5, render_points_as_spheres=True)
+    plotter.show()
+
+
+def gaussian_splat(x, y, z, density, sigma=0.5):
+    """
+    Generate a Gaussian splat centered at (x, y, z) with the given density and sigma (standard deviation).
+    The density will affect the size and intensity of the Gaussian.
+    
+    Args:
+        x, y, z (float): The coordinates of the point.
+        density (float): The density value of the point, affecting the strength of the splat.
+        sigma (float): Standard deviation of the Gaussian kernel.
+        
+    Returns:
+        float: The intensity of the splat at the point (x, y, z).
+    """
+    return density * np.exp(-(x**2 + y**2 + z**2) / (2 * sigma**2))
+
+
+def gaussian_splatting(point_cloud, image_size=(64, 64), sigma=0.5):
+    """
+    Perform Gaussian splatting on a point cloud to generate a 2D image.
+    
+    Args:
+        point_cloud (torch.Tensor): The point cloud with coordinates (N, 4), where N is the number of points.
+        image_size (tuple): The size of the rendered image.
+        sigma (float): The standard deviation for the Gaussian kernels.
+        
+    Returns:
+        np.ndarray: A 2D image of Gaussian splats.
+    """
+    # Initialize an empty image
+    image = np.zeros(image_size)
+
+    # Iterate through the point cloud
+    for point in point_cloud:
+        x, y, z, density = point.cpu().numpy()
+        
+        # Map 3D coordinates (x, y, z) to 2D image coordinates
+        screen_x = int((x + 1) * (image_size[0] / 2))  # Normalize and map to image space
+        screen_y = int((y + 1) * (image_size[1] / 2))  # Normalize and map to image space
+
+        # Make sure the point is within the image bounds
+        if 0 <= screen_x < image_size[0] and 0 <= screen_y < image_size[1]:
+            # Add the Gaussian splat to the image
+            intensity = gaussian_splat(x, y, z, density, sigma)
+            image[screen_y, screen_x] += intensity
+
+    # Normalize the image to [0, 1] for visualization
+    image = np.clip(image, 0, 1)
+    
+    return image
+
+
+def visualize_gaussian_splatting_image(image):
+    """
+    Visualize the Gaussian splatting result as a 3D surface using PyVista.
+    
+    Args:
+        image (np.ndarray): The 2D Gaussian splat image.
+    """
+    # Create a mesh grid for the image
+    y, x = np.mgrid[0:image.shape[0], 0:image.shape[1]]
+    points = np.vstack([x.ravel(), y.ravel(), np.zeros_like(x.ravel())]).T
+    
+    # Create the point cloud for the image
+    surface = pv.PolyData(points)
+    
+    # Add the image as the texture
+    surface.point_data["scalars"] = image.ravel()
+    
+    # Visualize the Gaussian splat image as a surface
+    plotter = pv.Plotter()
+    plotter.add_mesh(surface, scalars="scalars", cmap="viridis", point_size=10, render_points_as_spheres=True)
+    plotter.show()
+    
+
 # --- --- --- --- ---
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -193,6 +370,12 @@ points = [
     (105, 105, 2, 0.6),
     (40, 100, 2, 0.6)
 ]
+tree_points = generate_tree_point_cloud(device, 1.0, 500, 500, 1000)
+visualize_tree_point_cloud_with_density(tree_points)
+splat_image = gaussian_splatting(tree_points, image_size=(64, 64), sigma=0.5)
+# Visualize the Gaussian splatting result
+visualize_gaussian_splatting_image(splat_image)
+
 
 # Function to dynamically add more points
 def add_points(new_points):
@@ -200,6 +383,7 @@ def add_points(new_points):
     points.extend(new_points)  # Add new points to the existing list
 
 points = torch.tensor(points, dtype=torch.float32)
+#points = tree_points
 
 # Image shape
 image_shape = (100, 100)
@@ -269,10 +453,11 @@ plt.show()
 
 # Parameters
 grid_size = (50, 50, 50)
-sigma = 5  # Spread of the Gaussian
+grid_size = torch.tensor(grid_size).to(device)
+sigma = torch.tensor(5).to(device)  # Spread of the Gaussian
 
 # Generate the 3D Gaussian volume with updated points
-volume = generate_3d_gaussian_volume(grid_size, points, sigma)
+volume = generate_3d_gaussian_volume(device, grid_size, points, sigma)
 
 # Convert PyTorch tensor to NumPy array
 #volume_np = volume.cpu().numpy()  # Ensure it's on the CPU and convert to NumPy
@@ -294,7 +479,7 @@ volume = generate_3d_gaussian_volume(grid_size, points, sigma)
 #plotter.show()
 
 
-input_images = [rendered_image_1, rendered_image_2]
+input_images = [rendered_image_1.to(device), rendered_image_2.to(device)]
 world_matrices = [world_matrix_rotated_translated, world_matrix_rotated_translated2]
 
 # Initial guess for Gaussian parameters (x, y, z, intensity)
