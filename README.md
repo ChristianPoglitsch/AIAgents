@@ -22,6 +22,8 @@ For OpenAI key use .env file and add OPENAI_API_KEY=
 Add key according to https://huggingface.co/docs/huggingface_hub/quick-start.
 Define a fine-grained token and set env HF_TOKEN
 
+**5. (Optional) Simple WebSocket**
+start webSocketServer.py
 
 ## Authors
 
