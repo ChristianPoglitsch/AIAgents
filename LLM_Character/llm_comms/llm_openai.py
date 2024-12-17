@@ -67,7 +67,7 @@ class OpenAIComms(LLMComms):
 
     # FIXME: use dict as arguments for gpt model instead of positional
     # arguments.
-    def send_text(self, aimessages: AIMessages) -> Optional[str]:
+    def send_text(self, aimessages: AIMessages, max_length=100) -> Optional[str]:
         """send a prompt to openAI endpoint for chat completions.
 
         Args:
