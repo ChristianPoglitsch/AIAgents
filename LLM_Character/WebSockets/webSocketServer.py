@@ -21,6 +21,8 @@ async def echo(websocket):
         message = AIMessage(message=data['type'], role="user", class_type="MessageAI", sender="user")
         messages.add_message(message)
         query_result = wrapped_model.query_text(messages)
+        message = AIMessage(message=query_result, role="assistant", class_type="MessageAI", sender="assistant")
+        messages.add_message(message)
 
         data['type'] = query_result
         print(f"Received value: {data}")
@@ -46,8 +48,8 @@ if __name__ == "__main__":
     model_id = "mistralai/Mistral-7B-Instruct-v0.3"
     # model_id = "genericgod/GerMerge-em-leo-mistral-v0.2-SLERP"
 
-    model = OpenAIComms()
-    model_id = "gpt-4o"
+    #model = OpenAIComms()
+    #model_id = "gpt-4o"
 
     model.init(model_id)
     wrapped_model = LLM_API(model)    
