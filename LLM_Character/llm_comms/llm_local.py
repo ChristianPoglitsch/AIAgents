@@ -245,7 +245,11 @@ class LocalComms(LLMComms):
         generation_config.eos_token_id = tokenizer.eos_token_id
 
         outputs = model.generate(inputs, generation_config=generation_config)
-        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        #response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        
+        # Temp for Mistral 7 v03
+        prompt_length = inputs.shape[1]
+        response = tokenizer.decode(outputs[0][prompt_length:], skip_special_tokens=True)
 
         # print("Processing time: " + str(time.process_time() - start_time) + " sec")
         return response

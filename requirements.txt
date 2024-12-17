@@ -22,3 +22,4 @@ openai==1.37.1
 python-dotenv==1.0.1
 gpt4all
 torch[cuda]
+websockets

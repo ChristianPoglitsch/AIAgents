@@ -8,7 +8,7 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 from LLM_Character.util import LOGGER_NAME, setup_logging
 
 logger = logging.getLogger(LOGGER_NAME)
-
+max_token_quick_reply = 25
 # ---
 
 from abc import ABC, abstractmethod
@@ -71,24 +71,25 @@ class ImportanceDecorator(MessageProcessing):
         message_processing = self._decorator.get_messages()
         messages = message_processing.get_history().get_messages()
         
-        if len(messages) < 3:
+        num_messages = 10
+        if len(messages) < num_messages:
             return message_processing
         
-        message = 'Your role is an AI bot. Based on the Instruction meassure the importance of the Message. Score the importance in range of [0, 10]. Only reply with the score. For example reply with Score: 5.\n'
-        message = message + 'Instruction:\n' + message_processing.get_instruction().get_message() + '\n'    
-        message = message + 'Message:\n' + messages[-3].message + '\n' 
+        message = 'Based on the Instruction, the message and location extract the importance of the message. Score the importance in range of [0, 10]. First, determine the importance. Second, format your answer exactly like this: {"Importance": "<Your importance>"}. Answer only with this structure. \n'
+        message = message + 'Instruction: ' + message_processing.get_instruction().get_message() + '\n'    
+        message = message + 'Message: ' + messages[-num_messages].message + '\n' 
         
         ai_message = AIMessage(message=message, role="user", class_type="MessageAI", sender="user")
         ai_messages = AIMessages()
         ai_messages.add_message(ai_message)        
-        self._llm_api.set_max_tokens(3)
+        self._llm_api.set_max_tokens(max_token_quick_reply)
         reply = self._llm_api.query_text(ai_messages)
         
         importance = re.findall(r'\d+', reply)
         importance = int(importance[-1])        
-        if importance > 3:
-            self._important_message.add_message(messages[-3])
-            self._important_message.add_message(messages[-2])            
+        if importance > 6:
+            self._important_message.add_message(messages[-num_messages])
+            self._important_message.add_message(messages[-num_messages+1])            
 
         print('--- ---')
         print('Importance: ' + reply)
@@ -111,15 +112,15 @@ class EmotionDecorator(MessageProcessing):
         message_processing = self._decorator.get_messages()        
         messages = message_processing.get_history().get_messages()
         
-        message = 'Your role is an AI bot. Based on the Instruction meassure the emotional state regarding the Message. Estimate the emotional state with one of the emotions: happy, angry, disgust, fear, surprise, sad or neutral. Only reply the emotion. \n'
-        message = message + 'Instruction:\n' + message_processing.get_instruction().get_message() + '\n'    
-        message = message + 'Message:\n' + messages[-1].message + '\n' 
+        message = 'Based on the Instruction, the message and location extract your current emotion. Estimate the emotional state with one of these emotions: happy, angry, disgust, fear, surprise, sad or neutral. First, determine your current emotion. Second, format your answer exactly like this: {"Emotion": "<Your emotion>"}. Answer only with this structure. \n'
+        message = message + 'Instruction: ' + message_processing.get_instruction().get_message() + '\n'    
+        message = message + 'Message: ' + messages[-1].message + '\n' 
         
         ai_message = AIMessage(message=message, role="user", class_type="MessageAI", sender="user")
         ai_messages = AIMessages()
         ai_messages.add_message(ai_message)
         
-        self._llm_api.set_max_tokens(3)
+        self._llm_api.set_max_tokens(max_token_quick_reply)
         reply = self._llm_api.query_text(ai_messages)
         print('--- ---')
         print('Emotion: ' + reply)
@@ -133,29 +134,65 @@ class EmotionDecorator(MessageProcessing):
 
 class ActionDecorator(MessageProcessing):
     
-    def __init__(self, decorator : MessageProcessing, llm_api : LLM_API):
+    def __init__(self, decorator : MessageProcessing, llm_api : LLM_API, plan : AIMessage):
         super(ActionDecorator, self).__init__(decorator)      
         self._llm_api = llm_api
+        self._plan = plan
 
     def get_messages(self) -> MessageStruct:
         message_processing = self._decorator.get_messages()        
         messages = message_processing.get_history().get_messages()
         
-        message = 'Your role is an AI bot. Based on the Instruction and the Message plan what is best for the future. Next steps, where to go. What to do. \n'
-        message = message + 'Instruction:\n' + message_processing.get_instruction().get_message() + '\n'    
-        message = message + 'Message:\n' + messages[-1].message + '\n' 
+        message = 'Based on the Instruction, the message and action extract your your next action(s). First, identify the current action(s). If an action is resolved, remove it and create a new action from the conversation, otherwise keep the action. Second, format your answer exactly like this: {"Action(s)": "<Your action(s)>"}. Answer only with this structure.\n'
+        message = message + 'Instruction: ' + message_processing.get_instruction().get_message() + '\n'    
+        message = message + 'Message: ' + messages[-1].message + '\n'
+        message = message + 'Action: ' + self._plan.get_message()
         
         ai_message = AIMessage(message=message, role="user", class_type="MessageAI", sender="user")
         ai_messages = AIMessages()
         ai_messages.add_message(ai_message)
         
-        self._llm_api.set_max_tokens(10)
-        reply = self._llm_api.query_text(ai_messages)
+        self._llm_api.set_max_tokens(max_token_quick_reply)
+        plan = self._llm_api.query_text(ai_messages)
         print('--- ---')
-        print('Plan: ' + reply)
+        print('Plan: ' + plan)
         print('--- ---')
         m = message_processing.get_instruction()
-        m.message = m.message + '\nYour plans for the future:' + reply
+        m.message = m.message + '\nYour plans for the future:' + plan
+        message_processing.set_instruction(m)
+        self._plan.message = plan
+
+        self._llm_api.set_max_tokens(100)
+        return message_processing
+
+class SpatialDecorator(MessageProcessing):
+    
+    def __init__(self, decorator : MessageProcessing, llm_api : LLM_API, locations : AIMessage, timeDate : AIMessage):
+        super(SpatialDecorator, self).__init__(decorator)      
+        self._llm_api = llm_api
+        self._locations = locations
+        self._timeDate = timeDate
+
+    def get_messages(self) -> MessageStruct:
+        message_processing = self._decorator.get_messages()        
+        messages = message_processing.get_history().get_messages()
+        
+        message = 'Based on the Instruction, the message and location extract your current location. First, determine the current location of the conversation. Second, format your answer exactly like this: {"Location": "<Your location>"}. Answer only with this structure. \n'
+        message = message + 'Instruction: ' + message_processing.get_instruction().get_message() + '\n'    
+        message = message + 'Message: ' + messages[-1].message + '\n'
+        message = message + 'Location: ' + self._locations.get_message() + ' Time Date: ' + self._timeDate.get_message()
+        
+        ai_message = AIMessage(message=message, role="user", class_type="MessageAI", sender="user")
+        ai_messages = AIMessages()
+        ai_messages.add_message(ai_message)
+        
+        self._llm_api.set_max_tokens(max_token_quick_reply)
+        location = self._llm_api.query_text(ai_messages)
+        print('--- ---')
+        print('Current location: ' + location)
+        print('--- ---')
+        m = message_processing.get_instruction()
+        m.message = m.message + '\nYour location for the future:' + location
         message_processing.set_instruction(m)
 
         self._llm_api.set_max_tokens(100)
@@ -174,7 +211,7 @@ if __name__ == "__main__":
     logger.info("CUDA found " + str(torch.cuda.is_available()))
 
     # AI role
-    message = AIMessage(message='You play a role. Answer according to your role. You are a pirat. Reply in a short way. Try to find out more about me. ', role="user", class_type="Introduction", sender="user")
+    message = AIMessage(message='You are playing a role. Answer according to your character. You are a 22-year-old woman named Ana. You are from Graz and you have a physical body. Follow your action plan. Keep your response short. ', role="user", class_type="Introduction", sender="user")
     message_manager = MessageStruct(message)    
     message = AIMessage(message='hi', role="assistant", class_type="MessageAI", sender="assistant")
     message_manager.add_message(message)
@@ -182,19 +219,24 @@ if __name__ == "__main__":
     message_decorator = BaseDecorator(message_manager)    
 
     model = LocalComms()
-    model_id = "mistralai/Mistral-7B-Instruct-v0.2"
+    model_id = "mistralai/Mistral-7B-Instruct-v0.3"
     # model_id = "genericgod/GerMerge-em-leo-mistral-v0.2-SLERP"
 
-    # model = OpenAIComms()
-    # model_id = "gpt-4o"
+    #model = OpenAIComms()
+    #model_id = "gpt-4o"
 
     model.init(model_id)
     wrapped_model = LLM_API(model)    
     model.max_tokens = 100
 
-    importance_decorator = ImportanceDecorator(message_decorator, wrapped_model)
+
+    time_info = AIMessage(message='Current time: 12:59, Date: 2nd October 2024.', role="assistant", class_type="MessageAI", sender="assistant")
+    spatial_info = AIMessage(message='Locations: Your home in Graz Austria, Cafe in Graz Austria, hiking trail near Graz Austria. Your current location is: Cafe.', role="assistant", class_type="MessageAI", sender="assistant")
+    spatial_decorator = SpatialDecorator(message_decorator, wrapped_model, spatial_info, time_info)    
+    plan = AIMessage(message='Find out the name of your conversation partner. Make plans to go for a hiking trip. ', role="assistant", class_type="MessageAI", sender="assistant")
+    action_decorator = ActionDecorator(spatial_decorator, wrapped_model, plan)
+    importance_decorator = ImportanceDecorator(action_decorator, wrapped_model)
     emotion_decorator = EmotionDecorator(importance_decorator, wrapped_model)
-    action_decorator = ActionDecorator(emotion_decorator, wrapped_model)
 
     while True:
         query_introduction = input("Chat: ")
@@ -203,7 +245,7 @@ if __name__ == "__main__":
         
         message = AIMessage(message=query_introduction, role="user", class_type="MessageAI", sender="user")
         message_manager.add_message(message)
-        query = action_decorator.get_messages().get_instruction_and_history()
+        query = emotion_decorator.get_messages().get_instruction_and_history()
         
         print('--- ---')
         print(query.prints_messages_role())

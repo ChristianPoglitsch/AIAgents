@@ -19,7 +19,7 @@ class LLM_API:
             print('--- --- ---')
             print(message.get_formatted())
             print('--- --- ---')
-        result = self._model.send_text(message)
+        result = self._model.send_text(message, self._model.max_tokens)
         if self._debug:
             print('*** *** ***')
             print(result)
