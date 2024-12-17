@@ -52,8 +52,8 @@ if __name__ == "__main__":
     model = LocalComms()
     model_id = "mistralai/Mistral-7B-Instruct-v0.2"
 
-    #model = OpenAIComms()
-    #model_id = "gpt-4"
+    model = OpenAIComms()
+    model_id = "gpt-4"
 
     model.init(model_id)
     wrapped_model = LLM_API(model, debug = True)
