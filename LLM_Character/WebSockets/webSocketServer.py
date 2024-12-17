@@ -1,11 +1,8 @@
+import logging
 import asyncio
 import json
-import string
 import websockets
-import struct  # For decoding binary data
-from LLM_Character.communication.comm_medium import CommMedium
-from LLM_Character.communication.message_processor import MessageProcessor
-from LLM_Character.communication.reverieserver_manager import ReverieServerManager
+import torch
 from LLM_Character.llm_comms.llm_api import LLM_API
 from LLM_Character.messages_dataclass import AIMessage, AIMessages
 from LLM_Character.communication.incoming_messages import PromptMessage
@@ -14,7 +11,6 @@ from LLM_Character.communication.outgoing_messages import (
     PromptReponse,
     PromptResponseData,
     ResponseType,
-    StartResponse,
     StatusType,
 )
 from LLM_Character.util import LOGGER_NAME, setup_logging
@@ -53,11 +49,13 @@ async def main():
         await asyncio.Future()  # Run forever
 
 if __name__ == "__main__":
+    setup_logging("python_server_endpoint")
+    logger = logging.getLogger(LOGGER_NAME)
     
     from LLM_Character.llm_comms.llm_openai import OpenAIComms
     from LLM_Character.llm_comms.llm_local import LocalComms
 
-    #logger.info("CUDA found " + str(torch.cuda.is_available()))
+    logger.info("CUDA found " + str(torch.cuda.is_available()))
 
     messages = AIMessages()
 
