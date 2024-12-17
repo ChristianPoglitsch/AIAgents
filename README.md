@@ -4,15 +4,16 @@
 
 **1. Python requirements**
 
-```pip install -r requirements.txt
-    
+```bash
+pip install -r requirements.txt    
 ```
 
 **2. Further requirements**
 
-
-```pip install --editable .
+```bash
+pip install --editable .
 ```
+
 ## Authors
 
 - Ibrahim El Kaddouri
