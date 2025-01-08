@@ -33,7 +33,7 @@ if __name__ == "__main__":
     model.max_tokens = 4096
     
     # role
-    message = AIMessage(message='You are a helpful assistant', role="user", class_type="Introduction", sender="user")
+    message = AIMessage(message='You are a helpful assistant. ', role="user", class_type="Introduction", sender="user")
     messages.add_message(message)
     message = AIMessage(message='hi', role="assistant", class_type="MessageAI", sender="assistant")
     messages.add_message(message)
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         messages.add_message(message)
         query_result = wrapped_model.query_text(messages)
         print('-'*9)
-        print(query_introduction)
+        #print(query_introduction)
         print(query_result)
         print('-'*9)
         message = AIMessage(message=query_result, role="assistant", class_type="MessageAI", sender="assistant")
