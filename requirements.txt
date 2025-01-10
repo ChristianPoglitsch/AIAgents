@@ -16,10 +16,14 @@ scipy==1.11.1
 sentencepiece==0.1.99
 transformers==4.43.3
 trl==0.9.6
-azure-cognitiveservices-speech==1.38.0
+# azure-cognitiveservices-speech==1.38.0
 sentence-transformers==3.0.1
 openai==1.37.1
+httpx==0.27.2
 python-dotenv==1.0.1
-gpt4all
+# gpt4all
 torch[cuda]
 websockets
+flask
+flask_sock
+waitress

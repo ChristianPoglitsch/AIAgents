@@ -11,9 +11,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the project code
 COPY . /empathic-agents
+RUN pip install --editable .
 
 # Expose the port where program
 EXPOSE 8765
 
+# Env key
+
 # Default command to run main.py
-CMD ["python", "LLM_Character/webSocketServer.py"]
+CMD ["python", "LLM_Character/app.py"]

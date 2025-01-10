@@ -55,6 +55,7 @@ class OpenAIComms(LLMComms):
             )
 
         self.model_name = model
+        print("Key: %s" % API_KEY)
         self.client = OpenAI(api_key=API_KEY)
 
     def get_model_name(self) -> str:
