@@ -20,12 +20,13 @@ app = Flask(__name__)
 sock = Sock(app)
 
 def init_session(background : str, mood : str, conversation_goal : str, user_id : str):
-        messages = AIMessages()
-        message = AIMessage(message='We are playing a role game. Stay in the role. Be creative about your role. The role is: ' + background + ' This is the initial emotion: ' + mood + ' This is the goal of the conversation: ' + conversation_goal, role="user", class_type="Introduction", sender="user")
-        messages.add_message(message)
-        message = AIMessage(message='hi', role="assistant", class_type="MessageAI", sender="assistant")
-        messages.add_message(message)
-        messages_dict[user_id] = messages
+    print(background)    
+    messages = AIMessages()
+    message = AIMessage(message='We are playing a role game. Stay in the role. Be creative about your role. The role is: ' + background + ' This is the initial emotion: ' + mood + ' This is the goal of the conversation: ' + conversation_goal, role="user", class_type="Introduction", sender="user")
+    messages.add_message(message)
+    message = AIMessage(message='hi', role="assistant", class_type="MessageAI", sender="assistant")
+    messages.add_message(message)
+    messages_dict[user_id] = messages
         
 
 def process_message(query : AIMessage, user_id : str):
@@ -38,6 +39,8 @@ def process_message(query : AIMessage, user_id : str):
         sending_str = response_data.model_dump_json()
         return sending_str
         
+    print(query)
+
     messages = messages_dict[user_id]
 
     message = AIMessage(message=query, role="user", class_type="MessageAI", sender="user")
@@ -50,13 +53,12 @@ def process_message(query : AIMessage, user_id : str):
     query_result_emotion = wrapped_model.query_text(messages_emotion)
 
     messages_emotion = AIMessages()
-    message_emotion = AIMessage(message='Based on the chat history evaluate if the conversation if over. Return with 1 for true and 0 for false.' + messages.prints_messages_role(), role="user", class_type="Introduction", sender="user")
+    message_emotion = AIMessage(message='Based on the goal of the chat history evaluate if the conversation if over. Return with 1 for true and 0 for false. This is the chat history: ' + messages.prints_messages_role(), role="user", class_type="Introduction", sender="user")
     messages_emotion.add_message(message_emotion)
     query_result_end = wrapped_model.query_text(messages_emotion)
 
-
     response_data = PromptResponseData(
-        utt=query_result, emotion=query_result_emotion, trust_level=str(0), end=bool(query_result_end)
+        utt=query_result, emotion=query_result_emotion, trust_level=str(0), end=bool(int(query_result_end))
     )
     
     sending_str = response_data.model_dump_json()
@@ -74,6 +76,7 @@ def process_message(query : AIMessage, user_id : str):
 def websocket(ws):
     
     user_id = request.args.get('user_id')
+    print(user_id)
     print(f"User ID: {user_id}")
 
     if not user_id:
@@ -90,7 +93,7 @@ def websocket(ws):
             pm = InitAvatar(**data)
             init_session(pm.data.background_story, pm.data.mood, pm.data.conversation_goal, user_id)
             
-        if(data['type']==MessageType.PROMPTMESSAGE.value):
+        elif(data['type']==MessageType.PROMPTMESSAGE.value):
             pm = PromptMessage(**data) 
             print(f"Receiving value: {pm.data.message}")
             sending_str = process_message(pm.data.message, user_id)
