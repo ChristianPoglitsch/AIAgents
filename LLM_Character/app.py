@@ -48,7 +48,7 @@ def process_message(query : AIMessage, user_id : str):
     query_result = wrapped_model.query_text(messages)
 
     messages_emotion = AIMessages()
-    message_emotion = AIMessage(message='Based on the chat history evaluate the emotion of the agent. Only reply the emotion. Emotions you can select: happy, surprise, sad, fear, disgust, anger or neutral. This is the chat history: ' + messages.prints_messages_role(), role="user", class_type="Introduction", sender="user")
+    message_emotion = AIMessage(message='Based on the chat history evaluate the emotion of the agent. This is the chat history: ' + messages.prints_messages_role() + '  Emotions you can select: happy, surprise, sad, fear, disgust, anger or neutral. Only reply one emotion.', role="user", class_type="Introduction", sender="user")
     messages_emotion.add_message(message_emotion)
     query_result_emotion = wrapped_model.query_text(messages_emotion)
 

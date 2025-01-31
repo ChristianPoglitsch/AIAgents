@@ -199,8 +199,8 @@ if __name__ == "__main__":
 
     model, tokenizer = load_mistral_instr_model()
 
-    #instruct_tune_dataset = load_dataset("mwitiderrick/lamini_mistral", split="train")
-    instruct_tune_dataset = generate_additional_data()
+    instruct_tune_dataset = load_dataset("mwitiderrick/lamini_mistral", split="train")
+    #instruct_tune_dataset = generate_additional_data()
     train_mistral(model, tokenizer, instruct_tune_dataset)
 
     # FIXME:
