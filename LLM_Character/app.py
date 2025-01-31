@@ -22,7 +22,7 @@ sock = Sock(app)
 def init_session(background : str, mood : str, conversation_goal : str, user_id : str):
     print(background)    
     messages = AIMessages()
-    message = AIMessage(message='We are playing a role game. Stay in the role. Be creative about your role. The role is: ' + background + ' This is the initial emotion: ' + mood + ' This is the goal of the conversation: ' + conversation_goal, role="user", class_type="Introduction", sender="user")
+    message = AIMessage(message='We are playing a role game. Stay in the role. Be creative about your role. Keep your answers short. The role is: ' + background + ' This is the initial emotion: ' + mood + ' This is the goal of the conversation: ' + conversation_goal, role="user", class_type="Introduction", sender="user")
     messages.add_message(message)
     message = AIMessage(message='hi', role="assistant", class_type="MessageAI", sender="assistant")
     messages.add_message(message)
@@ -48,7 +48,7 @@ def process_message(query : AIMessage, user_id : str):
     query_result = wrapped_model.query_text(messages)
 
     messages_emotion = AIMessages()
-    message_emotion = AIMessage(message='Based on the chat history evaluate the emotion of the agent. This is the chat history: ' + messages.prints_messages_role() + '  Emotions you can select: happy, surprise, sad, fear, disgust, anger or neutral. Only reply one emotion.', role="user", class_type="Introduction", sender="user")
+    message_emotion = AIMessage(message='Based on the background story of the character and the chat history evaluate the emotion of the agent. This is the chat history: ' + messages.prints_messages_role() + ' Emotions you can select: happy, surprise, sad, fear, disgust, anger or neutral. Only reply one emotion.', role="user", class_type="Introduction", sender="user")
     messages_emotion.add_message(message_emotion)
     query_result_emotion = wrapped_model.query_text(messages_emotion)
 
