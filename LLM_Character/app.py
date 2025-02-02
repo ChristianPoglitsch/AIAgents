@@ -138,10 +138,10 @@ class ChatOverDecorator(MessageProcessing):
 
     def get_messages(self, query : str) -> MessageStruct:
         message_processing = self._decorator.get_messages(query)
-        instruction = self._llm_api.query_text(message_processing.get_instruction_and_history())
-        message = AIMessage(message='Based on the chat history: ' + instruction + 'Is the conversation over? Reply with 1 for true and 0 for false. Only reply the number.', role="assistant", class_type="MessageAI", sender="assistant")     
+        instruction = message_processing.get_instruction_and_history()
+        message = AIMessage(message='This is the agent instruction and the chat history: ' + instruction.prints_messages_role() + ' Estimate if the conversation is over. The conversation is over if the goal of the conversation is reached, if someone says good bye or if the secret information is discovered. Reply with 1 for true and 0 for false. Only reply the number.', role="assistant", class_type="MessageAI", sender="assistant")     
         queries = AIMessages()
-        queries.add_message(message)        
+        queries.add_message(message)
         query_result = self._llm_api.query_text(queries)
         message_processing.set_conversation_end(query_result)
         return message_processing
@@ -150,13 +150,13 @@ def init_session(background : str, mood : str, conversation_goal : str, user_id 
     print(background)
 
     wrapped_model = get_model_openai()
-    message = 'Based on the background story create additional content for a role play agent: ' + background + ' You can put here secrect information like hidden information for a game or about your personality. The user will not see this information. Only reply new information so that it can be added to the background story.'  
+    message = 'Based on the background story create additional content for a role play agent: ' + background + ' You can put here secrect information like hidden information for a game or about your personality. Only the game master can see this information. Only reply new information so that it can be added to the background story.'  
     query = AIMessage(message=message, role="user", class_type="MessageAI", sender="user")
     queries = AIMessages()
     queries.add_message(query)
     secret_information = wrapped_model.query_text(queries)
 
-    print(secret_information)
+    #print(secret_information)
     message = AIMessage(message='We are playing a role game. Stay in the role. Be creative about your role. Try not repeat text. Keep your answers short. The role is: ' + background + ' This is the initial emotion: ' + mood + ' This is the goal of the conversation: ' + conversation_goal + ' This is th secret information created for you: ' + secret_information, role="user", class_type="Introduction", sender="user")
     print(message.get_message())
     message_manager = MessageStruct(message)
@@ -248,7 +248,8 @@ def hello_world():
 def run_local_chat():
     user_id = 'Test'
 
-    message = AIMessage(message='You are playing a role. Answer according to your character. You are a 22-year-old woman named Ana. You are from Graz and you have a physical body. Keep your response short. ', role="user", class_type="Introduction", sender="user")
+    #message = AIMessage(message='You are playing a role. Answer according to your character. You are a 22-year-old woman named Ana. You are from Graz and you have a physical body. Keep your response short. ', role="user", class_type="Introduction", sender="user")
+    message = AIMessage(message='Let us play who are you. Randomly select one famous real or fictional person and I have to guess it. ', role="user", class_type="Introduction", sender="user")
     init_session(message.get_message(), 'Happy', ' ', user_id)
 
     while True:
