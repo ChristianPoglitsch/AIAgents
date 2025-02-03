@@ -1,3 +1,4 @@
+import math
 import random
 
 class Role:
@@ -38,20 +39,122 @@ roles = {
     'Imp': Role('Imp', 'Demon', 'Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp.')
 }
 
+# Example action space using dictionaries
+action_space = [
+    {'type': 'nominate', 'nominator': None, 'nominee': None},  # A player nominates another player
+    {'type': 'vote', 'voter': None, 'vote': None},  # A player votes during the voting phase
+    {'type': 'kill', 'killer': None, 'target': None},  # The Imp kills a target at night
+    {'type': 'protect', 'protector': None, 'target': None},  # Example: Monk protects a target
+    {'type': 'bluff', 'bluffer': None, 'claim': None},  # A player bluffs about their role
+    {'type': 'reveal', 'revealer': None},  # Example: Investigator reveals information
+    {'type': 'disrupt', 'disruptor': None},  # Example: Poisoner poisons a player
+    {'type': 'check', 'checker': None, 'target': None},  # Example: Empath checks the status of neighbors
+    {'type': 'announce', 'announcer': None, 'message': None},  # A player makes a public announcement
+    {'type': 'vote_grimoire', 'voter': None, 'vote': None}  # Example: Grimoire voting action
+]
+
+# Example action space using classes
+class Action:
+    def __init__(self, action_type, **kwargs):
+        self.type = action_type
+        self.params = kwargs
+
+# Defining the 10 actions
+action_space = [
+    Action('nominate', nominator=None, nominee=None),
+    Action('vote', voter=None, vote=None),
+    Action('kill', killer=None, target=None),
+    Action('protect', protector=None, target=None),
+    Action('bluff', bluffer=None, claim=None),
+    Action('reveal', revealer=None),
+    Action('disrupt', disruptor=None),
+    Action('check', checker=None, target=None),
+    Action('announce', announcer=None, message=None),
+    Action('vote_grimoire', voter=None, vote=None)
+]
+
+# Example of accessing an action and updating it
+example_nominate_action = action_space[0]
+example_nominate_action.params['nominator'] = 'Alice'
+example_nominate_action.params['nominee'] = 'Bob'
+
+class Player:
+    def __init__(self, name, role=None, alive=True):
+        """
+        Initialize a player in the game.
+        
+        :param name: The name of the player.
+        :param role: The role of the player (e.g., 'Imp', 'Villager', etc.).
+        :param alive: Whether the player is alive or dead.
+        """
+        self.name = name
+        self.role = role  # E.g., 'Imp', 'Fortune Teller', 'Villager'
+        self.alive = alive
+        self.nominated = False
+        self.private_knowledge = []  # E.g., [(player, status)] for Empath
+        self.effects = []  # E.g., 'Poisoned', 'Drunk'
+    
+    def add_private_knowledge(self, knowledge):
+        """
+        Add private knowledge to the player's information.
+        
+        :param knowledge: Information to add (e.g., a tuple like (player, True/False)).
+        """
+        self.private_knowledge.append(knowledge)
+    
+    def apply_effect(self, effect):
+        """
+        Apply a status effect to the player (e.g., 'Poisoned', 'Drunk').
+        
+        :param effect: The effect to apply.
+        """
+        if effect not in self.effects:
+            self.effects.append(effect)
+    
+    def remove_effect(self, effect):
+        """
+        Remove a status effect from the player.
+        
+        :param effect: The effect to remove.
+        """
+        if effect in self.effects:
+            self.effects.remove(effect)
+    
+    def reset_for_new_day(self):
+        """
+        Reset daily attributes for the player, such as nomination status.
+        """
+        self.nominated = False
+
+    def __repr__(self):
+        """
+        Representation of the player for debugging purposes.
+        """
+        return (f"Player(name={self.name}, role={self.role}, alive={self.alive}, "
+                f"nominated={self.nominated}, private_knowledge={self.private_knowledge}, effects={self.effects})")
+
+
 class GameState:
-    def __init__(self, players):
-        self.players = {player: {'role': None, 'alive': True, 'nominated': False, 'effects' : None} for player in players}
-        self.phase = 'Night'
-        self.day_count = 0
-        self.nominations = []
-        self.execution = None
+    def __init__(self, players, phase='Day'):
+        # Public information
+        self.phase = phase
+        self.alive_players = {player: {'role': None, 'alive': True, 'nominated': False, 'effects' : None} for player in players}
+        self.nominations = []  # List of tuples (nominator, nominee)
+        
+        # Private information (not visible to all)
+        self.roles = {player: None for player in players}  # Roles, e.g., {'Alice': 'Imp', 'Bob': 'Fortune Teller'}
+        self.private_knowledge = {player: None for player in players}  # E.g., {'Bob': ('Charlie', False)}
+        
+        # Extra data for tracking game progress
+        self.day_count = 1
+        self.effects = {}  # Any ongoing effects, like poisoning or drunk states
 
     def print_game_state(self):
         print("Game State:")
         print(f"Phase: {self.phase}")
         print(f"Day Count: {self.day_count}")
         print("Players:")
-        for player, info in self.players.items():
+        for player, info in self.alive_players.items():
             role = info['role'].name if info['role'] else "Unknown"
             status = "Alive" if info['alive'] else "Dead"
             print(f"  {player}: Role={role}, Status={status}, Nominated={info['nominated']}")
@@ -59,6 +162,125 @@ class GameState:
         for nominator, nominee in self.nominations:
             print(f"  {nominator} nominated {nominee}")
         print(f"Execution: {self.execution if self.execution else 'None'}")
+
+    def get_public_state(self):
+        """Returns a version of the state visible to all players."""
+        return {
+            'phase': self.phase,
+            'alive_players': self.alive_players,
+            'nominations': self.nominations,
+            'day_count': self.day_count,
+        }
+
+    def get_private_state(self, player):
+        """Returns the private state for a specific player."""
+        return {
+            'role': self.roles[player],
+            'private_knowledge': self.private_knowledge[player],
+            # Add any other player-specific information
+        }
+
+    def is_terminal(self):
+        """Check if the game has reached a terminal state."""
+        # Terminal state could be when the Imp is dead, or only evil players are alive
+        alive_roles = {self.roles[p] for p in self.alive_players if self.alive_players[p]}
+        return 'Imp' not in alive_roles or len(alive_roles) <= 1
+
+    def take_action(self, action):
+        """Apply an action to the game state and return a new state."""
+        new_state = GameState(self.phase, self.alive_players.keys())
+        new_state.roles = self.roles.copy()
+        new_state.private_knowledge = self.private_knowledge.copy()
+        new_state.nominations = self.nominations.copy()
+        new_state.effects = self.effects.copy()
+        new_state.day_count = self.day_count
+
+        # Apply action logic
+        if action['type'] == 'nominate':
+            new_state.nominations.append((action['nominator'], action['nominee']))
+        elif action['type'] == 'execute':
+            new_state.alive_players[action['target']] = False
+        # Handle other actions like poisoning, bluffing, etc.
+        
+        # Transition phase if needed
+        if len(new_state.nominations) >= len(self.alive_players) - 1:
+            new_state.phase = 'Night' if self.phase == 'Day' else 'Day'
+            new_state.nominations.clear()
+
+        return new_state
+
+    def get_reward(self):
+        # Return the reward for the current state
+        # Example: +1 if the Imp is not suspected, -1 if suspected
+        return random.choice([1, -1])
+
+    def get_legal_actions(self):
+        """Return a list of legal actions from the current state."""
+        legal_actions = []
+        if self.phase == 'Day':
+            for nominator in self.alive_players:
+                if self.alive_players[nominator]:
+                    for nominee in self.alive_players:
+                        if nominator != nominee and self.alive_players[nominee]:
+                            legal_actions.append({'type': 'nominate', 'nominator': nominator, 'nominee': nominee})
+        elif self.phase == 'Night':
+            # Define night actions, such as the Imp selecting a target
+            for player in self.alive_players:
+                if self.roles[player] == 'Imp' and self.alive_players[player]:
+                    for target in self.alive_players:
+                        if player != target and self.alive_players[target]:
+                            legal_actions.append({'type': 'kill', 'killer': player, 'target': target})
+        return legal_actions
+
+class MCTSNode:
+    def __init__(self, state, parent=None):
+        self.state = state
+        self.parent = parent
+        self.children = []
+        self.visits = 0
+        self.total_reward = 0
+
+    def is_fully_expanded(self):
+        return len(self.children) == len(self.state.get_legal_actions())
+
+    def best_child(self, exploration_weight=1.0):
+        """Return the child with the highest UCB1 score."""
+        return max(self.children, key=lambda child: child.total_reward / child.visits + 
+                   exploration_weight * math.sqrt(math.log(self.visits) / (child.visits + 1e-6)))
+
+def mcts(initial_state, num_simulations):
+    root = MCTSNode(initial_state)
+    
+    for _ in range(num_simulations):
+        node = root
+        
+        # Selection
+        while not node.state.is_terminal() and node.is_fully_expanded():
+            node = node.best_child()
+        
+        # Expansion
+        if not node.state.is_terminal():
+            legal_actions = node.state.get_legal_actions()
+            for action in legal_actions:
+                new_state = node.state.take_action(action)
+                node.children.append(MCTSNode(new_state, node))
+        
+        # Simulation (Rollout)
+        current_node = node
+        while not current_node.state.is_terminal():
+            legal_actions = current_node.state.get_legal_actions()
+            action = random.choice(legal_actions)
+            current_node = MCTSNode(current_node.state.take_action(action))
+        
+        # Backpropagation
+        reward = current_node.state.get_reward()
+        while node is not None:
+            node.visits += 1
+            node.total_reward += reward
+            node = node.parent
+
+    return root.best_child(exploration_weight=0).state
+
 
 class BotCEnvironment:
     def __init__(self, players, roles):
@@ -71,8 +293,8 @@ class BotCEnvironment:
     def assign_roles(self, roles):
         role_list = list(roles.values())
         random.shuffle(role_list)
-        for i, player in enumerate(self.state.players):
-            self.state.players[player]['role'] = role_list[i]
+        for i, player in enumerate(self.state.alive_players):
+            self.state.alive_players[player]['role'] = role_list[i]
     
     def next_phase(self):
         if self.state.phase == 'Night':
@@ -89,25 +311,25 @@ class BotCEnvironment:
 
     def execute_vote(self):
         if self.state.execution:
-            self.state.players[self.state.execution]['alive'] = False
+            self.state.alive_players[self.state.execution]['alive'] = False
             print(f"{self.state.execution} was executed.")
             self.state.execution = None
     
     def night_action(self, player, target):
-        role = self.state.players[player]['role']
+        role = self.state.alive_players[player]['role']
         if role.name == 'Imp' and self.state.phase == 'Night':
-            self.state.players[target]['alive'] = False
+            self.state.alive_players[target]['alive'] = False
             print(f"{player} (Imp) killed {target}.")
     
     def nominate(self, nominator, target):
-        if self.state.phase == 'Nominations' and self.state.players[nominator]['alive']:
-            self.state.players[target]['nominated'] = True
+        if self.state.phase == 'Nominations' and self.state.alive_players[nominator]['alive']:
+            self.state.alive_players[target]['nominated'] = True
             self.state.nominations.append((nominator, target))
             print(f"{nominator} nominated {target}.")
     
     def vote(self, voter, target):
-        if self.state.phase == 'Voting' and self.state.players[voter]['alive']:
-            if target in self.state.players and self.state.players[target]['nominated']:
+        if self.state.phase == 'Voting' and self.state.alive_players[voter]['alive']:
+            if target in self.state.alive_players and self.state.alive_players[target]['nominated']:
                 self.state.execution = target
                 print(f"{voter} voted to execute {target}.")
 
@@ -237,4 +459,3 @@ for participants, conversation in conversations.items():
     print(f"Conversation with participants: {participants}")
     conversation.print_conversation()  # Prints the conversation history for these participants
     print()  # Add a blank line for readability between conversations
-
