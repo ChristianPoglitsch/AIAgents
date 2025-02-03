@@ -1,4 +1,3 @@
-from asyncio.windows_events import NULL
 from flask import Flask, request
 import json
 from openai import OpenAI
