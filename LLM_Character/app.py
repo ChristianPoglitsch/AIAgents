@@ -151,14 +151,14 @@ def init_session(background : str, mood : str, conversation_goal : str, user_id 
     print(background)
 
     wrapped_model = get_model_openai()
-    message = 'Based on the background story create additional content for a role play agent: ' + background + ' You can put here secrect information like hidden information for a game or about your personality. Only the game master can see this information. Only reply new information so that it can be added to the background story.'  
+    message = 'This is the inctrustion for an AI agent: ' + background + ' This is the goal of the game or conversation: ' + conversation_goal + ' If it is a game create the initial game state for the AI agent. Randomize the initial game state. If it is about a conversational agent also create additional background information. Be creativ and random.'
     query = AIMessage(message=message, role="user", class_type="MessageAI", sender="user")
     queries = AIMessages()
     queries.add_message(query)
     secret_information = wrapped_model.query_text(queries)
 
     #print(secret_information)
-    message = AIMessage(message='We are playing a role game. Stay in the role. Be creative about your role. Try not repeat text. Keep your answers short. The role is: ' + background + ' This is the initial emotion: ' + mood + ' This is the goal of the conversation: ' + conversation_goal + ' This is th secret information created for you: ' + secret_information, role="user", class_type="Introduction", sender="user")
+    message = AIMessage(message='We are playing a role game. Stay in the role. Be creative about your role. Try not repeat text. Keep your answers short. The role is: ' + background + ' This is the initial emotion: ' + mood + ' This is the goal of the conversation: ' + conversation_goal + ' This is the secret information created for you: ' + secret_information, role="user", class_type="Introduction", sender="user")
     print(message.get_message())
     message_manager = MessageStruct(message)
     message = AIMessage(message='hi', role="assistant", class_type="MessageAI", sender="assistant")
