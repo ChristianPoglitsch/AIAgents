@@ -212,18 +212,28 @@ def process_message(query : AIMessage, user_id : str):
     
     return sending_str
 
-def process_audio(message: str, persona : str):
+
+def get_openai_voice(character_name: str) -> str:
+    voices = {
+        "Camila": "nova",
+        "Melissa": "shimmer",
+        "Kevin": "echo",
+        "Caleb": "ash",
+    }
+    return voices.get(character_name, "default_voice")
+
+def process_audio(message: str, voice : str):
     # In the Future adapt audio to work for non open ai cases?
     client = OpenAI(api_key=API_KEY)
     # TODO adapt voice based on persona
     audio_response = client.audio.speech.create(
         model="tts-1",
-        voice="alloy",
+        voice=voice,
         input=message,
         response_format='wav'
     )
 
-    audio_response.write_to_file("output.wav")
+    # audio_response.write_to_file("output.wav")
     return audio_response.response.content
 
 @sock.route('/tts')
@@ -237,7 +247,9 @@ def websocket_tts(ws):
         if(data['type']==MessageType.PROMPTMESSAGE.value):
             pm = PromptMessage(**data) 
             # print(f"Receiving value: {pm.data.message}, Current Persona: {pm.data.persona_name}")
-            sending_audio = process_audio(pm.data.message, pm.data.persona_name)
+            ai_voice = get_openai_voice(pm.data.persona_name)
+            print(f"Set voice to {ai_voice}")
+            sending_audio = process_audio(pm.data.message, ai_voice)
 
             print(f"Sending audio... {len(sending_audio)}")
             ws.send(sending_audio)
