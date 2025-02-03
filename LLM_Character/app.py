@@ -1,6 +1,7 @@
 from asyncio.windows_events import NULL
 from flask import Flask, request
 import json
+from openai import OpenAI
 from waitress import serve
 
 from LLM_Character.messages_dataclass import AIMessage, AIMessages
@@ -11,6 +12,7 @@ from LLM_Character.communication.outgoing_messages import (
 )
 from LLM_Character.llm_comms.llm_api import LLM_API
 from LLM_Character.llm_comms.llm_openai import OpenAIComms
+from LLM_Character.util import API_KEY, LOGGER_NAME
 from flask import Flask
 from flask_sock import Sock
 
@@ -210,6 +212,35 @@ def process_message(query : AIMessage, user_id : str):
     
     return sending_str
 
+def process_audio(message: str, persona : str):
+    # In the Future adapt audio to work for non open ai cases?
+    client = OpenAI(api_key=API_KEY)
+    # TODO adapt voice based on persona
+    audio_response = client.audio.speech.create(
+        model="tts-1",
+        voice="alloy",
+        input=message,
+        response_format='wav'
+    )
+
+    audio_response.write_to_file("output.wav")
+    return audio_response.response.content
+
+@sock.route('/tts')
+def websocket_tts(ws):
+    print(f"Start server")
+    while True:
+        # Receive data from the client
+        data = ws.receive()
+        data = json.loads(data)
+            
+        if(data['type']==MessageType.PROMPTMESSAGE.value):
+            pm = PromptMessage(**data) 
+            # print(f"Receiving value: {pm.data.message}, Current Persona: {pm.data.persona_name}")
+            sending_audio = process_audio(pm.data.message, pm.data.persona_name)
+
+            print(f"Sending audio... {len(sending_audio)}")
+            ws.send(sending_audio)
 
 @sock.route('/ws')
 def websocket(ws):
@@ -264,7 +295,7 @@ if __name__ == '__main__':
     
     messages_dict = { } #AIMessages()
 
-    if False:
+    if True:
         app.run(port=8765, host='0.0.0.0')
     else:
         run_local_chat()
