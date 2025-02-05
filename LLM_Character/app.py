@@ -14,6 +14,7 @@ from LLM_Character.communication.outgoing_messages import (
 from LLM_Character.llm_comms.llm_api import LLM_API
 from flask import Flask, render_template
 from flask_sock import Sock
+# import json
 
 app = Flask(__name__)
 sock = Sock(app)
@@ -21,8 +22,25 @@ sock = Sock(app)
 def process_message(query : AIMessage, user_id : str):
     
     if not user_id in messages_dict:
+        test_message_addition = (""" You are a Human Resources (HR) professional doing a job interview for a management position
+                                  in game development. Your goal is to assess the candidates leadership skills, industry knowledge,
+                                    and ability to manage a team effectively in a fast-paced game development environment.
+                                  Begin the conversation by introducing yourself and the company, then ask the candidate about their background,
+                                  experience in game development, and leadership style.
+                                  Gradually dive deeper into their problem-solving skills, conflict resolution strategies,
+                                  and familiarity with game production pipelines (e.g., Agile, Scrum).
+                                 Ask questions such as: Can you describe your experience leading game development teams?
+                                    How do you handle conflicts between developers, artists, and designers?
+                                    What strategies do you use to keep a project on track and within budget?
+                                    How do you foster creativity while maintaining production efficiency?
+                                    Tell me about a time you had to make a tough decision as a manager.
+                                    Maintain a professional yet conversational tone, adapting to the candidates responses.
+                                  Feel free to ask follow-up questions based on their answers to evaluate their qualifications more thoroughly.
+                                    At the end of the interview, summarize the candidates strengths and potential concerns,
+                                  then thank them for their time.
+                                 Under absolutely no circumstances let them know that you are AI.""")
         messages = AIMessages()
-        message = AIMessage(message='We are playing a role game. Stay in the role. Be creative about your role. The role is: Your name is Ana.', role="user", class_type="Introduction", sender="user")
+        message = AIMessage(message='We are playing a role game. Stay in the role. Be creative about your role. The role is: Your name is Ana.' + test_message_addition, role="user", class_type="Introduction", sender="user")
         messages.add_message(message)
         message = AIMessage(message='hi', role="assistant", class_type="MessageAI", sender="assistant")
         messages.add_message(message)
@@ -62,6 +80,9 @@ def websocket(ws):
         data = ws.receive()
         data = json.loads(data)
         pm = PromptMessage(**data)
+
+        if pm.data.message == "q":
+            break
  
         sending_str = process_message(pm.data.message, 'Test')
         #print(f"Sending value: {sending_str}")
@@ -74,11 +95,32 @@ def hello_world():
     return '<p>Hello, World!</p>'
 
 def run_local_chat():
+    #TODO user should "log in" with idm for database later
+    user_id = input("Please enter your user_id (for the database): ")
+    print("Logged in as "+ str(user_id))
     user_id = 'test'
+    try:
+        with open('data.json', 'rb+') as json_data:
+            data = json.load(json_data)
+        message = """This next message is a summary of our previous conversation,
+          keep this in mind when doing the job interview. This is now the second time we meet."""
+        _ = process_message(message, user_id)
+        _ = process_message(data, user_id)
+        print("read data")
+    except: print("No previous data found")
+
 
     while True:
         message = input("Chat: ")
         if message == "q":
+            _ = process_message("""Please summarise the conversation with me (the candidate),
+                                 what we talked about and if you think that I would be a good fit for the company.
+                                 Explain you reasoning and only summarise what you really talked about with the me.
+                                 Describe everything in a way that you can read your response in a week and
+                                 know what we talked about and how you felt about me.""", user_id)
+            
+            with open('data.json', 'w') as f:
+                json.dump(_, f)
             break     
 
         _ = process_message(message, user_id)
@@ -101,3 +143,6 @@ if __name__ == '__main__':
         app.run(port=8765, host='0.0.0.0')
     else:
         run_local_chat()
+
+
+
