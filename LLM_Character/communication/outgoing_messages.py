@@ -52,6 +52,7 @@ class PromptResponseData(BaseModel):
     emotion: str
     trust_level: int
     end: bool
+    status : int
 
 
 class PromptReponse(BaseResponse):

@@ -21,7 +21,7 @@ sock = Sock(app)
 from abc import ABC, abstractmethod
 from copy import deepcopy
 
-max_token_quick_reply = 25
+max_token_quick_reply = 10
 
 class MessageStruct():
 
@@ -92,39 +92,40 @@ class BaseDecorator(MessageProcessing):
 class EmotionDecorator(MessageProcessing):
     
     def __init__(self, decorator : MessageProcessing, llm_api : LLM_API):
-        super(EmotionDecorator, self).__init__(decorator)      
+        super(EmotionDecorator, self).__init__(decorator)  
         self._llm_api = llm_api
 
-    def get_messages(self, query : str) -> MessageStruct:
+    def get_messages(self, query : str) -> MessageStruct:        
         message_processing = self._decorator.get_messages(query)
+        print('*** *** *** Emotion decorator')
+        self._llm_api.set_max_tokens(max_token_quick_reply)
         messages = message_processing.get_history().get_messages()
         
-        message = 'Based on the Instruction and the chat history estimate the emotional state of the agent with one of these emotions: happy, angry, disgust, fear, surprise, sad or neutral. Answer only with the emotion.\n'
+        message = 'Based on the Instruction and the chat history estimate the emotion of the agent: happy, angry, disgust, fear, surprise, sad or neutral. Answer only with the emotion.\n'
         message = message + 'Instruction: ' + message_processing.get_instruction().get_message() + '\n'    
         message = message + 'Message: ' + messages[-1].message + '\n'        
         query = AIMessage(message=message, role="user", class_type="MessageAI", sender="user")
         queries = AIMessages()
-        queries.add_message(query)
+        queries.add_message(query)       
         
-        self._llm_api.set_max_tokens(max_token_quick_reply)
         query_result = self._llm_api.query_text(queries)
         m = message_processing.get_instruction()
         m.message = m.message + '\nYour current emotion: ' + query_result
         message_processing.set_instruction(m)
         message_processing.set_emotion(query_result)
-
-        self._llm_api.set_max_tokens(100)
         return message_processing
 
 
 class ChatCompletationDecorator(MessageProcessing):
     
     def __init__(self, decorator : MessageProcessing, llm_api : LLM_API):
-        super(ChatCompletationDecorator, self).__init__(decorator)      
+        super(ChatCompletationDecorator, self).__init__(decorator)
         self._llm_api = llm_api
 
     def get_messages(self, query : str) -> MessageStruct:
         message_processing = self._decorator.get_messages(query)
+        print('*** *** *** Chat decorator')
+        self._llm_api.set_max_tokens(512)
         query_result = self._llm_api.query_text(message_processing.get_instruction_and_history())
         message = AIMessage(message=query_result, role="assistant", class_type="MessageAI", sender="assistant")
         message_processing.add_message(message)
@@ -134,13 +135,15 @@ class ChatCompletationDecorator(MessageProcessing):
 class ChatOverDecorator(MessageProcessing):
     
     def __init__(self, decorator : MessageProcessing, llm_api : LLM_API):
-        super(ChatOverDecorator, self).__init__(decorator)      
+        super(ChatOverDecorator, self).__init__(decorator)
         self._llm_api = llm_api
 
-    def get_messages(self, query : str) -> MessageStruct:
+    def get_messages(self, query : str) -> MessageStruct:        
         message_processing = self._decorator.get_messages(query)
+        print('*** *** *** Chat finished decorator')
+        self._llm_api.set_max_tokens(max_token_quick_reply)
         instruction = message_processing.get_instruction_and_history()
-        message = AIMessage(message='This is the agent instruction and the chat history: ' + instruction.prints_messages_role() + ' Estimate if the conversation is over. The conversation is over if the goal of the conversation is reached, if someone says good bye or if the secret information is discovered. Reply with 1 for true and 0 for false. Only reply the number.', role="assistant", class_type="MessageAI", sender="assistant")     
+        message = AIMessage(message='This is the agent instruction and the chat history: ' + instruction.prints_messages_role() + ' Estimate if the conversation is over. The conversation is over if the goal of the conversation is reached. Reply with 1 for true and 0 for false. Only reply the number.', role="assistant", class_type="MessageAI", sender="assistant")     
         queries = AIMessages()
         queries.add_message(message)
         query_result = self._llm_api.query_text(queries)
@@ -148,14 +151,27 @@ class ChatOverDecorator(MessageProcessing):
         return message_processing
 
 def init_session(background : str, mood : str, conversation_goal : str, user_id : str):
-    print(background)
-
+    print('*** *** *** Init session ' + background)
     wrapped_model = get_model_openai()
-    message = 'This is the inctrustion for an AI agent: ' + background + ' This is the goal of the game or conversation: ' + conversation_goal + ' If it is a game create the initial game state for the AI agent. Randomize the initial game state. If it is about a conversational agent also create additional background information. Be creativ and random.'
+    
+    wrapped_model.set_max_tokens(max_token_quick_reply)
+    message = 'The instruction: *' + background + '* \nDoes the instruction tell to create content? Return 1 if true, else return 0. Only return the number.'
     query = AIMessage(message=message, role="user", class_type="MessageAI", sender="user")
     queries = AIMessages()
     queries.add_message(query)
-    secret_information = wrapped_model.query_text(queries)
+    add_additional_info = wrapped_model.query_text(queries)
+    add_additional_info = eval(add_additional_info)
+    print(bool(add_additional_info))
+    
+    secret_information = ''
+    wrapped_model.set_max_tokens(512)
+    
+    if add_additional_info:
+        message = 'The background story: *' + background + '* \nThis is the goal of the game or conversation: *' + conversation_goal + '* \n Set the game state and add additional background information for the agent. Be creativ and random. Make it challenging to reach the goal of the game. '
+        query = AIMessage(message=message, role="user", class_type="MessageAI", sender="user")
+        queries = AIMessages()
+        queries.add_message(query)
+        secret_information = wrapped_model.query_text(queries)
 
     #print(secret_information)
     message = AIMessage(message='We are playing a role game. Stay in the role. Be creative about your role. Try not repeat text. Keep your answers short. The role is: ' + background + ' This is the initial emotion: ' + mood + ' This is the goal of the conversation: ' + conversation_goal + ' This is the secret information created for you: ' + secret_information, role="user", class_type="Introduction", sender="user")
@@ -163,12 +179,12 @@ def init_session(background : str, mood : str, conversation_goal : str, user_id 
     message_manager = MessageStruct(message)
     message = AIMessage(message='hi', role="assistant", class_type="MessageAI", sender="assistant")
     message_manager.add_message(message)
-    messages_dict[user_id] = message_manager        
+    messages_dict[user_id] = message_manager
 
 def get_model_openai() -> LLM_API:
     model = OpenAIComms()
     model_id = "gpt-4o"
-    model.max_tokens = 2048
+    model.max_tokens = 512
     model.init(model_id)
     wrapped_model = LLM_API(model)
     return wrapped_model
@@ -185,7 +201,7 @@ def process_message(query : AIMessage, user_id : str):
     print('User id: ' + user_id)
     if not user_id in messages_dict:
         response_data = PromptResponseData(
-            utt='User not found', emotion=' ', trust_level=str(0), end=bool(query_result_end)
+            utt='User not found', emotion=' ', trust_level=str(0), end=bool(query_result_end), status = 0
         )    
         sending_str = response_data.model_dump_json()
         return sending_str
@@ -203,7 +219,7 @@ def process_message(query : AIMessage, user_id : str):
     query_result_end = False
 
     response_data = PromptResponseData(
-        utt=decorator_result.get_query_result(), emotion=decorator_result.get_emotion(), trust_level=str(0), end=bool(int(decorator_result.get_conversation_end()))
+        utt=decorator_result.get_query_result(), emotion=decorator_result.get_emotion(), trust_level=str(0), end=bool(int(decorator_result.get_conversation_end())), status = 0
     )
     
     sending_str = response_data.model_dump_json()    
@@ -237,13 +253,14 @@ def process_audio(message: str, voice : str):
 
 @sock.route('/tts')
 def websocket_tts(ws):
-    print(f"Start server")
+
     while True:
         # Receive data from the client
         data = ws.receive()
         data = json.loads(data)
             
         if(data['type']==MessageType.PROMPTMESSAGE.value):
+            print(f"Text2Speech processing")
             pm = PromptMessage(**data) 
             # print(f"Receiving value: {pm.data.message}, Current Persona: {pm.data.persona_name}")
             ai_voice = get_openai_voice(pm.data.persona_name)
@@ -251,35 +268,41 @@ def websocket_tts(ws):
             sending_audio = process_audio(pm.data.message, ai_voice)
 
             print(f"Sending audio... {len(sending_audio)}")
+            print(f"Text2Speech processing finished")
             ws.send(sending_audio)
 
 @sock.route('/ws')
 def websocket(ws):
     
     user_id = request.args.get('user_id')
-    print(user_id)
     print(f"User ID: {user_id}")
 
     if not user_id:
         print("Invalid user ID: User ID is required")
         user_id = 'test'
 
-    print(f"Start server")
     while True:
         # Receive data from the client
         data = ws.receive()
         data = json.loads(data)
         
         if(data['type']==MessageType.STARTMESSAGE.value):
+            print(f"Start server processing ")
             pm = InitAvatar(**data)
             init_session(pm.data.background_story, pm.data.mood, pm.data.conversation_goal, user_id)
+            print(f"Start server processing finished")
+            response_data = PromptResponseData(utt=' ', emotion=' ', trust_level=str(0), end=0, status = 1)
+            sending_str = response_data.model_dump_json() 
+            ws.send(sending_str)
             
         elif(data['type']==MessageType.PROMPTMESSAGE.value):
+            print(f"Start server processing ")
             pm = PromptMessage(**data) 
             print(f"Receiving value: {pm.data.message}")
             sending_str = process_message(pm.data.message, user_id)
             print(f"Sending value: {sending_str}")
 
+            print(f"Start server processing finished")
             # Send data back to the client
             ws.send(sending_str)
 
