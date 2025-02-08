@@ -1,7 +1,9 @@
+from turtle import bye
 from flask import Flask, request
 import json
 from openai import OpenAI
 from waitress import serve
+import requests
 
 from LLM_Character.messages_dataclass import AIMessage, AIMessages
 from LLM_Character.communication.incoming_messages import InitAvatar, MessageType, PromptMessage
@@ -21,7 +23,11 @@ sock = Sock(app)
 from abc import ABC, abstractmethod
 from copy import deepcopy
 
-max_token_quick_reply = 10
+max_token_quick_reply = 8
+max_token_chat_completion = 512
+DEVELOPER = 'developer'
+ASSISTENT = 'assistant'
+USER = 'user'
 
 class MessageStruct():
 
@@ -44,16 +50,35 @@ class MessageStruct():
     def get_history(self) -> AIMessages:
         return self._chat_history
         
-    def get_instruction_and_history(self) -> AIMessages:
-        if len(self._chat_history.get_messages()) > 5:
-            self._chat_history.remove_item(0)
-            self._chat_history.remove_item(0)
+    def get_instruction_and_history(self, n: int = -1) -> AIMessages:
+        """
+        Returns the instruction along with the last n messages from chat history.
 
-        inctruction_with_history = AIMessages()
-        inctruction_with_history.add_message(self._instruction)
-        for item in self._chat_history.get_messages():
-            inctruction_with_history.add_message(item)
-        return inctruction_with_history
+        Args:
+            n (int, optional): The number of most recent messages to retrieve from the chat history.
+                              If -1, all messages are retrieved.
+
+        Returns:
+            AIMessages: A collection of the instruction and the last n chat history messages.
+        """
+        # Get all messages if n is -1, otherwise get the last n messages
+        chat_messages = self._chat_history.get_messages()
+        if n == -1:
+            last_n_messages = chat_messages
+        else:
+            last_n_messages = chat_messages[-n:]
+
+        # Initialize a new AIMessages object
+        instruction_with_history = AIMessages()
+
+        # Add the instruction as the first message
+        instruction_with_history.add_message(self._instruction)
+
+        # Add the last n messages to the new AIMessages object
+        for item in last_n_messages:
+            instruction_with_history.add_message(item)
+
+        return instruction_with_history
 
     def set_emotion(self, emotion : str):
         self._emotion = emotion
@@ -99,16 +124,12 @@ class EmotionDecorator(MessageProcessing):
         message_processing = self._decorator.get_messages(query)
         print('*** *** *** Emotion decorator')
         self._llm_api.set_max_tokens(max_token_quick_reply)
-        messages = message_processing.get_history().get_messages()
+
+        chat_history = message_processing.get_instruction_and_history()       
+        query = AIMessage(message='Based on the Instruction and the chat history estimate the emotion of the agent: happy, angry, disgust, fear, surprise, sad or neutral. Answer only with the emotion.\n', role=DEVELOPER, class_type="MessageAI", sender=DEVELOPER)
+        chat_history.add_message(query)       
         
-        message = 'Based on the Instruction and the chat history estimate the emotion of the agent: happy, angry, disgust, fear, surprise, sad or neutral. Answer only with the emotion.\n'
-        message = message + 'Instruction: ' + message_processing.get_instruction().get_message() + '\n'    
-        message = message + 'Message: ' + messages[-1].message + '\n'        
-        query = AIMessage(message=message, role="user", class_type="MessageAI", sender="user")
-        queries = AIMessages()
-        queries.add_message(query)       
-        
-        query_result = self._llm_api.query_text(queries)
+        query_result = self._llm_api.query_text(chat_history)
         m = message_processing.get_instruction()
         m.message = m.message + '\nYour current emotion: ' + query_result
         message_processing.set_instruction(m)
@@ -116,18 +137,18 @@ class EmotionDecorator(MessageProcessing):
         return message_processing
 
 
-class ChatCompletationDecorator(MessageProcessing):
+class MainChatDecorator(MessageProcessing):
     
     def __init__(self, decorator : MessageProcessing, llm_api : LLM_API):
-        super(ChatCompletationDecorator, self).__init__(decorator)
+        super(MainChatDecorator, self).__init__(decorator)
         self._llm_api = llm_api
 
     def get_messages(self, query : str) -> MessageStruct:
         message_processing = self._decorator.get_messages(query)
         print('*** *** *** Chat decorator')
-        self._llm_api.set_max_tokens(512)
+        self._llm_api.set_max_tokens(max_token_chat_completion)
         query_result = self._llm_api.query_text(message_processing.get_instruction_and_history())
-        message = AIMessage(message=query_result, role="assistant", class_type="MessageAI", sender="assistant")
+        message = AIMessage(message=query_result, role=ASSISTENT, class_type="MessageAI", sender=ASSISTENT)
         message_processing.add_message(message)
         message_processing.set_query_result(query_result)
         return message_processing
@@ -143,10 +164,9 @@ class ChatOverDecorator(MessageProcessing):
         print('*** *** *** Chat finished decorator')
         self._llm_api.set_max_tokens(max_token_quick_reply)
         instruction = message_processing.get_instruction_and_history()
-        message = AIMessage(message='This is the agent instruction and the chat history: ' + instruction.prints_messages_role() + ' Estimate if the conversation is over. The conversation is over if the goal of the conversation is reached. Reply with 1 for true and 0 for false. Only reply the number.', role="assistant", class_type="MessageAI", sender="assistant")     
-        queries = AIMessages()
-        queries.add_message(message)
-        query_result = self._llm_api.query_text(queries)
+        message = AIMessage(message='Estimate if the conversation is over. The conversation is over if the goal of the conversation is reached. Reply with 1 for true and 0 for false. Only reply the number.', role=DEVELOPER, class_type="MessageAI", sender=DEVELOPER)
+        instruction.add_message(message)
+        query_result = self._llm_api.query_text(instruction)
         message_processing.set_conversation_end(query_result)
         return message_processing
 
@@ -156,7 +176,7 @@ def init_session(background : str, mood : str, conversation_goal : str, user_id 
     
     wrapped_model.set_max_tokens(max_token_quick_reply)
     message = 'The instruction: *' + background + '* \nDoes the instruction tell to create content? Return 1 if true, else return 0. Only return the number.'
-    query = AIMessage(message=message, role="user", class_type="MessageAI", sender="user")
+    query = AIMessage(message=message, role=DEVELOPER, class_type="MessageAI", sender=DEVELOPER)
     queries = AIMessages()
     queries.add_message(query)
     add_additional_info = wrapped_model.query_text(queries)
@@ -164,27 +184,28 @@ def init_session(background : str, mood : str, conversation_goal : str, user_id 
     print(bool(add_additional_info))
     
     secret_information = ''
-    wrapped_model.set_max_tokens(512)
+    wrapped_model.set_max_tokens(max_token_chat_completion)
     
     if add_additional_info:
         message = 'The background story: *' + background + '* \nThis is the goal of the game or conversation: *' + conversation_goal + '* \n Set the game state and add additional background information for the agent. Be creativ and random. Make it challenging to reach the goal of the game. '
-        query = AIMessage(message=message, role="user", class_type="MessageAI", sender="user")
+        query = AIMessage(message=message, role=DEVELOPER, class_type="MessageAI", sender=DEVELOPER)
         queries = AIMessages()
         queries.add_message(query)
         secret_information = wrapped_model.query_text(queries)
 
     #print(secret_information)
-    message = AIMessage(message='We are playing a role game. Stay in the role. Be creative about your role. Try not repeat text. Keep your answers short. The role is: ' + background + ' This is the initial emotion: ' + mood + ' This is the goal of the conversation: ' + conversation_goal + ' This is the secret information created for you: ' + secret_information, role="user", class_type="Introduction", sender="user")
+    message = AIMessage(message='We are playing a role game. Stay in the role. Be creative about your role. Try not repeat text. Keep your answers short. The role is: ' + background + ' This is the initial emotion: ' + mood + ' This is the goal of the conversation: ' + conversation_goal + ' This is the secret information created for you: ' + secret_information, role=DEVELOPER, class_type="Introduction", sender=DEVELOPER)
     print(message.get_message())
     message_manager = MessageStruct(message)
-    message = AIMessage(message='hi', role="assistant", class_type="MessageAI", sender="assistant")
-    message_manager.add_message(message)
+    # Note: Welcome messages are not required for all models
+    #message = AIMessage(message='hi', role=ASSISTENT, class_type="MessageAI", sender=ASSISTENT)
+    #message_manager.add_message(message)
     messages_dict[user_id] = message_manager
 
 def get_model_openai() -> LLM_API:
     model = OpenAIComms()
     model_id = "gpt-4o"
-    model.max_tokens = 512
+    model.max_tokens = max_token_chat_completion
     model.init(model_id)
     wrapped_model = LLM_API(model)
     return wrapped_model
@@ -192,7 +213,7 @@ def get_model_openai() -> LLM_API:
 def create_decorator(message_struct : MessageStruct, model : LLM_API) -> MessageProcessing:
     message_decorator = BaseDecorator(message_struct)
     message_decorator = EmotionDecorator(message_decorator, model)
-    message_decorator = ChatCompletationDecorator(message_decorator, model)
+    message_decorator = MainChatDecorator(message_decorator, model)
     message_decorator = ChatOverDecorator(message_decorator, model)
     return message_decorator
 
@@ -210,7 +231,7 @@ def process_message(query : AIMessage, user_id : str):
     wrapped_model = get_model_openai()   
 
     message_manager = messages_dict[user_id]
-    message = AIMessage(message=query, role="user", class_type="MessageAI", sender="user")
+    message = AIMessage(message=query, role=USER, class_type="MessageAI", sender=USER)
     message_manager.add_message(message)
     decorator = create_decorator(message_manager, wrapped_model)
     decorator_result = decorator.get_messages(query)
@@ -237,7 +258,7 @@ def get_openai_voice(character_name: str) -> str:
     }
     return voices.get(character_name, "default_voice")
 
-def process_audio(message: str, voice : str):
+def process_audio(message: str, voice : str) -> bye:
     # In the Future adapt audio to work for non open ai cases?
     client = OpenAI(api_key=API_KEY)
     # TODO adapt voice based on persona
@@ -250,6 +271,50 @@ def process_audio(message: str, voice : str):
 
     # audio_response.write_to_file("output.wav")
     return audio_response.response.content
+
+
+def generate_image(message: str) -> str:
+
+    client = OpenAI(api_key=API_KEY)
+
+    response = client.images.generate(
+        model="dall-e-3",
+        prompt=message,
+        size="1024x1024",
+        quality="standard",
+        n=1,
+    )
+
+    print(response.data[0].url)
+
+    return response.data[0].url
+
+
+@sock.route('/gi')
+def websocket_gi(ws):
+
+    while True:
+        # Receive data from the client
+        data = ws.receive()
+        data = json.loads(data)
+            
+        if(data['type']==MessageType.PROMPTMESSAGE.value):
+            print(f"Image generation processing")
+            pm = PromptMessage(**data) 
+            # print(f"Receiving value: {pm.data.message}, Current Persona: {pm.data.persona_name}")
+            url_generated_image = generate_image(pm.data.message)
+
+            response = requests.get(url_generated_image)
+            #save_path = 'test.jpg'
+            #if response.status_code == 200:
+            #    with open(save_path, 'wb') as file:
+            #        file.write(response.content)
+            #    print(f"Image successfully downloaded to {save_path}")
+            #else:
+            #    print(f"Failed to retrieve the image. HTTP Status Code: {response.status_code}")
+
+            ws.send(response.content)
+
 
 @sock.route('/tts')
 def websocket_tts(ws):
@@ -312,9 +377,10 @@ def hello_world():
 
 def run_local_chat():
     user_id = 'Test'
+    #generate_image('Image of a bar with people sitting in the background')
 
-    #message = AIMessage(message='You are playing a role. Answer according to your character. You are a 22-year-old woman named Ana. You are from Graz and you have a physical body. Keep your response short. ', role="user", class_type="Introduction", sender="user")
-    message = AIMessage(message='Let us play who are you. Randomly select one famous real or fictional person and I have to guess it. ', role="user", class_type="Introduction", sender="user")
+    message = AIMessage(message='Create yourself an character with personalty, name, hobbies, interests of your choice. We are in Graz, Austria at Cafe Mild. Your are female. (Sexual or violent content is prohibited!)', role=DEVELOPER, class_type="Introduction", sender=DEVELOPER)
+    #message = AIMessage(message='Let us play who are you. Randomly select one famous real or fictional person and I have to guess it. ', role=DEVELOPER, class_type="Introduction", sender=DEVELOPER)
     init_session(message.get_message(), 'Happy', ' ', user_id)
 
     while True:
