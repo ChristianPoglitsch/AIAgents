@@ -1,3 +1,6 @@
+import csv
+import time
+import os
 from turtle import bye
 from flask import Flask, request
 import json
@@ -217,6 +220,33 @@ def create_decorator(message_struct : MessageStruct, model : LLM_API) -> Message
     message_decorator = ChatOverDecorator(message_decorator, model)
     return message_decorator
 
+def write_to_csv(user_id : str, function_name: str, duration : float):
+    """
+    Writes data to a CSV file. Appends if the file exists; otherwise, creates it.
+
+    Args:
+        filename (str): The name of the CSV file.
+        data (list): A list representing a row of data to write.
+        header (list, optional): A list representing the header row. Written only if the file doesn't exist.
+    """
+    # Get the current directory
+    current_directory = os.getcwd()  # Path to the directory where the script is executed
+
+    # Create the file path
+    filename = os.path.join(current_directory, f"{user_id}.csv")
+
+    # Data to write to the CSV
+    header = ["Function Name", "Runtime (seconds)"]
+
+    file_exists = os.path.isfile(filename)
+
+    with open(filename, mode="a", newline="") as file:
+        writer = csv.writer(file)
+        if not file_exists and header:
+            header = ["Function Name", "Runtime (seconds)"]
+            writer.writerow(header)  # Write the header row if the file is new
+        writer.writerow([function_name, duration])  # Write the actual data row
+
 def process_message(query : AIMessage, user_id : str):
     
     print('User id: ' + user_id)
@@ -295,8 +325,10 @@ def websocket_gi(ws):
 
     while True:
         # Receive data from the client
+        user_id = request.args.get('user_id')
         data = ws.receive()
         data = json.loads(data)
+        start_time = time.time()
             
         if(data['type']==MessageType.PROMPTMESSAGE.value):
             print(f"Image generation processing")
@@ -315,14 +347,20 @@ def websocket_gi(ws):
 
             ws.send(response.content)
 
+        end_time = time.time()
+        duration = end_time - start_time
+        write_to_csv(user_id, duration, 'ImageGeneration')
+
 
 @sock.route('/tts')
 def websocket_tts(ws):
 
     while True:
         # Receive data from the client
+        user_id = request.args.get('user_id')
         data = ws.receive()
         data = json.loads(data)
+        start_time = time.time()
             
         if(data['type']==MessageType.PROMPTMESSAGE.value):
             print(f"Text2Speech processing")
@@ -335,6 +373,10 @@ def websocket_tts(ws):
             print(f"Sending audio... {len(sending_audio)}")
             print(f"Text2Speech processing finished")
             ws.send(sending_audio)
+
+        end_time = time.time()
+        duration = end_time - start_time
+        write_to_csv(user_id, duration, 'Text2Speech')
 
 @sock.route('/ws')
 def websocket(ws):
@@ -349,8 +391,9 @@ def websocket(ws):
     while True:
         # Receive data from the client
         data = ws.receive()
-        data = json.loads(data)
-        
+        data = json.loads(data)        
+        start_time = time.time()
+
         if(data['type']==MessageType.STARTMESSAGE.value):
             print(f"Start server processing ")
             pm = InitAvatar(**data)
@@ -370,6 +413,11 @@ def websocket(ws):
             print(f"Start server processing finished")
             # Send data back to the client
             ws.send(sending_str)
+
+        end_time = time.time()
+        duration = end_time - start_time
+        write_to_csv(user_id, duration, 'Prompt')
+
 
 @app.route('/')
 def hello_world():
