@@ -254,7 +254,7 @@ def process_message(query : AIMessage, user_id : str):
     print('User id: ' + user_id)
     if not user_id in messages_dict:
         response_data = PromptResponseData(
-            utt='User not found', emotion=' ', trust_level=str(0), end=bool(query_result_end), status = 0
+            utt='User not found', emotion=' ', trust_level=str(0), end=bool(False), status = 0
         )    
         sending_str = response_data.model_dump_json()
         return sending_str
@@ -269,7 +269,7 @@ def process_message(query : AIMessage, user_id : str):
     decorator_result = decorator.get_messages(query)
 
     messages_dict[user_id] = decorator_result
-    query_result_end = False
+    
 
     response_data = PromptResponseData(
         utt=decorator_result.get_query_result(), emotion=decorator_result.get_emotion(), trust_level=str(0), end=bool(int(decorator_result.get_conversation_end())), status = 0
@@ -408,16 +408,17 @@ def websocket(ws):
         if(data['type']==MessageType.STARTMESSAGE.value):
             print(f"Start server processing ")
             pm = InitAvatar(**data)
-            end_status = 0
+            status_message = 0
             
             try:
                 init_session(pm.data.background_story, pm.data.mood, pm.data.conversation_goal, user_id)
+                response_data = PromptResponseData(utt=' ', emotion=' ', trust_level=str(0), end=status_message, status = 1)
             except Exception as e:
                 print(f"An unexpected error occurred: {e}")
-                end_status = 2
-
-            print(f"Start server processing finished")
-            response_data = PromptResponseData(utt=f"An unexpected error occurred: {e}", emotion=' ', trust_level=str(0), end=end_status, status = 1)
+                status_message = 2
+                response_data = PromptResponseData(utt=f"An unexpected error occurred: {e}", emotion=' ', trust_level=str(0), end=0, status = 1)
+                
+            print(f"Start server processing finished")            
             sending_str = response_data.model_dump_json() 
             ws.send(sending_str)
             
@@ -430,8 +431,8 @@ def websocket(ws):
                 sending_str = process_message(pm.data.message, user_id)
             except Exception as e:
                 print(f"An unexpected error occurred: {e}")
-                end_status = 2
-                response_data = PromptResponseData(utt=f"An unexpected error occurred: {e}", emotion=' ', trust_level=str(0), end=end_status, status = 1)
+                status_message = 2
+                response_data = PromptResponseData(utt=f"An unexpected error occurred: {e}", emotion=' ', trust_level=str(0), end=0, status = 0)
                 sending_str = response_data.model_dump_json()
 
             print(f"Sending value: {sending_str}")
