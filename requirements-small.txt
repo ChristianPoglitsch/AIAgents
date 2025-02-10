@@ -29,3 +29,4 @@ websocket-client
 flask
 flask_sock
 waitress
+requests

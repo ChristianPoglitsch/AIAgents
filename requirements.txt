@@ -31,5 +31,6 @@ flask
 flask_sock
 waitress
 soundfile
+requests
 git+https://github.com/huggingface/parler-tts.git
 #parler_tts

@@ -1,7 +1,7 @@
 import csv
+from datetime import datetime
 import time
 import os
-from turtle import bye
 from flask import Flask, request
 import json
 from openai import OpenAI
@@ -240,12 +240,14 @@ def write_to_csv(user_id : str, function_name: str, duration : float):
 
     file_exists = os.path.isfile(filename)
 
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     with open(filename, mode="a", newline="") as file:
         writer = csv.writer(file)
         if not file_exists and header:
-            header = ["Function Name", "Runtime (seconds)"]
+            header = ["Time", "Function Name", "Runtime (seconds)"]
             writer.writerow(header)  # Write the header row if the file is new
-        writer.writerow([function_name, duration])  # Write the actual data row
+        writer.writerow([timestamp, function_name, duration])  # Write the actual data row
 
 def process_message(query : AIMessage, user_id : str):
     
@@ -288,7 +290,7 @@ def get_openai_voice(character_name: str) -> str:
     }
     return voices.get(character_name, "default_voice")
 
-def process_audio(message: str, voice : str) -> bye:
+def process_audio(message: str, voice : str):
     # In the Future adapt audio to work for non open ai cases?
     client = OpenAI(api_key=API_KEY)
     # TODO adapt voice based on persona
