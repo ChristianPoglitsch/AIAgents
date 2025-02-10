@@ -336,9 +336,13 @@ def websocket_gi(ws):
             print(f"Image generation processing")
             pm = PromptMessage(**data) 
             # print(f"Receiving value: {pm.data.message}, Current Persona: {pm.data.persona_name}")
-            url_generated_image = generate_image(pm.data.message)
+                        
+            try:
+                url_generated_image = generate_image(pm.data.message)
+                response = requests.get(url_generated_image)
+            except Exception as e:
+                print(f"An unexpected error occurred: {e}")
 
-            response = requests.get(url_generated_image)
             #save_path = 'test.jpg'
             #if response.status_code == 200:
             #    with open(save_path, 'wb') as file:
@@ -368,7 +372,12 @@ def websocket_tts(ws):
             print(f"Text2Speech processing")
             pm = PromptMessage(**data) 
             # print(f"Receiving value: {pm.data.message}, Current Persona: {pm.data.persona_name}")
-            ai_voice = get_openai_voice(pm.data.persona_name)
+            
+            try:
+                ai_voice = get_openai_voice(pm.data.persona_name)
+            except Exception as e:
+                print(f"An unexpected error occurred: {e}")
+
             print(f"Set voice to {ai_voice}")
             sending_audio = process_audio(pm.data.message, ai_voice)
 
@@ -394,14 +403,21 @@ def websocket(ws):
         # Receive data from the client
         data = ws.receive()
         data = json.loads(data)        
-        start_time = time.time()
+        start_time = time.time()        
 
         if(data['type']==MessageType.STARTMESSAGE.value):
             print(f"Start server processing ")
             pm = InitAvatar(**data)
-            init_session(pm.data.background_story, pm.data.mood, pm.data.conversation_goal, user_id)
+            end_status = 0
+            
+            try:
+                init_session(pm.data.background_story, pm.data.mood, pm.data.conversation_goal, user_id)
+            except Exception as e:
+                print(f"An unexpected error occurred: {e}")
+                end_status = 2
+
             print(f"Start server processing finished")
-            response_data = PromptResponseData(utt=' ', emotion=' ', trust_level=str(0), end=0, status = 1)
+            response_data = PromptResponseData(utt=f"An unexpected error occurred: {e}", emotion=' ', trust_level=str(0), end=end_status, status = 1)
             sending_str = response_data.model_dump_json() 
             ws.send(sending_str)
             
@@ -409,7 +425,15 @@ def websocket(ws):
             print(f"Start server processing ")
             pm = PromptMessage(**data) 
             print(f"Receiving value: {pm.data.message}")
-            sending_str = process_message(pm.data.message, user_id)
+            
+            try:
+                sending_str = process_message(pm.data.message, user_id)
+            except Exception as e:
+                print(f"An unexpected error occurred: {e}")
+                end_status = 2
+                response_data = PromptResponseData(utt=f"An unexpected error occurred: {e}", emotion=' ', trust_level=str(0), end=end_status, status = 1)
+                sending_str = response_data.model_dump_json()
+
             print(f"Sending value: {sending_str}")
 
             print(f"Start server processing finished")
@@ -427,7 +451,10 @@ def hello_world():
 
 def run_local_chat():
     user_id = 'Test'
-    #generate_image('Image of a bar with people sitting in the background')
+    try:
+        generate_image('Image of a bar with people sitting in the background')
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
 
     message = AIMessage(message='Create yourself an character with personalty, name, hobbies, interests of your choice. We are in Graz, Austria at Cafe Mild. Your are female. (Sexual or violent content is prohibited!)', role=DEVELOPER, class_type="Introduction", sender=DEVELOPER)
     #message = AIMessage(message='Let us play who are you. Randomly select one famous real or fictional person and I have to guess it. ', role=DEVELOPER, class_type="Introduction", sender=DEVELOPER)
