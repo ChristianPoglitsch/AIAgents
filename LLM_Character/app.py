@@ -329,7 +329,11 @@ def websocket_gi(ws):
         # Receive data from the client
         user_id = request.args.get('user_id')
         data = ws.receive()
-        data = json.loads(data)
+        
+        if(data == 'Ping'):
+            continue
+        
+        data = json.loads(data)  
         start_time = time.time()
             
         if(data['type']==MessageType.PROMPTMESSAGE.value):
@@ -365,6 +369,10 @@ def websocket_tts(ws):
         # Receive data from the client
         user_id = request.args.get('user_id')
         data = ws.receive()
+        
+        if(data == 'Ping'):
+            continue
+
         data = json.loads(data)
         start_time = time.time()
             
@@ -402,6 +410,10 @@ def websocket(ws):
     while True:
         # Receive data from the client
         data = ws.receive()
+        
+        if(data == 'Ping'):
+            continue
+
         data = json.loads(data)        
         start_time = time.time()        
 
