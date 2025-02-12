@@ -175,7 +175,7 @@ class ChatOverDecorator(MessageProcessing):
 
 def init_session(background : str, mood : str, conversation_goal : str, user_id : str):
     print('*** *** *** Init session ' + background)
-    wrapped_model = get_model_openai()
+    wrapped_model = get_model()
     
     wrapped_model.set_max_tokens(max_token_quick_reply)
     message = 'The instruction: *' + background + '* \nDoes the instruction tell to create content? Return 1 if true, else return 0. Only return the number.'
@@ -204,14 +204,6 @@ def init_session(background : str, mood : str, conversation_goal : str, user_id 
     #message = AIMessage(message='hi', role=ASSISTENT, class_type="MessageAI", sender=ASSISTENT)
     #message_manager.add_message(message)
     messages_dict[user_id] = message_manager
-
-def get_model_openai() -> LLM_API:
-    model = OpenAIComms()
-    model_id = "gpt-4o"
-    model.max_tokens = max_token_chat_completion
-    model.init(model_id)
-    wrapped_model = LLM_API(model)
-    return wrapped_model
 
 def create_decorator(message_struct : MessageStruct, model : LLM_API) -> MessageProcessing:
     message_decorator = BaseDecorator(message_struct)
@@ -260,7 +252,7 @@ def process_message(query : AIMessage, user_id : str):
         return sending_str
         
     print(query)
-    wrapped_model = get_model_openai()   
+    wrapped_model = get_model()   
 
     message_manager = messages_dict[user_id]
     message = AIMessage(message=query, role=USER, class_type="MessageAI", sender=USER)
@@ -480,10 +472,22 @@ def run_local_chat():
 
         _ = process_message(message, user_id)
 
+def init_model() -> LLM_API:
+    model = OpenAIComms()
+    model_id = "gpt-4o"
+    model.max_tokens = max_token_chat_completion
+    model.init(model_id)
+    wrapped_model = LLM_API(model)
+    return wrapped_model
+
+def get_model() -> LLM_API:
+    return wrapped_model
+
 # docker save flaskhelloworld > hello.tar
 if __name__ == '__main__':
     
     messages_dict = { } #AIMessages()
+    wrapped_model = init_model()
 
     if True:
         app.run(port=8765, host='0.0.0.0')
