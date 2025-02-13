@@ -197,7 +197,7 @@ def init_session(background : str, mood : str, conversation_goal : str, user_id 
         secret_information = wrapped_model.query_text(queries)
 
     #print(secret_information)
-    message = AIMessage(message='We are playing a role game. Stay in the role. Be creative about your role. Try not repeat text. Keep your answers short. The role is: ' + background + ' This is the initial emotion: ' + mood + ' This is the goal of the conversation: ' + conversation_goal + ' This is the secret information created for you: ' + secret_information, role=DEVELOPER, class_type="Introduction", sender=DEVELOPER)
+    message = AIMessage(message='We are playing a role game. Stay in the role. Be creative about your role. Try not repeat text. Keep your answers very short. Special characters are not allowed. The role is: ' + background + ' This is the initial emotion: ' + mood + ' This is the goal of the conversation: ' + conversation_goal + ' This is the secret information created for you: ' + secret_information, role=DEVELOPER, class_type="Introduction", sender=DEVELOPER)
     print(message.get_message())
     message_manager = MessageStruct(message)
     # Note: Welcome messages are not required for all models
@@ -212,14 +212,14 @@ def create_decorator(message_struct : MessageStruct, model : LLM_API) -> Message
     message_decorator = ChatOverDecorator(message_decorator, model)
     return message_decorator
 
-def write_to_csv(user_id : str, function_name: str, duration : float):
+def write_to_csv(user_id : str, information: str, duration : float):
     """
-    Writes data to a CSV file. Appends if the file exists; otherwise, creates it.
+    Writes user data to a CSV file. Appends if the file exists; otherwise, creates it.
 
     Args:
-        filename (str): The name of the CSV file.
-        data (list): A list representing a row of data to write.
-        header (list, optional): A list representing the header row. Written only if the file doesn't exist.
+        user_id (str): The unique identifier for the user.
+        information (str): Additional information related to the user.
+        duration (float): The duration associated with the entry, in seconds.
     """
     # Get the current directory
     current_directory = os.getcwd()  # Path to the directory where the script is executed
@@ -239,7 +239,7 @@ def write_to_csv(user_id : str, function_name: str, duration : float):
         if not file_exists and header:
             header = ["Time", "Function Name", "Runtime (seconds)"]
             writer.writerow(header)  # Write the header row if the file is new
-        writer.writerow([timestamp, function_name, duration])  # Write the actual data row
+        writer.writerow([timestamp, information, duration])  # Write the actual data row
 
 def process_message(query : AIMessage, user_id : str):
     
@@ -339,6 +339,8 @@ def websocket_gi(ws):
             except Exception as e:
                 print(f"An unexpected error occurred: {e}")
 
+            write_to_csv(user_id, pm.data.message, "Prompt Message")
+
             #save_path = 'test.jpg'
             #if response.status_code == 200:
             #    with open(save_path, 'wb') as file:
@@ -378,6 +380,8 @@ def websocket_tts(ws):
             except Exception as e:
                 print(f"An unexpected error occurred: {e}")
 
+            write_to_csv(user_id, pm.data.message, "Prompt Message")
+
             print(f"Set voice to {ai_voice}")
             sending_audio = process_audio(pm.data.message, ai_voice)
 
@@ -412,8 +416,8 @@ def websocket(ws):
         if(data['type']==MessageType.STARTMESSAGE.value):
             print(f"Start server processing ")
             pm = InitAvatar(**data)
-            status_message = 0
-            
+            status_message = 0           
+
             try:
                 init_session(pm.data.background_story, pm.data.mood, pm.data.conversation_goal, user_id)
                 response_data = PromptResponseData(utt=' ', emotion=' ', trust_level=str(0), end=status_message, status = 1)
@@ -424,6 +428,7 @@ def websocket(ws):
                 
             print(f"Start server processing finished")            
             sending_str = response_data.model_dump_json() 
+            write_to_csv(user_id, sending_str, "Init Prompt generated")
             ws.send(sending_str)
             
         elif(data['type']==MessageType.PROMPTMESSAGE.value):
@@ -431,6 +436,9 @@ def websocket(ws):
             pm = PromptMessage(**data) 
             print(f"Receiving value: {pm.data.message}")
             
+            # Not used for test version
+            #write_to_csv(user_id, pm.data.message, "User Prompt")
+
             try:
                 sending_str = process_message(pm.data.message, user_id)
             except Exception as e:
@@ -438,6 +446,8 @@ def websocket(ws):
                 status_message = 2
                 response_data = PromptResponseData(utt=f"An unexpected error occurred: {e}", emotion=' ', trust_level=str(0), end=0, status = 0)
                 sending_str = response_data.model_dump_json()
+
+            write_to_csv(user_id, sending_str, "Prompt generated")
 
             print(f"Sending value: {sending_str}")
 
@@ -447,7 +457,7 @@ def websocket(ws):
 
         end_time = time.time()
         duration = end_time - start_time
-        write_to_csv(user_id, duration, 'Prompt')
+        write_to_csv(user_id, duration, 'Prompt generation')
 
 
 @app.route('/')
