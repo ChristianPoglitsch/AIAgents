@@ -129,7 +129,7 @@ class EmotionDecorator(MessageProcessing):
         self._llm_api.set_max_tokens(max_token_quick_reply)
 
         chat_history = message_processing.get_instruction_and_history()       
-        query = AIMessage(message='Based on the Instruction and the chat history estimate the emotion of the agent: happy, angry, disgust, fear, surprise, sad or neutral. Answer only with the emotion.\n', role=DEVELOPER, class_type="MessageAI", sender=DEVELOPER)
+        query = AIMessage(message='Based on the Instruction and the chat history estimate the emotion of the agent: happy, angry, disgust, fear, surprise, sad or neutral. Slightly exaggerate the emotion. Answer only with the emotion.\n', role=DEVELOPER, class_type="MessageAI", sender=DEVELOPER)
         chat_history.add_message(query)       
         
         query_result = self._llm_api.query_text(chat_history)
@@ -336,8 +336,10 @@ def websocket_gi(ws):
             try:
                 url_generated_image = generate_image(pm.data.message)
                 response = requests.get(url_generated_image)
+                response = response.content
             except Exception as e:
                 print(f"An unexpected error occurred: {e}")
+                response = 'Error'
 
             write_to_csv(user_id, pm.data.message, "Prompt Message")
 
@@ -349,7 +351,7 @@ def websocket_gi(ws):
             #else:
             #    print(f"Failed to retrieve the image. HTTP Status Code: {response.status_code}")
 
-            ws.send(response.content)
+            ws.send(response)
 
         end_time = time.time()
         duration = end_time - start_time
@@ -437,7 +439,7 @@ def websocket(ws):
             print(f"Receiving value: {pm.data.message}")
             
             # Not used for test version
-            #write_to_csv(user_id, pm.data.message, "User Prompt")
+            write_to_csv(user_id, pm.data.message, "User Prompt")
 
             try:
                 sending_str = process_message(pm.data.message, user_id)
