@@ -173,7 +173,7 @@ class ChatOverDecorator(MessageProcessing):
         message_processing.set_conversation_end(query_result)
         return message_processing
 
-def init_session(background : str, mood : str, conversation_goal : str, user_id : str):
+def init_session(background : str, mood : str, conversation_goal : str, user_id : str) -> str:
     print('*** *** *** Init session ' + background)
     wrapped_model = get_model()
     
@@ -204,6 +204,7 @@ def init_session(background : str, mood : str, conversation_goal : str, user_id 
     #message = AIMessage(message='hi', role=ASSISTENT, class_type="MessageAI", sender=ASSISTENT)
     #message_manager.add_message(message)
     messages_dict[user_id] = message_manager
+    return secret_information
 
 def create_decorator(message_struct : MessageStruct, model : LLM_API) -> MessageProcessing:
     message_decorator = BaseDecorator(message_struct)
@@ -419,9 +420,10 @@ def websocket(ws):
             print(f"Start server processing ")
             pm = InitAvatar(**data)
             status_message = 0           
-
+            secret_information = ' '
+            
             try:
-                init_session(pm.data.background_story, pm.data.mood, pm.data.conversation_goal, user_id)
+                secret_information = init_session(pm.data.background_story, pm.data.mood, pm.data.conversation_goal, user_id)
                 response_data = PromptResponseData(utt=' ', emotion=' ', trust_level=str(0), end=status_message, status = 1)
             except Exception as e:
                 print(f"An unexpected error occurred: {e}")
@@ -430,7 +432,7 @@ def websocket(ws):
                 
             print(f"Start server processing finished")            
             sending_str = response_data.model_dump_json() 
-            write_to_csv(user_id, sending_str, "Init Prompt generated")
+            write_to_csv(user_id, secret_information, "Init Prompt generated")
             ws.send(sending_str)
             
         elif(data['type']==MessageType.PROMPTMESSAGE.value):
