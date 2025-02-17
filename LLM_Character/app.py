@@ -129,7 +129,7 @@ class EmotionDecorator(MessageProcessing):
         self._llm_api.set_max_tokens(max_token_quick_reply)
 
         chat_history = message_processing.get_instruction_and_history()       
-        query = AIMessage(message='Based on the Instruction and the chat history estimate the emotion of the agent: happy, angry, disgust, fear, surprise, sad or neutral. Slightly exaggerate the emotion. Answer only with the emotion.\n', role=DEVELOPER, class_type="MessageAI", sender=DEVELOPER)
+        query = AIMessage(message='Based on the Instruction and the chat history estimate the emotion of the agent: happy, angry, disgust, fear, surprised, sad or neutral. Slightly exaggerate the emotion. Answer only with the emotion.\n', role=DEVELOPER, class_type="MessageAI", sender=DEVELOPER)
         chat_history.add_message(query)       
         
         query_result = self._llm_api.query_text(chat_history)
