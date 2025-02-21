@@ -27,6 +27,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 
 max_token_quick_reply = 8
+max_token_small_reply = 64
 max_token_chat_completion = 512
 DEVELOPER = 'developer'
 ASSISTENT = 'assistant'
@@ -35,6 +36,7 @@ USER = 'user'
 class MessageStruct():
 
     def __init__(self, instruction : AIMessage):
+        self._initial_instruction = instruction
         self._instruction = instruction
         self._chat_history = AIMessages()
         self._emotion = ' '
@@ -43,6 +45,9 @@ class MessageStruct():
         
     def add_message(self, message : AIMessage):
         self._chat_history.add_message(message)
+
+    def reset_instruction(self):
+        self._instruction =  deepcopy(self._initial_instruction)
         
     def get_instruction(self) -> AIMessage:
         return self._instruction
@@ -115,6 +120,7 @@ class BaseDecorator(MessageProcessing):
         self._message_struct = messageStruct
     
     def get_messages(self, query : str) -> MessageStruct:
+        self._message_struct.reset_instruction()
         return deepcopy(self._message_struct)
 
 class EmotionDecorator(MessageProcessing):
@@ -209,9 +215,35 @@ def init_session(background : str, mood : str, conversation_goal : str, user_id 
 def create_decorator(message_struct : MessageStruct, model : LLM_API) -> MessageProcessing:
     message_decorator = BaseDecorator(message_struct)
     message_decorator = EmotionDecorator(message_decorator, model)
+    message_decorator = ActionDecorator(message_decorator, model)
     message_decorator = MainChatDecorator(message_decorator, model)
     message_decorator = ChatOverDecorator(message_decorator, model)
     return message_decorator
+
+class ActionDecorator(MessageProcessing):
+    
+    def __init__(self, decorator : MessageProcessing, llm_api : LLM_API):
+        super(ActionDecorator, self).__init__(decorator)      
+        self._llm_api = llm_api
+        self._plan = ' '
+
+    def get_messages(self, query : str) -> MessageStruct:
+        message_processing = self._decorator.get_messages(query)
+        print('*** *** *** Action decorator')
+        self._llm_api.set_max_tokens(max_token_small_reply)
+        instruction = message_processing.get_instruction_and_history()
+        m = 'Based on the background story and the goal of the conversation extract one or two actions for the agent. If there are actions on the current plan list, update them as needed or create new plans if they have been completed.'
+        m = m + 'Current plans: ' + self._plan
+        message = AIMessage(message=m, role=DEVELOPER, class_type="MessageAI", sender=DEVELOPER)
+        instruction.add_message(message)
+        query_result = self._llm_api.query_text(instruction)
+        self._plan = query_result
+        m = message_processing.get_instruction()
+        m.message = m.message + '\nYour current plan: ' + query_result
+        print('Plan: ' + query_result)
+        message_processing.set_instruction(m)
+        return message_processing
+
 
 def write_to_csv(user_id : str, information: str, duration : float):
     """
@@ -451,6 +483,8 @@ def websocket(ws):
                 response_data = PromptResponseData(utt=f"An unexpected error occurred: {e}", emotion=' ', trust_level=str(0), end=0, status = 0)
                 sending_str = response_data.model_dump_json()
 
+            message_manager = messages_dict[user_id]
+            write_to_csv(user_id, message_manager.get_instruction(), "Current instruction")
             write_to_csv(user_id, sending_str, "Prompt generated")
 
             print(f"Sending value: {sending_str}")
@@ -470,10 +504,10 @@ def hello_world():
 
 def run_local_chat():
     user_id = 'Test'
-    try:
-        generate_image('Image of a bar with people sitting in the background')
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+    #try:
+    #    generate_image('Image of a bar with people sitting in the background')
+    #except Exception as e:
+    #    print(f"An unexpected error occurred: {e}")
 
     message = AIMessage(message='Create yourself an character with personalty, name, hobbies, interests of your choice. We are in Graz, Austria at Cafe Mild. Your are female. (Sexual or violent content is prohibited!)', role=DEVELOPER, class_type="Introduction", sender=DEVELOPER)
     #message = AIMessage(message='Let us play who are you. Randomly select one famous real or fictional person and I have to guess it. ', role=DEVELOPER, class_type="Introduction", sender=DEVELOPER)
