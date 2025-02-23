@@ -1,11 +1,21 @@
 import math
 import random
+import openai
+import random
+
+from LLM_Character.llm_comms.llm_api import LLM_API
+from LLM_Character.llm_comms.llm_openai import OpenAIComms
+from LLM_Character.messages_dataclass import AIMessage, AIMessages
 
 class Role:
     def __init__(self, name, team, ability):
         self.name = name
         self.team = team
         self.ability = ability
+
+DEVELOPER = 'developer'
+ASSISTENT = 'assistant'
+USER = 'user'
 
 roles = {
     # Townsfolk Roles
@@ -38,199 +48,6 @@ roles = {
     # Demon Roles
     'Imp': Role('Imp', 'Demon', 'Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp.')
 }
-
-# Example action space using dictionaries
-action_space = [
-    {'type': 'nominate', 'nominator': None, 'nominee': None},  # A player nominates another player
-    {'type': 'vote', 'voter': None, 'vote': None},  # A player votes during the voting phase
-    {'type': 'kill', 'killer': None, 'target': None},  # The Imp kills a target at night
-    {'type': 'protect', 'protector': None, 'target': None},  # Example: Monk protects a target
-    {'type': 'bluff', 'bluffer': None, 'claim': None},  # A player bluffs about their role
-    {'type': 'reveal', 'revealer': None},  # Example: Investigator reveals information
-    {'type': 'disrupt', 'disruptor': None},  # Example: Poisoner poisons a player
-    {'type': 'check', 'checker': None, 'target': None},  # Example: Empath checks the status of neighbors
-    {'type': 'announce', 'announcer': None, 'message': None},  # A player makes a public announcement
-    {'type': 'vote_grimoire', 'voter': None, 'vote': None}  # Example: Grimoire voting action
-]
-
-# Example action space using classes
-class Action:
-    def __init__(self, action_type, **kwargs):
-        self.type = action_type
-        self.params = kwargs
-
-# Defining the 10 actions
-action_space = [
-    Action('nominate', nominator=None, nominee=None),
-    Action('vote', voter=None, vote=None),
-    Action('kill', killer=None, target=None),
-    Action('protect', protector=None, target=None),
-    Action('bluff', bluffer=None, claim=None),
-    Action('reveal', revealer=None),
-    Action('disrupt', disruptor=None),
-    Action('check', checker=None, target=None),
-    Action('announce', announcer=None, message=None),
-    Action('vote_grimoire', voter=None, vote=None)
-]
-
-# Example of accessing an action and updating it
-example_nominate_action = action_space[0]
-example_nominate_action.params['nominator'] = 'Alice'
-example_nominate_action.params['nominee'] = 'Bob'
-
-class Player:
-    def __init__(self, name, role=None, alive=True):
-        """
-        Initialize a player in the game.
-        
-        :param name: The name of the player.
-        :param role: The role of the player (e.g., 'Imp', 'Villager', etc.).
-        :param alive: Whether the player is alive or dead.
-        """
-        self.name = name
-        self.role = role  # E.g., 'Imp', 'Fortune Teller', 'Villager'
-        self.alive = alive
-        self.nominated = False
-        self.private_knowledge = []  # E.g., [(player, status)] for Empath
-        self.effects = []  # E.g., 'Poisoned', 'Drunk'
-    
-    def add_private_knowledge(self, knowledge):
-        """
-        Add private knowledge to the player's information.
-        
-        :param knowledge: Information to add (e.g., a tuple like (player, True/False)).
-        """
-        self.private_knowledge.append(knowledge)
-    
-    def apply_effect(self, effect):
-        """
-        Apply a status effect to the player (e.g., 'Poisoned', 'Drunk').
-        
-        :param effect: The effect to apply.
-        """
-        if effect not in self.effects:
-            self.effects.append(effect)
-    
-    def remove_effect(self, effect):
-        """
-        Remove a status effect from the player.
-        
-        :param effect: The effect to remove.
-        """
-        if effect in self.effects:
-            self.effects.remove(effect)
-    
-    def reset_for_new_day(self):
-        """
-        Reset daily attributes for the player, such as nomination status.
-        """
-        self.nominated = False
-
-    def __repr__(self):
-        """
-        Representation of the player for debugging purposes.
-        """
-        return (f"Player(name={self.name}, role={self.role}, alive={self.alive}, "
-                f"nominated={self.nominated}, private_knowledge={self.private_knowledge}, effects={self.effects})")
-
-
-class GameState:
-    def __init__(self, players, phase='Day'):
-        # Public information
-        self.phase = phase
-        self.alive_players = {player: {'role': None, 'alive': True, 'nominated': False, 'effects' : None} for player in players}
-        self.nominations = []  # List of tuples (nominator, nominee)
-        
-        # Private information (not visible to all)
-        self.roles = {player: None for player in players}  # Roles, e.g., {'Alice': 'Imp', 'Bob': 'Fortune Teller'}
-        self.private_knowledge = {player: None for player in players}  # E.g., {'Bob': ('Charlie', False)}
-        
-        # Extra data for tracking game progress
-        self.day_count = 1
-        self.effects = {}  # Any ongoing effects, like poisoning or drunk states
-
-    def print_game_state(self):
-        print("Game State:")
-        print(f"Phase: {self.phase}")
-        print(f"Day Count: {self.day_count}")
-        print("Players:")
-        for player, info in self.alive_players.items():
-            role = info['role'].name if info['role'] else "Unknown"
-            status = "Alive" if info['alive'] else "Dead"
-            print(f"  {player}: Role={role}, Status={status}, Nominated={info['nominated']}")
-        print("Nominations:")
-        for nominator, nominee in self.nominations:
-            print(f"  {nominator} nominated {nominee}")
-        print(f"Execution: {self.execution if self.execution else 'None'}")
-
-    def get_public_state(self):
-        """Returns a version of the state visible to all players."""
-        return {
-            'phase': self.phase,
-            'alive_players': self.alive_players,
-            'nominations': self.nominations,
-            'day_count': self.day_count,
-        }
-
-    def get_private_state(self, player):
-        """Returns the private state for a specific player."""
-        return {
-            'role': self.roles[player],
-            'private_knowledge': self.private_knowledge[player],
-            # Add any other player-specific information
-        }
-
-    def is_terminal(self):
-        """Check if the game has reached a terminal state."""
-        # Terminal state could be when the Imp is dead, or only evil players are alive
-        alive_roles = {self.roles[p] for p in self.alive_players if self.alive_players[p]}
-        return 'Imp' not in alive_roles or len(alive_roles) <= 1
-
-    def take_action(self, action):
-        """Apply an action to the game state and return a new state."""
-        new_state = GameState(self.phase, self.alive_players.keys())
-        new_state.roles = self.roles.copy()
-        new_state.private_knowledge = self.private_knowledge.copy()
-        new_state.nominations = self.nominations.copy()
-        new_state.effects = self.effects.copy()
-        new_state.day_count = self.day_count
-
-        # Apply action logic
-        if action['type'] == 'nominate':
-            new_state.nominations.append((action['nominator'], action['nominee']))
-        elif action['type'] == 'execute':
-            new_state.alive_players[action['target']] = False
-        # Handle other actions like poisoning, bluffing, etc.
-        
-        # Transition phase if needed
-        if len(new_state.nominations) >= len(self.alive_players) - 1:
-            new_state.phase = 'Night' if self.phase == 'Day' else 'Day'
-            new_state.nominations.clear()
-
-        return new_state
-
-    def get_reward(self):
-        # Return the reward for the current state
-        # Example: +1 if the Imp is not suspected, -1 if suspected
-        return random.choice([1, -1])
-
-    def get_legal_actions(self):
-        """Return a list of legal actions from the current state."""
-        legal_actions = []
-        if self.phase == 'Day':
-            for nominator in self.alive_players:
-                if self.alive_players[nominator]:
-                    for nominee in self.alive_players:
-                        if nominator != nominee and self.alive_players[nominee]:
-                            legal_actions.append({'type': 'nominate', 'nominator': nominator, 'nominee': nominee})
-        elif self.phase == 'Night':
-            # Define night actions, such as the Imp selecting a target
-            for player in self.alive_players:
-                if self.roles[player] == 'Imp' and self.alive_players[player]:
-                    for target in self.alive_players:
-                        if player != target and self.alive_players[target]:
-                            legal_actions.append({'type': 'kill', 'killer': player, 'target': target})
-        return legal_actions
 
 class MCTSNode:
     def __init__(self, state, parent=None):
@@ -281,60 +98,6 @@ def mcts(initial_state, num_simulations):
 
     return root.best_child(exploration_weight=0).state
 
-
-class BotCEnvironment:
-    def __init__(self, players, roles):
-        self.state = GameState(players)
-        self.assign_roles(roles)
-    
-    def print_game_state(self):
-        self.state.print_game_state()
-
-    def assign_roles(self, roles):
-        role_list = list(roles.values())
-        random.shuffle(role_list)
-        for i, player in enumerate(self.state.alive_players):
-            self.state.alive_players[player]['role'] = role_list[i]
-    
-    def next_phase(self):
-        if self.state.phase == 'Night':
-            self.state.phase = 'Day'
-            self.state.day_count += 1
-        elif self.state.phase == 'Day':
-            self.state.phase = 'Night'
-    
-    def nomination_phase(self):
-        self.state.phase = 'Nominations'
-        
-    def voting_phase(self):
-        self.state.phase = 'Voting'
-
-    def execute_vote(self):
-        if self.state.execution:
-
-            self.state.alive_players[self.state.execution]['alive'] = False
-            print(f"{self.state.execution} was executed.")
-            #self.state.execution = None
-    
-    def night_action(self, player, target):
-        role = self.state.alive_players[player]['role']
-        if role.name == 'Imp' and self.state.phase == 'Night':
-            self.state.alive_players[target]['alive'] = False
-            print(f"{player} (Imp) killed {target}.")
-    
-    def nominate(self, nominator, target):
-        if self.state.phase == 'Nominations' and self.state.alive_players[nominator]['alive']:
-            self.state.alive_players[target]['nominated'] = True
-            self.state.nominations.append((nominator, target))
-            print(f"{nominator} nominated {target}.")
-    
-    def vote(self, voter, target):
-        if self.state.phase == 'Voting' and self.state.alive_players[voter]['alive']:
-            if target in self.state.alive_players and self.state.alive_players[target]['nominated']:
-                self.state.execution = target
-                print(f"{voter} voted to execute {target}.")
-
-
 class Conversation:
     def __init__(self, participants):
         """
@@ -362,6 +125,15 @@ class Conversation:
         print("Conversation History:")
         for entry in self.history:
             print(f"{entry['sender']}: {entry['message']}")
+
+    def get_history_text(self):
+        """
+        Returns the conversation history as a formatted string.
+        """
+        history_text = ""
+        for entry in self.history:
+            history_text += f"{entry['sender']}: {entry['message']}\n"
+        return history_text
 
     def get_participants(self):
         """
@@ -398,7 +170,7 @@ class ConversationManager:
         :param message: The content of the message.
         """
         participants_tuple = tuple(sorted(participants))  # Sort participants for consistency
-        if not participants_tuple in self.conversations:
+        if participants_tuple not in self.conversations:
             self.start_conversation(participants)
         conversation = self.conversations[participants_tuple]
         conversation.add_message(sender, message)
@@ -416,25 +188,16 @@ class ConversationManager:
             print(f"No conversation found with participants: {participants}")
 
     def get_conversation_for_player(self, player_name):
-            """
-            Retrieve and print all conversations that involve the specified player.
-            :param player_name: The name of the player for whom we want to get the conversation history.
-            """
-            conversations_for_player = []
-        
-            # Iterate through all conversations
-            for participants_tuple, conversation in self.conversations.items():
-                # Check if the player is part of the conversation
-                if player_name in participants_tuple:
-                    conversations_for_player.append(conversation)
-
-            # Print all conversations involving the player
-            if conversations_for_player:
-                print(f"Conversation history for {player_name}:")
-                for conversation in conversations_for_player:
-                    conversation.print_conversation()
-            else:
-                print(f"No conversations found for player: {player_name}")
+        """
+        Retrieve all conversations that involve the specified player.
+        :param player_name: The name of the player for whom we want to get the conversation history.
+        :return: A list of Conversation objects.
+        """
+        conversations_for_player = []
+        for participants_tuple, conversation in self.conversations.items():
+            if player_name in participants_tuple:
+                conversations_for_player.append(conversation)
+        return conversations_for_player
 
     def get_conversations(self):
         """
@@ -442,36 +205,213 @@ class ConversationManager:
         """
         return self.conversations
 
+# ------------------ GameState and ActionSpace ------------------
+
+class GameState:
+    def __init__(self, players, phase='Day'):
+        # Public information
+        self.phase = phase
+        self.alive_players = {player: {'role': None, 'alive': True, 'nominated': False, 'effects': None} for player in players}
+        self.nominations = []  # List of tuples (nominator, nominee)
+        
+        # Private information (not visible to all)
+        self.roles = {player: None for player in players}  # E.g., {'Alice': 'Imp', 'Bob': 'Fortune Teller'}
+        self.private_knowledge = {player: None for player in players}  # E.g., {'Bob': ('Charlie', False)}
+        
+        # Extra data for tracking game progress
+        self.day_count = 1
+        self.effects = {}  # Ongoing effects like poisoning, etc.
+        self.execution = None
+
+    def print_game_state(self):
+        print("Game State:")
+        print(f"Phase: {self.phase}")
+        print(f"Day Count: {self.day_count}")
+        print("Players:")
+        for player, info in self.alive_players.items():
+            role = info['role'] if info['role'] else "Unknown"
+            status = "Alive" if info['alive'] else "Dead"
+            print(f"  {player}: Role={role}, Status={status}, Nominated={info['nominated']}")
+        print("Nominations:")
+        for nominator, nominee in self.nominations:
+            print(f"  {nominator} nominated {nominee}")
+        print(f"Execution: {self.execution if self.execution else 'None'}")
+
+    def get_public_state(self):
+        return {
+            'phase': self.phase,
+            'alive_players': self.alive_players,
+            'nominations': self.nominations,
+            'day_count': self.day_count,
+        }
+
+    def get_private_state(self, player):
+        return {
+            'role': self.roles[player],
+            'private_knowledge': self.private_knowledge[player],
+        }
+
+    def is_terminal(self):
+        alive_roles = {self.roles[p] for p in self.alive_players if self.alive_players[p]['alive']}
+        return 'Imp' not in alive_roles or len(alive_roles) <= 1
+
+    def take_action(self, action):
+        new_state = GameState(list(self.alive_players.keys()), phase=self.phase)
+        new_state.roles = self.roles.copy()
+        new_state.private_knowledge = self.private_knowledge.copy()
+        new_state.nominations = self.nominations.copy()
+        new_state.effects = self.effects.copy()
+        new_state.day_count = self.day_count
+        new_state.alive_players = self.alive_players.copy()
+        new_state.execution = self.execution
+
+        if action['type'] == 'nominate':
+            new_state.nominations.append((action['nominator'], action['nominee']))
+        elif action['type'] == 'execute':
+            new_state.alive_players[action['target']]['alive'] = False
+        # Additional action types can be handled here.
+
+        if len(new_state.nominations) >= len(new_state.alive_players) - 1:
+            new_state.phase = 'Night' if self.phase == 'Day' else 'Day'
+            new_state.nominations.clear()
+
+        return new_state
+
+    def get_reward(self):
+        return random.choice([1, -1])
+
+    def get_legal_actions(self):
+        legal_actions = []
+        if self.phase == 'Day':
+            for nominator in self.alive_players:
+                if self.alive_players[nominator]['alive']:
+                    for nominee in self.alive_players:
+                        if nominator != nominee and self.alive_players[nominee]['alive']:
+                            legal_actions.append({'type': 'nominate', 'nominator': nominator, 'nominee': nominee})
+        elif self.phase == 'Night':
+            for player in self.alive_players:
+                if self.roles[player] == 'Imp' and self.alive_players[player]['alive']:
+                    for target in self.alive_players:
+                        if player != target and self.alive_players[target]['alive']:
+                            legal_actions.append({'type': 'kill', 'killer': player, 'target': target})
+        return legal_actions
+
+class ActionSpace:
+    def __init__(self):
+        self.actions = [
+            {'type': 'nominate', 'nominator': None, 'nominee': None},
+            {'type': 'vote', 'voter': None, 'vote': None},
+            {'type': 'kill', 'killer': None, 'target': None},
+            {'type': 'protect', 'protector': None, 'target': None},
+            {'type': 'bluff', 'bluffer': None, 'claim': None},
+            {'type': 'reveal', 'revealer': None},
+            {'type': 'disrupt', 'disruptor': None},
+            {'type': 'check', 'checker': None, 'target': None},
+            {'type': 'announce', 'announcer': None, 'message': None},
+            {'type': 'vote_grimoire', 'voter': None, 'vote': None}
+        ]
+    
+    def get_action_template(self, action_type):
+        for action in self.actions:
+            if action['type'] == action_type:
+                return action.copy()
+        return None
+
+    def list_action_types(self):
+        return [action['type'] for action in self.actions]
+    
+    def get_formatted_action_space(self):
+        formatted = "Action Space:\n"
+        for action in self.actions:
+            formatted += f"- {action}\n"
+        return formatted
+
+def get_game_state_description(game_state):
+    public_state = game_state.get_public_state()
+    description = f"Phase: {public_state['phase']}\n"
+    description += f"Day Count: {public_state['day_count']}\n"
+    description += "Alive Players:\n"
+    for player, info in public_state['alive_players'].items():
+        status = "Alive" if info['alive'] else "Dead"
+        description += f"  - {player}: Status={status}\n"
+    description += "Nominations:\n"
+    for nominator, nominee in public_state['nominations']:
+        description += f"  - {nominator} nominated {nominee}\n"
+    return description
+
+def get_conversation_history_for_player(conversation_manager, player_name):
+    """
+    Returns the conversation history (as a formatted string) for the specified player.
+    """
+    conversations = conversation_manager.get_conversation_for_player(player_name)
+    history_text = ""
+    for conv in conversations:
+        history_text += conv.get_history_text() + "\n"
+    return history_text
+
+def ask_chatgpt_for_next_action(game_state, action_space, current_player, conversation_manager):
+    """
+    Ask ChatGPT what action the current player should take based on the current game state,
+    available action space, and the conversation history related to that player.
+    """
+    state_description = get_game_state_description(game_state)
+    action_space_description = action_space.get_formatted_action_space()
+    conversation_history = get_conversation_history_for_player(conversation_manager, current_player)
+    
+    # Retrieve the current player's role (if available)
+    current_role = game_state.roles[current_player] if game_state.roles[current_player] else "Unknown"
+    
+    prompt = (
+        "You are a helpful board game AI assistant for Blood on the Clocktower. "
+        "Based on the following game state, conversation history, and available actions, "
+        "please choose a possible next action for the current player. "
+        "Select one of the provided action types and provide any necessary details tailored for the player's role.\n\n"
+        f"Current Player: {current_player}\n"
+        f"Role: {current_role}\n\n"
+        f"{action_space_description}\n\n"
+        "Game State:\n"
+        f"{state_description}\n\n"
+        "Conversation History:\n"
+        f"{conversation_history}\n\n"
+        "Possible action(s) for the current player:"
+    )
+    
+    model = init_model()
+    
+    messages = AIMessages()
+    message = AIMessage(message=prompt, role=DEVELOPER, class_type="Introduction", sender=DEVELOPER)
+    messages.add_message(message)
+    response = model.query_text(messages)
+    return response
 
 
-players = ['Alice', 'Bob', 'Charlie', 'Dana', 'Eve']
-gameState = GameState(players)
-env = BotCEnvironment(players, roles)
-
-env.next_phase()  # Transition to Day
-env.nomination_phase()  # Transition to nomination
-env.nominate('Alice', 'Bob')  # Alice nominates Bob
-env.voting_phase()  # Transition to Voting
-env.vote('Charlie', 'Bob')  # Charlie votes to execute Bob
-env.vote('Eve', 'Charlie')  # Charlie votes to execute Bob
-env.execute_vote()  # Execute the vote
-env.print_game_state()
+def init_model() -> LLM_API:
+    model = OpenAIComms()
+    model_id = "gpt-4o"
+    model.max_tokens = 128
+    model.init(model_id)
+    wrapped_model = LLM_API(model)
+    return wrapped_model
 
 
-# Example usage
 conversation_manager = ConversationManager()
+conversation_manager.start_conversation(['Alice', 'Bob'])
+conversation_manager.add_message_to_conversation(['Alice', 'Bob'], 'Alice', "I think we should target Charlie.")
+conversation_manager.add_message_to_conversation(['Alice', 'Bob'], 'Bob', "Maybe, but I'm not sure if he's really suspicious.")
 
-# Add messages to the conversations
-conversation_manager.add_message_to_conversation(['Alice', 'Bob'], 'Alice', "Hey Bob, what's up?")
-conversation_manager.add_message_to_conversation(['Alice', 'Bob'], 'Bob', "Not much, just thinking about the vote.")
-conversation_manager.add_message_to_conversation(['Bob', 'Charlie'], 'Bob', "Charlie, do you trust Alice?")
+# Define players and create a GameState instance
+players = ['Alice', 'Bob', 'Charlie']
+game_state = GameState(players, phase='Day')
+# Set roles (using simple strings for this example)
+game_state.alive_players['Alice']['role'] = 'Imp'
+game_state.alive_players['Bob']['role'] = 'Fortune Teller'
+game_state.alive_players['Charlie']['role'] = 'Villager'
+game_state.roles['Alice'] = 'Imp'
+game_state.roles['Bob'] = 'Fortune Teller'
+game_state.roles['Charlie'] = 'Villager'
+game_state.nominations.append(('Alice', 'Charlie'))
 
-# Print a specific conversation
-#conversation_manager.print_conversation(['Alice', 'Bob'])
-#conversation_manager.print_conversation(['Bob', 'Charlie'])
 
-# List all current conversations (the keys are the player tuples)
-# Example usage: After adding some conversations and messages
 conversations = conversation_manager.get_conversations()
 conversation_manager.get_conversation_for_player('Alice')
 print('---')
@@ -481,3 +421,17 @@ for participants, conversation in conversations.items():
     print(f"Conversation with participants: {participants}")
     conversation.print_conversation()  # Prints the conversation history for these participants
     print()  # Add a blank line for readability between conversations
+    
+
+# Initialize the action space
+action_space = ActionSpace()
+
+# Define the current player for whom to choose an action
+current_player = 'Alice'
+
+# Ask ChatGPT for a next possible action for the current player
+if True:
+    next_action_suggestion = ask_chatgpt_for_next_action(game_state, action_space, current_player, conversation_manager)
+    print("ChatGPT suggests the following possible action(s):")
+    print(next_action_suggestion)
+    
