@@ -311,9 +311,10 @@ class BotCEnvironment:
 
     def execute_vote(self):
         if self.state.execution:
+
             self.state.alive_players[self.state.execution]['alive'] = False
             print(f"{self.state.execution} was executed.")
-            self.state.execution = None
+            #self.state.execution = None
     
     def night_action(self, player, target):
         role = self.state.alive_players[player]['role']
@@ -414,6 +415,27 @@ class ConversationManager:
         else:
             print(f"No conversation found with participants: {participants}")
 
+    def get_conversation_for_player(self, player_name):
+            """
+            Retrieve and print all conversations that involve the specified player.
+            :param player_name: The name of the player for whom we want to get the conversation history.
+            """
+            conversations_for_player = []
+        
+            # Iterate through all conversations
+            for participants_tuple, conversation in self.conversations.items():
+                # Check if the player is part of the conversation
+                if player_name in participants_tuple:
+                    conversations_for_player.append(conversation)
+
+            # Print all conversations involving the player
+            if conversations_for_player:
+                print(f"Conversation history for {player_name}:")
+                for conversation in conversations_for_player:
+                    conversation.print_conversation()
+            else:
+                print(f"No conversations found for player: {player_name}")
+
     def get_conversations(self):
         """
         Returns all current conversations.
@@ -436,8 +458,6 @@ env.execute_vote()  # Execute the vote
 env.print_game_state()
 
 
-
-
 # Example usage
 conversation_manager = ConversationManager()
 
@@ -453,6 +473,8 @@ conversation_manager.add_message_to_conversation(['Bob', 'Charlie'], 'Bob', "Cha
 # List all current conversations (the keys are the player tuples)
 # Example usage: After adding some conversations and messages
 conversations = conversation_manager.get_conversations()
+conversation_manager.get_conversation_for_player('Alice')
+print('---')
 
 # Loop through all conversations and print the details
 for participants, conversation in conversations.items():
