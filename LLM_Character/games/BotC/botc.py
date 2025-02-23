@@ -49,54 +49,6 @@ roles = {
     'Imp': Role('Imp', 'Demon', 'Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp.')
 }
 
-class MCTSNode:
-    def __init__(self, state, parent=None):
-        self.state = state
-        self.parent = parent
-        self.children = []
-        self.visits = 0
-        self.total_reward = 0
-
-    def is_fully_expanded(self):
-        return len(self.children) == len(self.state.get_legal_actions())
-
-    def best_child(self, exploration_weight=1.0):
-        """Return the child with the highest UCB1 score."""
-        return max(self.children, key=lambda child: child.total_reward / child.visits + 
-                   exploration_weight * math.sqrt(math.log(self.visits) / (child.visits + 1e-6)))
-
-def mcts(initial_state, num_simulations):
-    root = MCTSNode(initial_state)
-    
-    for _ in range(num_simulations):
-        node = root
-        
-        # Selection
-        while not node.state.is_terminal() and node.is_fully_expanded():
-            node = node.best_child()
-        
-        # Expansion
-        if not node.state.is_terminal():
-            legal_actions = node.state.get_legal_actions()
-            for action in legal_actions:
-                new_state = node.state.take_action(action)
-                node.children.append(MCTSNode(new_state, node))
-        
-        # Simulation (Rollout)
-        current_node = node
-        while not current_node.state.is_terminal():
-            legal_actions = current_node.state.get_legal_actions()
-            action = random.choice(legal_actions)
-            current_node = MCTSNode(current_node.state.take_action(action))
-        
-        # Backpropagation
-        reward = current_node.state.get_reward()
-        while node is not None:
-            node.visits += 1
-            node.total_reward += reward
-            node = node.parent
-
-    return root.best_child(exploration_weight=0).state
 
 class Conversation:
     def __init__(self, participants):
@@ -383,6 +335,67 @@ def ask_chatgpt_for_next_action(game_state, action_space, current_player, conver
     messages.add_message(message)
     response = model.query_text(messages)
     return response
+
+class MCTSNode:
+    def __init__(self, state, parent=None):
+        self.state = state
+        self.parent = parent
+        self.children = []
+        self.visits = 0
+        self.total_reward = 0
+
+    def is_fully_expanded(self):
+        # Compare the number of children with the number of legal actions from this state.
+        return len(self.children) == len(self.state.get_legal_actions())
+
+    def best_child(self, exploration_weight=1.0):
+        """Return the child with the highest UCB1 score."""
+        return max(
+            self.children, 
+            key=lambda child: child.total_reward / child.visits + 
+                              exploration_weight * math.sqrt(math.log(self.visits) / (child.visits + 1e-6))
+        )
+
+def mcts(initial_state, num_simulations):
+    root = MCTSNode(initial_state)
+    
+    for _ in range(num_simulations):
+        node = root
+        
+        # Selection: Traverse the tree until a node is reached that is not fully expanded or is terminal.
+        while not node.state.is_terminal() and node.is_fully_expanded():
+            node = node.best_child()
+
+        # Expansion: If the node is not terminal, expand by adding one or more child nodes.
+        if not node.state.is_terminal():
+            legal_actions = node.state.get_legal_actions()
+            # You can choose to expand just one child or all children.
+            for action in legal_actions:
+                new_state = node.state.take_action(action)
+                child_node = MCTSNode(new_state, parent=node)
+                node.children.append(child_node)
+            # After expansion, choose one of the newly added children at random for simulation.
+            node = random.choice(node.children)
+        
+        # Simulation (Rollout): Simulate a random playout from the node until a terminal state is reached.
+        current_state = node.state
+        while not current_state.is_terminal():
+            legal_actions = current_state.get_legal_actions()
+            if not legal_actions:
+                break  # No legal action available.
+            action = random.choice(legal_actions)
+            current_state = current_state.take_action(action)
+        
+        # Backpropagation: Propagate the reward back through the tree.
+        reward = current_state.get_reward()
+        while node is not None:
+            node.visits += 1
+            node.total_reward += reward
+            node = node.parent
+
+    # Return the state of the best child from the root (without exploration)
+    return root.best_child(exploration_weight=0).state
+
 
 
 def init_model() -> LLM_API:
