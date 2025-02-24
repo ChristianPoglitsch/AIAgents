@@ -2,6 +2,12 @@ import math
 import random
 import openai
 import random
+from copy import deepcopy
+
+import torch
+import torch.nn.functional as F
+from torch_geometric.data import Data
+from torch_geometric.nn import GCNConv
 
 from LLM_Character.llm_comms.llm_api import LLM_API
 from LLM_Character.llm_comms.llm_openai import OpenAIComms
@@ -301,6 +307,9 @@ def get_conversation_history_for_player(conversation_manager, player_name):
         history_text += conv.get_history_text() + "\n"
     return history_text
 
+
+# ------------------ large Language Model ------------------
+
 def ask_chatgpt_for_next_action(game_state, action_space, current_player, conversation_manager):
     """
     Ask ChatGPT what action the current player should take based on the current game state,
@@ -325,7 +334,7 @@ def ask_chatgpt_for_next_action(game_state, action_space, current_player, conver
         f"{state_description}\n\n"
         "Conversation History:\n"
         f"{conversation_history}\n\n"
-        "Possible action(s) for the current player:"
+        "Only reply with one possible action. Fill out the missing parts of the action labeled as None."
     )
     
     model = init_model()
@@ -336,65 +345,162 @@ def ask_chatgpt_for_next_action(game_state, action_space, current_player, conver
     response = model.query_text(messages)
     return response
 
-class MCTSNode:
-    def __init__(self, state, parent=None):
-        self.state = state
-        self.parent = parent
-        self.children = []
-        self.visits = 0
-        self.total_reward = 0
 
-    def is_fully_expanded(self):
-        # Compare the number of children with the number of legal actions from this state.
-        return len(self.children) == len(self.state.get_legal_actions())
+# ------------------ Reinforcement Learning ------------------
+
+class ISMCTSNode:
+    def __init__(self, public_state, parent=None):
+        """
+        Each node represents an information set (i.e., the public state) 
+        as seen from a player's perspective.
+        :param public_state: The public part of the game state.
+        :param parent: The parent node in the search tree.
+        """
+        self.public_state = public_state  # Public view of the game state.
+        self.parent = parent              # Parent node.
+        self.children = []                # List of child nodes.
+        self.visits = 0                   # Number of times this node was visited.
+        self.total_reward = 0             # Cumulative reward from simulations.
+        self.action_taken = None          # The action that led to this node.
+
+    def is_fully_expanded(self, legal_actions):
+        """
+        Checks if the node is fully expanded. In our case, if the number of children
+        equals the number of legal actions in the current public state.
+        :param legal_actions: List of legal actions available.
+        :return: True if fully expanded, False otherwise.
+        """
+        return len(self.children) == len(legal_actions)
 
     def best_child(self, exploration_weight=1.0):
-        """Return the child with the highest UCB1 score."""
+        """
+        Selects the child node with the highest UCB1 score.
+        :param exploration_weight: Weight for exploration term in UCB1.
+        :return: Child node with highest UCB1 score.
+        """
         return max(
-            self.children, 
-            key=lambda child: child.total_reward / child.visits + 
+            self.children,
+            key=lambda child: child.total_reward / child.visits +
                               exploration_weight * math.sqrt(math.log(self.visits) / (child.visits + 1e-6))
         )
 
-def mcts(initial_state, num_simulations):
-    root = MCTSNode(initial_state)
+def determinize_state(game_state, current_player):
+    """
+    Creates a 'determinization' of the game state. That is, given the public state 
+    and unknown private information, randomly assign plausible values to the unknown parts.
+    :param game_state: The full game state.
+    :param current_player: The player for whom the determinization is done.
+    :return: A determinized version of the game state.
+    """
+    # Create a deep copy of the game state so we don't modify the original.
+    determinized_state = deepcopy(game_state)
+    
+    # For demonstration, we assume the unknown roles are randomly assigned.
+    possible_roles = ['Imp', 'Fortune Teller', 'Villager']
+    for player in determinized_state.alive_players:
+        if determinized_state.roles[player] is None:
+            determinized_state.roles[player] = random.choice(possible_roles)
+            # Also update the public state for this simulation.
+            determinized_state.alive_players[player]['role'] = determinized_state.roles[player]
+    
+    # In a full implementation, you might also sample private knowledge here.
+    return determinized_state
+
+def ismcts(game_state, current_player, num_simulations):
+    """
+    Runs the ISMCTS algorithm:
+      - The current player only knows the public state.
+      - For each simulation, a determinization is performed to fill in unknown information.
+    :param game_state: The current full game state.
+    :param current_player: The player for whom we are computing the action.
+    :param num_simulations: Number of simulations to run.
+    :return: The action recommended by ISMCTS.
+    """
+    # Obtain the public state (information set) from the game state.
+    public_state = game_state.get_public_state()
+    root = ISMCTSNode(public_state)
     
     for _ in range(num_simulations):
+        # For each simulation, generate a determinized state.
+        determinized_state = determinize_state(game_state, current_player)
+        
+        # Start the simulation at the root node.
         node = root
         
-        # Selection: Traverse the tree until a node is reached that is not fully expanded or is terminal.
-        while not node.state.is_terminal() and node.is_fully_expanded():
+        # Get legal actions based on the determinized state.
+        legal_actions = determinized_state.get_legal_actions()
+        
+        # --- SELECTION ---
+        # Traverse the tree until reaching a node that is either not fully expanded or terminal.
+        while not determinized_state.is_terminal() and node.is_fully_expanded(legal_actions):
             node = node.best_child()
-
-        # Expansion: If the node is not terminal, expand by adding one or more child nodes.
-        if not node.state.is_terminal():
-            legal_actions = node.state.get_legal_actions()
-            # You can choose to expand just one child or all children.
-            for action in legal_actions:
-                new_state = node.state.take_action(action)
-                child_node = MCTSNode(new_state, parent=node)
+            # Apply the action that led to this node to update the determinized state.
+            determinized_state = determinized_state.take_action(node.action_taken)
+            legal_actions = determinized_state.get_legal_actions()
+        
+        # --- EXPANSION ---
+        if not determinized_state.is_terminal():
+            legal_actions = determinized_state.get_legal_actions()
+            # Expand by adding child nodes for untried actions.
+            untried_actions = [action for action in legal_actions 
+                               if action not in [child.action_taken for child in node.children]]
+            if untried_actions:
+                # Randomly choose one untried action.
+                action = random.choice(untried_actions)
+                new_state = determinized_state.take_action(action)
+                child_node = ISMCTSNode(new_state.get_public_state(), parent=node)
+                child_node.action_taken = action
                 node.children.append(child_node)
-            # After expansion, choose one of the newly added children at random for simulation.
-            node = random.choice(node.children)
+                # Move to the new child node.
+                node = child_node
+                determinized_state = new_state
         
-        # Simulation (Rollout): Simulate a random playout from the node until a terminal state is reached.
-        current_state = node.state
-        while not current_state.is_terminal():
-            legal_actions = current_state.get_legal_actions()
+        # --- SIMULATION (Rollout) ---
+        # From the current node, simulate a random playout until a terminal state is reached.
+        while not determinized_state.is_terminal():
+            legal_actions = determinized_state.get_legal_actions()
             if not legal_actions:
-                break  # No legal action available.
+                break  # No legal actions available.
             action = random.choice(legal_actions)
-            current_state = current_state.take_action(action)
+            determinized_state = determinized_state.take_action(action)
         
-        # Backpropagation: Propagate the reward back through the tree.
-        reward = current_state.get_reward()
+        # --- BACKPROPAGATION ---
+        # Get the reward from the terminal state.
+        reward = determinized_state.get_reward()
+        # Backpropagate the reward up the tree.
         while node is not None:
             node.visits += 1
             node.total_reward += reward
             node = node.parent
 
-    # Return the state of the best child from the root (without exploration)
-    return root.best_child(exploration_weight=0).state
+    # Choose the best action from the root node (without exploration, i.e., greedy).
+    best_child = root.best_child(exploration_weight=0)
+    return best_child.action_taken  # Return the action that led to the best child.
+
+# ------------------------------
+# Example usage:
+#
+# Assume you have implemented a GameState class with the following methods:
+# - get_public_state(): returns the public view of the game state.
+# - get_legal_actions(): returns a list of legal actions.
+# - take_action(action): returns a new game state after applying the action.
+# - is_terminal(): returns True if the game state is terminal.
+# - get_reward(): returns a numerical reward for the terminal state.
+#
+# Example:
+# players = ['Alice', 'Bob', 'Charlie']
+# game_state = GameState(players, phase='Day')
+# game_state.alive_players['Alice']['role'] = 'Imp'
+# game_state.alive_players['Bob']['role'] = 'Fortune Teller'
+# game_state.alive_players['Charlie']['role'] = 'Villager'
+# game_state.roles['Alice'] = 'Imp'
+# game_state.roles['Bob'] = 'Fortune Teller'
+# game_state.roles['Charlie'] = 'Villager'
+# game_state.nominations.append(('Alice', 'Charlie'))
+#
+# Run ISMCTS for current player 'Alice' with 1000 simulations:
+# best_action = ismcts(game_state, current_player='Alice', num_simulations=1000)
+# print("Recommended action for Alice:", best_action)
 
 
 
