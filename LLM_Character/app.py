@@ -98,9 +98,10 @@ def run_local_chat():
     #TODO user should "log in" with idm for database later
     user_id = input("Please enter your user_id (for the database): ")
     print("Logged in as "+ str(user_id))
-    user_id = 'test'
+    user_id = 'user123'
+    json_name = user_id + "_" + 'data.json'
     try:
-        with open('data.json', 'rb+') as json_data:
+        with open(json_name, 'rb+') as json_data:
             data = json.load(json_data)
         message = """This next message is a summary of our previous conversation,
           keep this in mind when doing the job interview. This is now the second time we meet."""
@@ -119,7 +120,7 @@ def run_local_chat():
                                  Describe everything in a way that you can read your response in a week and
                                  know what we talked about and how you felt about me.""", user_id)
             
-            with open('data.json', 'w') as f:
+            with open(json_name, 'w') as f:
                 json.dump(_, f)
             break     
 
