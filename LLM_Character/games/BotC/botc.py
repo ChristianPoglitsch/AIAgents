@@ -8,6 +8,7 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.data import Data
 from torch_geometric.nn import GCNConv
+import torch.nn as nn
 
 from LLM_Character.llm_comms.llm_api import LLM_API
 from LLM_Character.llm_comms.llm_openai import OpenAIComms
@@ -55,6 +56,18 @@ roles = {
     'Imp': Role('Imp', 'Demon', 'Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp.')
 }
 
+def roles_to_string(roles):
+    """
+    Converts the roles dictionary into a formatted string.
+    
+    :param roles: Dictionary of roles where each value is a Role object.
+    :return: A formatted string listing each role with its alignment and description.
+    """
+    role_strings = []
+    for role_name, role_obj in roles.items():
+        role_strings.append(f"{role_name} ({role_obj.ability}): {role_obj.team}")
+    
+    return "\n".join(role_strings)
 
 class Conversation:
     def __init__(self, participants):
@@ -310,7 +323,7 @@ def get_conversation_history_for_player(conversation_manager, player_name):
 
 # ------------------ large Language Model ------------------
 
-def ask_chatgpt_for_next_action(game_state, action_space, current_player, conversation_manager):
+def ask_chatgpt_for_next_action(game_state, action_space, current_player, conversation_manager, roles):
     """
     Ask ChatGPT what action the current player should take based on the current game state,
     available action space, and the conversation history related to that player.
@@ -329,13 +342,17 @@ def ask_chatgpt_for_next_action(game_state, action_space, current_player, conver
         "Select one of the provided action types and provide any necessary details tailored for the player's role.\n\n"
         f"Current Player: {current_player}\n"
         f"Role: {current_role}\n\n"
-        f"{action_space_description}\n\n"
+        f"{action_space_description}\n"
+        f"Roles in the game:\n\n"
+        f"{roles_to_string(roles)}\n\n"
         "Game State:\n"
-        f"{state_description}\n\n"
+        f"{state_description}\n"
         "Conversation History:\n"
         f"{conversation_history}\n\n"
         "Only reply with one possible action. Fill out the missing parts of the action labeled as None."
     )
+    
+    print(prompt)
     
     model = init_model()
     
@@ -503,6 +520,124 @@ def ismcts(game_state, current_player, num_simulations):
 # print("Recommended action for Alice:", best_action)
 
 
+class BotCGNN(torch.nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim):
+        super(BotCGNN, self).__init__()
+        self.conv1 = GCNConv(input_dim, hidden_dim)
+        self.conv2 = GCNConv(hidden_dim, output_dim)
+
+    def forward(self, x, edge_index):
+        # First GCN layer with ReLU activation.
+        x = self.conv1(x, edge_index)
+        x = F.relu(x)
+        # Second GCN layer; output can be used for state evaluation or classification.
+        x = self.conv2(x, edge_index)
+        return F.log_softmax(x, dim=1)
+
+
+def gamestate_to_gnn_features(game_state):
+    """
+    Converts a GameState instance into a tensor of features for each player node.
+    
+    Each player's feature vector consists of:
+      - Role indicator: 1 if the player's role is known, 0 if unknown.
+      - Alive status: 1 if alive, 0 otherwise.
+      - Nominated status: 1 if nominated, 0 otherwise.
+      - Day count (as a scalar, can be normalized later).
+      
+    :param game_state: An instance of GameState.
+    :return: A torch.Tensor of shape (num_players, feature_dim)
+    """
+    features = []
+    day_feature = game_state.day_count  # Using raw day count as a feature
+    for player, info in game_state.alive_players.items():
+        # Role indicator: 1 if role is known, 0 otherwise.
+        role_indicator = 1 if game_state.roles.get(player) is not None else 0
+        
+        # Alive status: 1 if the player is alive, else 0.
+        alive_indicator = 1 if info['alive'] else 0
+        
+        # Nominated status: 1 if nominated, else 0.
+        nominated_indicator = 1 if info['nominated'] else 0
+        
+        # Combine features into a single vector.
+        feature_vector = [role_indicator, alive_indicator, nominated_indicator, day_feature]
+        features.append(feature_vector)
+    
+    return torch.tensor(features, dtype=torch.float)
+
+
+# Example function to convert conversation history into an embedding.
+# In a real application, you would use a text encoder (e.g., SentenceTransformer)
+# Here, we simulate the embedding with a dummy vector (e.g., fixed random vector).
+def encode_conversation_text(text, embedding_dim=128):
+    # For demonstration, we simply return a tensor filled with a constant.
+    # Replace this with your text encoding mechanism.
+    return torch.full((embedding_dim,), 0.5)
+
+def conversations_to_features_and_edges(conversation_manager, player_to_idx, embedding_dim=128):
+    """
+    Converts all conversations from a ConversationManager into:
+      - conversation_features: A tensor of shape (num_conversation_nodes, embedding_dim)
+      - edge_index: A tensor of shape (2, num_edges) connecting conversation nodes to player nodes.
+    
+    Args:
+        conversation_manager: An instance of ConversationManager.
+        player_to_idx: A dictionary mapping player names to node indices in the overall graph.
+                       (For example, if players are the first nodes in your graph.)
+        embedding_dim: The dimensionality of the conversation embedding.
+        
+    Returns:
+        conversation_features: Tensor of conversation node features.
+        edge_index: Tensor of shape [2, num_edges] indicating edges from conversation nodes to players.
+                    In our case, we assume an undirected edge, so we add both directions.
+    """
+    conversation_features_list = []  # List to store conversation embeddings.
+    edges = []  # List to store edges between conversation nodes and player nodes.
+    
+    # We'll assume that conversation nodes will be added after all player nodes.
+    # So if we have N players, then the first conversation node will have index N, etc.
+    conversation_start_idx = len(player_to_idx)
+    
+    # Retrieve all conversations from the manager.
+    conversations = conversation_manager.get_conversations()
+    
+    # Iterate over each conversation in the dictionary.
+    for conv_idx, (participants_tuple, conv_obj) in enumerate(conversations.items()):
+        # Get the aggregated conversation text.
+        conv_text = conv_obj.get_history_text()
+        # Convert the text to an embedding (using our dummy encoder).
+        conv_embedding = encode_conversation_text(conv_text, embedding_dim=embedding_dim)
+        conversation_features_list.append(conv_embedding)
+        
+        # The index of this conversation node in the final graph:
+        conv_node_idx = conversation_start_idx + conv_idx
+        
+        # Create edges between this conversation node and all players in the conversation.
+        for player in conv_obj.get_participants():
+            # Get the player's index from the provided mapping.
+            if player in player_to_idx:
+                player_idx = player_to_idx[player]
+                # Add edge from conversation node to player.
+                edges.append((conv_node_idx, player_idx))
+                # And add reverse edge (undirected graph).
+                edges.append((player_idx, conv_node_idx))
+    
+    # Stack all conversation features into a single tensor.
+    if conversation_features_list:
+        conversation_features = torch.stack(conversation_features_list, dim=0)
+    else:
+        conversation_features = torch.empty((0, embedding_dim))
+    
+    # Convert edge list to a tensor of shape [2, num_edges].
+    if edges:
+        edge_index = torch.tensor(edges, dtype=torch.long).t().contiguous()
+    else:
+        edge_index = torch.empty((2, 0), dtype=torch.long)
+    
+    return conversation_features, edge_index
+
+
 
 def init_model() -> LLM_API:
     model = OpenAIComms()
@@ -550,7 +685,55 @@ current_player = 'Alice'
 
 # Ask ChatGPT for a next possible action for the current player
 if True:
-    next_action_suggestion = ask_chatgpt_for_next_action(game_state, action_space, current_player, conversation_manager)
+    next_action_suggestion = ask_chatgpt_for_next_action(game_state, action_space, current_player, conversation_manager, roles)
     print("ChatGPT suggests the following possible action(s):")
     print(next_action_suggestion)
     
+
+
+
+# Convert the game state to GNN node features.
+player_node_features = gamestate_to_gnn_features(game_state)
+print("Player node features tensor:")
+print(player_node_features)
+
+
+# Create a mapping for player nodes.
+# For example, assume we have 3 players with indices: Alice->0, Bob->1, Charlie->2.
+player_to_idx = {'Alice': 0, 'Bob': 1, 'Charlie': 2}
+
+# Convert the conversation data to conversation features and edges.
+conversation_features, conv_edge_index = conversations_to_features_and_edges(conversation_manager, player_to_idx, embedding_dim=128)
+
+print("Conversation features tensor shape:", conversation_features.shape)
+print("Edge index tensor shape:", conv_edge_index.shape)
+print("Edge index tensor:", conv_edge_index)
+
+
+print("Player node features shape:", player_node_features.shape)
+print("Conversation features shape:", conversation_features.shape)
+embedding_dim = conversation_features.shape[1]  # Get dimension of conv features
+feature_dim = player_node_features.shape[1]  # Get dimension of player features
+# If dimensions are different, apply a linear layer to project features
+if feature_dim != embedding_dim:
+    projection = nn.Linear(feature_dim, embedding_dim)  # Create transformation layer
+    player_node_features = projection(player_node_features)  # Project player features
+# Kombiniere alle Knotenfeatures in einer Feature-Matrix.
+# Zum Beispiel: Zuerst die Spieler, dann die Statements.
+x = torch.cat([player_node_features, conversation_features], dim=0)
+
+# Optional: Falls du Kantenattribute (z.B. Gewichtungen) berechnen moechtest, kannst du diese hier hinzufuegen.
+edge_attr = None  # Hier koenntest du beispielsweise Kosinus-aehnlichkeiten der verbundenen Knoten berechnen.
+
+# Erstelle das Data-Objekt fuer den Graphen.
+graph_data = Data(x=x, edge_index=conv_edge_index, edge_attr=edge_attr)
+
+
+# Beispiel: Wir nehmen an, dass die Knotenfeatures 384-dim sind.
+# Wir koennten das Modell so definieren, dass es beispielsweise 128 Hidden Units verwendet
+# und 2 Klassen (z. B. "good" vs. "evil" oder weitere Spiel-spezifische Zustaende) ausgibt.
+model = BotCGNN(input_dim=x.size(1), hidden_dim=128, output_dim=2)
+
+# Fuehre einen Forward-Pass durch:
+output = model(graph_data.x, graph_data.edge_index)
+print("GNN Output:", output)
