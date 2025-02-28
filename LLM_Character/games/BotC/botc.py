@@ -182,9 +182,11 @@ class ConversationManager:
 # (In a complete implementation, GameState would include these methods.)
 class GameState:
     def __init__(self, players, phase='Day'):
-        self.phase = phase
+        self.phase = phase # Day, Execution, Night
         self.alive_players = {player: {'role': None, 'alive': True, 'nominated': False, 'effects': None} for player in players}
         self.nominations = []
+        self.nominated = []
+        self.nomination_count = -1
         self.roles = {player: None for player in players}
         self.private_knowledge = {player: None for player in players}
         self.day_count = 1
@@ -199,6 +201,8 @@ class GameState:
             'phase': self.phase,
             'alive_players': self.alive_players,
             'nominations': self.nominations,
+            'nominated': self.nominated,
+            'nomination count': self.nomination_count,
             'day_count': self.day_count,
         }
 
@@ -242,19 +246,29 @@ class GameState:
         # Return a dummy reward (e.g., 1 or -1) for terminal states.
         return random.choice([1, -1])
 
+# ------------------ Global Action List ------------------
+
 class ActionSpace:
     def __init__(self):
+        #self.actions = [
+        #    {'type': 'nominate', 'nominator': None, 'nominee': None},
+        #    {'type': 'vote', 'voter': None, 'vote': None},
+        #    {'type': 'kill', 'killer': None, 'target': None},
+        #    {'type': 'protect', 'protector': None, 'target': None},
+        #    {'type': 'bluff', 'bluffer': None, 'claim': None},
+        #    {'type': 'reveal', 'revealer': None},
+        #    {'type': 'disrupt', 'disruptor': None},
+        #    {'type': 'check', 'checker': None, 'target': None},
+        #    {'type': 'announce', 'announcer': None, 'message': None},
+        #    {'type': 'vote_grimoire', 'voter': None, 'vote': None}
+        #]
+        
         self.actions = [
             {'type': 'nominate', 'nominator': None, 'nominee': None},
             {'type': 'vote', 'voter': None, 'vote': None},
-            {'type': 'kill', 'killer': None, 'target': None},
-            {'type': 'protect', 'protector': None, 'target': None},
-            {'type': 'bluff', 'bluffer': None, 'claim': None},
-            {'type': 'reveal', 'revealer': None},
-            {'type': 'disrupt', 'disruptor': None},
-            {'type': 'check', 'checker': None, 'target': None},
-            {'type': 'announce', 'announcer': None, 'message': None},
-            {'type': 'vote_grimoire', 'voter': None, 'vote': None}
+            {'type': 'talk', 'speaker': None, 'audience': None, 'text': None},
+            {'type': 'do_not_talk' },
+            {'type': 'class_action', 'action': None, 'target': None}
         ]
     
     def get_action_template(self, action_type):
@@ -300,7 +314,7 @@ def get_conversation_history_for_player(conversation_manager, player_name):
 
 def complete_action_struct_with_llm(game_state, action_space, current_player, conversation_manager, roles, global_action):
     """
-    Given the global_actions list, ask the LLM to select one action template from the list 
+    Given the action list, ask the LLM to select one action template from the list 
     and complete it by filling in all missing parameters. The LLM is provided with the current 
     game state, conversation history, available action descriptions, and the roles in the game.
     
@@ -311,7 +325,7 @@ def complete_action_struct_with_llm(game_state, action_space, current_player, co
     :param current_player: Name of the current player.
     :param conversation_manager: ConversationManager instance with conversation history.
     :param roles: Dictionary mapping role names to Role objects.
-    :param global_actions: List of action templates (dictionaries with some parameters as None).
+    :param action: List of action templates (dictionaries with some parameters as None).
     :return: The LLM's response as a completed action structure in JSON.
     """
     # Generate a human-readable description of the current game state.
@@ -331,18 +345,18 @@ def complete_action_struct_with_llm(game_state, action_space, current_player, co
         "with some parameters missing (marked as None). Based on the game state, conversation history, and role information, "
         "please select one action from the list and complete it by filling in all missing parameters. "
         "Return your answer as a single complete action in JSON format.\n\n"
-        f"Selected Action:\n{global_action}\n\n"
+        #f"Selected Action: {global_action}\n\n"
         f"Current Player: {current_player}\n"
         f"Role: {current_role}\n\n"
         "Available Actions Description:\n"
         f"{action_space_description}\n\n"
-        "Roles in the Game:\n"
+        "Roles of the Game:\n"
         f"{roles_to_string(roles)}\n\n"
         "Game State:\n"
         f"{state_description}\n\n"
         "Conversation History:\n"
         f"{conversation_history}\n\n"
-        "Please output one complete action in JSON format, selected from the global actions list."
+        "Please output up to four complete possible actions in JSON format, selected from the Available Actions Description."
     )
     
     # Debug print of the prompt (optional)
@@ -445,11 +459,6 @@ def determinize_state(game_state, current_player):
             determinized_state.alive_players[player]['role'] = determinized_state.roles[player]
     return determinized_state
 
-# ------------------ Global Action List ------------------
-
-global_actions = ['nominate', 'vote', 'kill', 'protect', 'bluff',
-                  'reveal', 'disrupt', 'check', 'announce', 'vote_grimoire']
-
 # ------------------ ISMCTS with GNN Integration ------------------
 
 def ismcts_with_gnn(game_state, current_player, num_simulations, conversation_manager, player_to_idx, embedding_dim, gnn_model):
@@ -507,7 +516,7 @@ def ismcts_with_gnn(game_state, current_player, num_simulations, conversation_ma
             legal_indices = []
             for action in legal_actions:
                 try:
-                    idx = global_actions.index(action['type'])
+                    idx = action_space.list_action_types().index(action['type'])
                     legal_indices.append(idx)
                 except ValueError:
                     pass
@@ -520,7 +529,7 @@ def ismcts_with_gnn(game_state, current_player, num_simulations, conversation_ma
                 sampled_idx = torch.multinomial(legal_probs, 1).item()
                 chosen_global_idx = legal_indices[sampled_idx]
                 # Choose the first legal action that matches the predicted action type.
-                chosen_action = next(a for a in legal_actions if a['type'] == global_actions[chosen_global_idx])
+                chosen_action = next(a for a in legal_actions if a['type'] == action_space.list_action_types()[chosen_global_idx])
             
             determinized_state = determinized_state.take_action(chosen_action)
         
@@ -639,7 +648,7 @@ def build_graph(game_state, conversation_manager, player_to_idx, embedding_dim=1
 def init_model() -> LLM_API:
     model = OpenAIComms()
     model_id = "gpt-4o"
-    model.max_tokens = 128
+    model.max_tokens = 200
     model.init(model_id)
     wrapped_model = LLM_API(model)
     return wrapped_model
@@ -651,19 +660,23 @@ conversation_manager.add_message_to_conversation(['Alice', 'Bob'], 'Alice', "I t
 conversation_manager.add_message_to_conversation(['Alice', 'Bob'], 'Bob', "Maybe, but I'm not sure if he's really suspicious.")
 
 # Define players and create a GameState instance
-players = ['Alice', 'Bob', 'Charlie']
+players = ['Alice', 'Bob', 'Charlie', 'Diana', 'Emmy']
 
 # Define a player_to_idx mapping.
-player_to_idx = {'Alice': 0, 'Bob': 1, 'Charlie': 2}
+player_to_idx = {'Alice': 0, 'Bob': 1, 'Charlie': 2, 'Diana' :3, 'Emmy': 4}
 
 game_state = GameState(players, phase='Day')
 # Set roles (using simple strings for this example)
 game_state.alive_players['Alice']['role'] = 'Imp'
-game_state.alive_players['Bob']['role'] = 'Fortune Teller'
-game_state.alive_players['Charlie']['role'] = 'Villager'
+game_state.alive_players['Bob']['role'] = 'Spy'
+game_state.alive_players['Charlie']['role'] = 'Mayor'
+game_state.alive_players['Diana']['role'] = 'Slayer'
+game_state.alive_players['Emmy']['role'] = 'Ravenkeeper'
 game_state.roles['Alice'] = 'Imp'
-game_state.roles['Bob'] = 'Fortune Teller'
-game_state.roles['Charlie'] = 'Villager'
+game_state.roles['Bob'] = 'Spy'
+game_state.roles['Charlie'] = 'Mayor'
+game_state.roles['Diana'] = 'Slayer'
+game_state.roles['Emmy'] = 'Ravenkeeper'
 game_state.nominations.append(('Alice', 'Charlie'))
 
 
@@ -686,7 +699,7 @@ current_player = 'Alice'
 
 # Ask ChatGPT for a next possible action for the current player
 if True:
-    next_action_suggestion = complete_action_struct_with_llm(game_state, action_space, current_player, conversation_manager, roles, global_actions[4])
+    next_action_suggestion = complete_action_struct_with_llm(game_state, action_space, current_player, conversation_manager, roles, action_space.list_action_types()[0])
     print("ChatGPT suggests the following possible action(s):")
     print(next_action_suggestion)
  
@@ -704,7 +717,7 @@ graph_data = build_graph(game_state, conversation_manager, player_to_idx, embedd
 print("Graph node features shape:", graph_data.x.shape)  # Expected shape: (num_nodes, 128)
 
 # Correctly set the GNN input dimension to 128, which is the feature dimension of graph_data.x.
-gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=len(global_actions))
+gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=len(action_space.list_action_types()))
 
 # Now run the model.
 output = gnn_model(graph_data)
