@@ -64,7 +64,6 @@ def process_message(query : AIMessage, user_id : str, just_receive_data=False):
     sending_str = response_data.model_dump_json()
     message = AIMessage(message=query_result, role="assistant", class_type="MessageAI", sender="assistant")
     messages.add_message(message)
-    #print(messages.prints_messages_role())
     messages_dict[user_id] = messages
     
     print(just_receive_data)
