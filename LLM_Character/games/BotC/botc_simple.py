@@ -11,47 +11,182 @@ from LLM_Character.llm_comms.llm_local import LocalComms
 from LLM_Character.llm_comms.llm_openai import OpenAIComms
 from LLM_Character.messages_dataclass import AIMessage, AIMessages
 
+# ------------------ LLM Integration Stub ------------------
+
+model = []
+
+server_based = True
+
+def init_model() -> LLM_API:
+    if server_based:
+        return init_model_server()
+    else:
+        return init_model_local()
+
+def init_model_server() -> LLM_API:
+    model = OpenAIComms()
+    model_id = "gpt-4o"
+    model.max_tokens = 200
+    model.init(model_id)
+    wrapped_model = LLM_API(model)
+    return wrapped_model
+
+def init_model_local() -> LLM_API:
+    model = LocalComms()
+    model_id = "mistralai/Mistral-7B-Instruct-v0.3"
+    #model_id = "deepseek-ai/deepseek-llm-7b-chat"
+    #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
+    model.max_tokens = 200
+    model.init(model_id)
+    wrapped_model = LLM_API(model)
+    return wrapped_model
+
+#def get_model() -> LLM_API:
+#    return model
+
 # ------------------ Game Environment for Number Guessing ------------------
 
-class NumberGuessGameState:
+class BasicGameState:
     def __init__(self):
-        # Players: A is the seeker; B, C, and D are respondents.
+        # Common elements: list of players.
         self.players = ['A', 'B', 'C', 'D']
-        # Secret number is either 0 or 1.
-        self.secret_number = random.choice([0, 1])
-        # Randomly select one respondent to be the liar.
+
+    def randomly_select_player(self):
+        """Randomly select one player from the list."""
+        return random.choice(self.players)
+
+    def get_public_state(self, player):
+        """
+        This method should be implemented by subclasses to return a 
+        human-readable public state description.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+
+
+class SimpleNumberGuessGameState(BasicGameState):
+    def __init__(self):
+        super().__init__()
+        # Secret number is either 0 or 100.
+        self.secret_number = random.choice([0, 100])
+        # Randomly select one respondent (from B, C, D) to be the liar.
         self.liar = random.choice(['B', 'C', 'D'])
         # Initialize features for each player.
         # Feature vector: [is_A, asked, response]
-        # For Player A: is_A=1, asked=0, response=-1 (not applicable)
-        # For others: is_A=0, asked=0, response=-1 (no answer yet)
         self.features = {
             'A': [1, 0, -1],
             'B': [0, 0, -1],
             'C': [0, 0, -1],
             'D': [0, 0, -1]
         }
+        # The guess is initialized to None.
+        self.guess = None
+
+        self.action_space_description = [
+            {'type': 'Guess', 'Speaker': None, 'Number': None},
+            {'type': 'Message', 'Speaker': None, 'Audience': None, 'Message:': None},
+            {'type': 'No Action', 'Speaker': None}
+        ]
 
     def is_terminal(self):
         """Game ends when a guess is made."""
-        return self.guess is not None
+        return self.guess
 
     def get_public_state(self, player):
-        """Return a human-readable public state description with role-based visibility."""
-    
+        """
+        Returns a human-readable public state description.
+        For Player A, the secret number remains hidden.
+        For other players, the secret number is revealed.
+        If the player is the liar, that fact is indicated.
+        """
         if player == "A":
             secret_info = "Secret number is unknown to you."
         else:
             secret_info = f"Secret number is {self.secret_number}."
             if player == self.liar:
                 secret_info += " (You are the liar!)"
-
-        # List of all players
         player_info = "Players: " + ", ".join(self.players)
+        return f"{secret_info}\n\n{player_info}"
 
-        message = f"{secret_info}\n\n{player_info}"
+    def generate_prompt(self, current_player, conversation_history):
+        """
+        Creates a prompt string for the LLM based on the current game state,
+        available actions, and conversation history.
+        
+        :param current_player: The name of the current player.
+        :param action_space_description: A string describing the available action templates.
+        :param conversation_history: A string representing the conversation history.
+        :return: A prompt string in plain text.
+        """
+        # Get the public state description for the current player.
+        state_description = self.get_public_state(current_player)
+        
+        prompt = (
+            "You are a helpful board game AI assistant for the number guessing minigame. "
+            "Player A's goal is to determine the secret number (from 0 to 100) by asking other player for their respondents or by making a guess if player A has enough information about the game state. "
+            "Other players return the secret number. Some players are liars. They return a number not equal to the secret number. "
+            f"Current Player: {current_player}\n\n"
+            "The available actions are given below, but each action is incomplete and missing parameters marked as None.\n"
+            "Available Actions Description:\n"
+            f"{self.action_space_description}\n\n"
+            "Game State:\n"
+            f"{state_description}\n\n"
+            "Chronological conversation History:\n"
+            f"{conversation_history}\n\n"
+            "Please output one complete possible action from the Available Actions Description list in JSON format. "
+            "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.\n\n"
+        )
+        return prompt
+
+
+    def apply_action(self, action_processor, conversation_manager, action):
+        """
+        Updates the game state and conversation history based on the selected action.
+        For both "Message" and "Guess" actions, calls complete_action_with_llm to generate a
+        complete action and returns that result.
     
-        return message
+        :param game_state: The current game state (NumberGuessGameState).
+        :param conversation_manager: The conversation manager to track interactions.
+        :param action: A dictionary representing the action (from LLM or another source).
+        :return: The completed action as generated by complete_action_with_llm.
+        """
+    
+        action_type = action.get("type")
+        result_action = None
+
+        if action_type == "Message":
+            # Extract speaker and audience from the action.
+            speaker = action.get("Speaker")
+            audience = action.get("Audience")        
+            # Ensure audience is handled as a list.
+            if not isinstance(audience, list):
+                audience = [audience]
+        
+            # For each respondent in the audience:
+            for respondent in audience:
+                result_action = action_processor.create_action(self, respondent, conversation_manager)
+
+        elif action_type == "Guess":
+            guessed_number = action.get("Number")
+            speaker = action.get("Speaker")
+
+            # Update game state with the guessed number.
+            self.guess = guessed_number
+        
+            # Log the guess in the conversation manager.
+            conversation_manager.add_message_to_conversation(speaker, speaker, f"My guess is {guessed_number}.")
+            result_action = None
+
+        elif action_type == "No Action":
+            #print("No action selected")
+            result_action = None
+
+        else:
+            #raise ValueError(f"Invalid action type: {action_type}")
+            print(f"Invalid action type: {action_type}")
+            result_action = None
+
+        return result_action
+
 
 # ------------------ Graph Construction ------------------
 
@@ -142,87 +277,52 @@ class ConversationManager:
                 result.append(conv)
         return result
 
-    def print_all_conversations(conversation_manager):
+    def print_all_conversations(self):
         """
         Prints all conversations stored in the ConversationManager.
         For each conversation, it prints the list of participants and then each message.
         """
-        for participants, conversation in conversation_manager.conversations.items():
+        for participants, conversation in self.conversations.items():
             print(f"Conversation among: {', '.join(participants)}")
             for entry in conversation.history:
                 print(f"{entry['sender']}: {entry['message']}")
             print("-" * 40)
 
-# ------------------ Actions classes ------------------
-
-def apply_action(game_state, conversation_manager, action):
-    """
-    Updates the game state and conversation history based on the selected action.
-    For both "Message" and "Guess" actions, calls complete_action_with_llm to generate a
-    complete action and returns that result.
+    def extract_all_unique_participants(self):
+        """
+        Extracts a list of unique individual participant names from the ConversationManager.
+        This function iterates over each Conversation instance and appends each participant
+        to a list if they haven't already been added.
     
-    :param game_state: The current game state (NumberGuessGameState).
-    :param conversation_manager: The conversation manager to track interactions.
-    :param action: A dictionary representing the action (from LLM or another source).
-    :return: The completed action as generated by complete_action_with_llm.
-    """
+        :return: A list of unique participant names.
+        """
+        unique_participants = []
+        for conv in self.conversations.values():
+            for participant in conv.get_participants():
+                if participant not in unique_participants:
+                    unique_participants.append(participant)
+        return unique_participants
+
+    def get_all_conversations_for_player_print(self):
+        """
+        Prints all conversations stored in the ConversationManager that involve the specified player.
     
-    action_type = action.get("type")
-    result_action = None
-
-    if action_type == "Message":
-        # Extract speaker and audience from the action.
-        speaker = action.get("Speaker")
-        audience = action.get("Audience")        
-        # Ensure audience is handled as a list.
-        if not isinstance(audience, list):
-            audience = [audience]
-        
-        # For each respondent in the audience:
-        for respondent in audience:
-            participants = [speaker, respondent]
-        
-            # Call the LLM to complete the action for this respondent.
-            result_action = complete_action_with_llm(game_state, respondent, conversation_manager)
-
-            # Check if temp_result is a list; if so, iterate over its items.
-            if isinstance(result_action, list):
-                for item in result_action:
-                    if item.get("type") in ["Message"]:
-                        speaker = item.get("Speaker")
-                        audience = item.get("Audience")
-                        participants = [speaker, audience]
-                        conversation_manager.add_message_to_conversation(participants, item.get("Speaker"), item)
+        :param player_name: The name of the player whose conversations should be printed.
+        """
+        unique_participants = self.extract_all_unique_participants()
+        for player_name in unique_participants:
+            convs = self.get_conversation_for_player(player_name)
+            if convs:
+                print(f"Conversation where {player_name} is involved")
+                for conv in convs:                    
+                    for entry in conv.history:
+                        print(f"{entry['sender']}: {entry['message']}")
+                print("-" * 40)
             else:
-                if result_action.get("type") in ["Message"]:
-                    speaker = result_action.get("Speaker")
-                    audience = result_action.get("Audience")
-                    participants = [speaker, audience]
+                print(f"No conversations found for player: {player_name}")
 
 
-    elif action_type == "Guess":
-        guessed_number = action.get("Number")
-        speaker = action.get("Speaker")
-        if guessed_number in [0, 1]:
-            # Update game state with the guessed number.
-            game_state.guess = guessed_number
-        
-            # Log the guess in the conversation manager.
-            conversation_manager.add_message_to_conversation(speaker, speaker, f"My guess is {guessed_number}.")
-        else:
-            raise ValueError("Invalid guess. Must be 0 or 1.")
-
-    elif action_type == "No Action":
-        #print("No action selected")
-        result_action = None
-
-    else:
-        #raise ValueError(f"Invalid action type: {action_type}")
-        print(f"Invalid action type: {action_type}")
-        result_action = None
-
-    return result_action
-
+# ------------------ Actions classes ------------------
 
 class ActionProcessor:
     def __init__(self, game_state, conversation_manager):
@@ -235,7 +335,7 @@ class ActionProcessor:
         self.game_state = game_state
         self.conversation_manager = conversation_manager
         self.action_queue = []  # List to hold actions (each action is a dictionary)
-        self.action_budget = 20
+        self.action_budget = 50
 
     def add_action(self, action):
         """
@@ -261,13 +361,28 @@ class ActionProcessor:
         Any actions returned by apply_action (if the result is a list, all its items) are added to the queue.
         The process continues until the queue is empty.
         """
-        while self.action_queue and self.action_budget > 0:
+
+        terminal_state = False
+
+        while not terminal_state and self.action_budget > 0:
+
+            if not self.action_queue:
+                action = self.create_action(game_state, game_state.randomly_select_player(), self.conversation_manager)
+                # If a result is returned, add it/them to the queue.
+                if action is not None:
+                    if isinstance(action, list):
+                        self.action_queue.extend(action)  # Add all items if result is a list.
+                    else:
+                        self.action_queue.append(action)  # Add the single action.
+
             # Pop the first action from the queue.
             action = self.action_queue.pop(0)
+            #action_type = action.get("type")
+            
             # Apply the action. This function updates the game state and conversation manager.
-            action = apply_action(self.game_state, self.conversation_manager, action)
-            self.action_budget = self.action_budget - 1        
-
+            action = self.game_state.apply_action(self, self.conversation_manager, action)
+            self.action_budget = self.action_budget - 1
+                
             # If a result is returned, add it/them to the queue.
             if action is not None:
                 if isinstance(action, list):
@@ -275,7 +390,45 @@ class ActionProcessor:
                 else:
                     self.action_queue.append(action)  # Add the single action.
     
+            if game_state.is_terminal() is not None:
+                terminal_state = True
+
         return
+
+    def create_action(self, game_state, respondent, conversation_manager):
+        """
+        Calls complete_action_with_llm for the given respondent and logs any completed action(s) of type "Message"
+        into the conversation manager.
+    
+        :param game_state: The current game state.
+        :param respondent: The respondent for which the action completion is requested.
+        :param conversation_manager: The conversation manager to log messages.
+        """
+        # Call the LLM to complete the action for this respondent.
+        result_action = complete_action_with_llm(game_state, respondent, conversation_manager)
+    
+        # If the result is a list, iterate over its items.
+        if isinstance(result_action, list):
+            for item in result_action:
+                if item.get("type") in ["Message"]:
+                    speaker = item.get("Speaker")
+                    audience = item.get("Audience")
+                    # Ensure audience is a list
+                    if not isinstance(audience, list):
+                        audience = [audience]
+                    participants = [speaker] + audience
+                    conversation_manager.add_message_to_conversation(participants, speaker, item)
+        else:
+            # If result_action is not a list and is of type "Message"
+            if result_action.get("type") in ["Message"]:
+                speaker = result_action.get("Speaker")
+                audience = result_action.get("Audience")
+                if not isinstance(audience, list):
+                    audience = [audience]
+                participants = [speaker] + audience
+                conversation_manager.add_message_to_conversation(participants, speaker, result_action)
+            
+        return result_action
 
 # ------------------ GNN Model ------------------
 
@@ -302,33 +455,6 @@ class ActionPredictionGNN(torch.nn.Module):
         x = torch.mean(x, dim=0)
         x = self.fc(x)
         return F.log_softmax(x, dim=0)
-
-# ------------------ Global Actions ------------------
-
-action_space_description = [
-    {'type': 'Guess', 'Speaker': None, 'Number': None},
-    {'type': 'Message', 'Speaker': None, 'Audience': None, 'Message:': None},
-    {'type': 'No Action', 'Speaker': None}
-]    
-
-# ------------------ LLM Integration Stub ------------------
-
-def init_model() -> LLM_API:
-    model = OpenAIComms()
-    model_id = "gpt-4o"
-    model.max_tokens = 200
-    model.init(model_id)
-    wrapped_model = LLM_API(model)
-    return wrapped_model
-
-def init_model_local() -> LLM_API:
-    model = LocalComms()
-    model_id = "mistralai/Mistral-7B-Instruct-v0.3"
-    model.max_tokens = 200
-    model.init(model_id)
-    wrapped_model = LLM_API(model)
-    return wrapped_model
-
 
 # ------------------ LLM Action Completion Function ------------------
 
@@ -358,44 +484,41 @@ def complete_action_with_llm(game_state, current_player, conversation_manager):
     #current_role = " "
     
     # Create a prompt.
-    prompt = (
-        "You are a helpful board game AI assistant for the number guessing minigame. "
-        "Player A's goal is to determine the correct number (0 or 1) by asking one of the respondents or by making a guess. Other players have to reply with the correct number, except the liar. This player returns the wrong number."
-        "The available global actions are given below, but each action is incomplete and missing parameters. "
-        "Based on the game state, conversation history, and your reasoning, please select one action from the list and complete it by filling in all missing parts.\n"
-        f"Current Player: {current_player}\n"
-        #f"Role: {current_role}\n\n"
-        "Available Actions Description:\n"
-        f"{action_space_description}\n\n"
-        "Game State:\n" + state_description + "\n\n"
-        "Conversation History:\n" + conversation_history + "\n\n"
-        "Please output one to four complete possible actions from the Available Actions Description list in JSON format. Do NOT use ```json or ``` in your response. Replace None parts of the action."
-    )
+    prompt = game_state.generate_prompt(current_player, conversation_history)
     
     #print("LLM Prompt:\n", prompt)
     
     # Prepare messages for the LLM.
+    if server_based:
+        role = "developer"
+    else:
+       role = "user"
     messages = AIMessages()
-    message = AIMessage(message=prompt, role="developer", class_type="LLMActionCompletion", sender="developer")
+    message = AIMessage(message=prompt, role=role, class_type="LLMActionCompletion", sender=role)
     messages.add_message(message)
     
     # Initialize the LLM.
-    model = init_model()
+    #model = get_model()
     llm_response = model.query_text(messages)
     
     try:
-        result = json.loads(llm_response)        
+        result = json.loads(llm_response)
     except Exception as e:
-        #print("Error parsing LLM response:", e)
+        print("Error parsing LLM response: " + ' \nMessage:\n' + llm_response, e)
         result = {"action": "No Action", 'Speaker': current_player}
 
-    #print("LLM Responds:\n", result)
+    print("LLM Responds: " + current_player +"\n", result)
+
+    # Take most plausible results
+    if isinstance(result, list):
+        result = random.choice(result)
+        print("Choosen respond: " + current_player +"\n", result)
 
     return result
 
 # ------------------ ISMCTS with LLM Integration ------------------
 
-def ismcts_with_llm(game_state, current_player, num_simulations, conversation_manager, global_actions, gnn_model):
+def ismcts_with_llm(game_state, current_player, num_simulations, conversation_manager, gnn_model):
     """
     A simplified ISMCTS-like function that uses an LLM to decide on an action for the number guessing game.
     This function is adapted for the minigame, where Player A's possible actions are:
@@ -407,23 +530,18 @@ def ismcts_with_llm(game_state, current_player, num_simulations, conversation_ma
     :param current_player: The current player's name (should be 'A').
     :param num_simulations: Number of ISMCTS simulations (not used extensively in this simple stub).
     :param conversation_manager: ConversationManager instance.
-    :param global_actions: List of global action templates.
     :param gnn_model: The GNN model (not directly used in this LLM stub version).
     :return: The recommended action from the LLM as a string, along with its reasoning.
     """
-    # Init prompt
-    action = complete_action_with_llm(game_state, current_player, conversation_manager)
+    
     actionProcessor = ActionProcessor(game_state, conversation_manager)
-    actionProcessor.add_action(action)
     actionProcessor.process_actions()
     
-    return action
+    return 0
 
 # ------------------ Example Usage ------------------
 
-# Create a dummy number guessing game state.
-class SimpleNumberGuessGameState(NumberGuessGameState):
-    pass  # Inherit from NumberGuessGameState without changes for this example.
+model = init_model()
 
 game_state = SimpleNumberGuessGameState()
 
@@ -436,10 +554,13 @@ player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=2)
 
 # Use the ISMCTS with LLM integration to get an action decision.
-decision = ismcts_with_llm(game_state, current_player='A', num_simulations=100, 
-                           conversation_manager=conv_manager, global_actions=action_space_description,
+_ = ismcts_with_llm(game_state, current_player='A', num_simulations=100, 
+                           conversation_manager=conv_manager,
                            gnn_model=gnn_model)
 
 print('Secret number: ' + str(game_state.secret_number))
+print('Guess: ' + str(game_state.guess))
 print('Liar: ' + str(game_state.liar))
+#conv_manager.get_all_conversations_for_player_print()
 conv_manager.print_all_conversations()
+print("Result: " + str(game_state.guess == game_state.secret_number))
