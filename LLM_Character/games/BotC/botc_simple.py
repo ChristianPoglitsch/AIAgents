@@ -6,6 +6,8 @@ import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 from torch_geometric.data import Data
 
+from datasets import load_dataset
+
 from LLM_Character.llm_comms.llm_api import LLM_API
 from LLM_Character.llm_comms.llm_local import LocalComms
 from LLM_Character.llm_comms.llm_openai import OpenAIComms
@@ -71,13 +73,14 @@ class SimpleNumberGuessGameState(BasicGameState):
         # Randomly select one respondent (from B, C, D) to be the liar.
         self.liar = random.choice(['B', 'C', 'D'])
         # Initialize features for each player.
-        # Feature vector: [is_A, asked, response]
+        # Feature vector: [#asked, response for number]
         self.features = {
-            'A': [1, 0, -1],
-            'B': [0, 0, -1],
-            'C': [0, 0, -1],
-            'D': [0, 0, -1]
+            'A': [0, 'None'],
+            'B': [0, 'None'],
+            'C': [0, 'None'],
+            'D': [0, 'None']
         }
+
         # The guess is initialized to None.
         self.guess = None
 
@@ -86,6 +89,24 @@ class SimpleNumberGuessGameState(BasicGameState):
             {'type': 'Message', 'Speaker': None, 'Audience': None, 'Message:': None},
             {'type': 'No Action', 'Speaker': None}
         ]
+
+    def game_state_features_to_string(self):
+        """
+        Converts the game state's feature vectors into a human-readable string.
+        Each feature vector is assumed to be [number_of_asked, response_for_number].
+    
+        :param game_state: An instance of a game state that has an attribute 'features',
+                           which is a dictionary with player names as keys and feature vectors as values.
+        :return: A formatted string representing the game state features.
+        """
+        result_lines = ["Game State Features:"]
+        for player, features in self.features.items():
+            # Construct a line for each player
+            line = (f"Player {player}: "
+                    f"number of conversations = {features[0]}, response = {features[1]}")
+            result_lines.append(line)
+        # Join all lines into a single string separated by newlines.
+        return "\n".join(result_lines)
 
     def is_terminal(self):
         """Game ends when a guess is made."""
@@ -105,7 +126,7 @@ class SimpleNumberGuessGameState(BasicGameState):
             if player == self.liar:
                 secret_info += " (You are the liar!)"
         player_info = "Players: " + ", ".join(self.players)
-        return f"{secret_info}\n\n{player_info}"
+        return f"{secret_info}\n\n{player_info}" + "\n" + self.game_state_features_to_string()
 
     def generate_prompt(self, current_player, conversation_history):
         """
@@ -240,6 +261,7 @@ class Conversation:
 class ConversationManager:
     def __init__(self):
         self.conversations = {}  # key: tuple(participants), value: Conversation instance
+        self.prompt_outcome_log = []  # List to store tuples of (prompt, outcome) as strings
 
     def start_conversation(self, participants):
         participants_tuple = tuple(sorted(participants))
@@ -248,7 +270,6 @@ class ConversationManager:
             self.conversations[participants_tuple] = conv
 
     def add_message_to_conversation(self, participants, sender, message):
-        #print('sender: ' + str(sender) + ' participants: ' + str(sorted(participants)) + ' message: ' + str(message))
         participants_tuple = tuple(sorted(participants))
         if participants_tuple not in self.conversations:
             self.start_conversation(participants)
@@ -256,17 +277,13 @@ class ConversationManager:
 
     def add_action_to_conversation(self, action):
         if not isinstance(action, list):
-                action = [action]        
+            action = [action]
         for act in action:
             speaker = act.get("Speaker")
-            # Get the "Audience" from the action.
             audience = act.get("Audience")
-            # If audience is not a list, wrap it in a list.
             if not isinstance(audience, list):
                 audience = [audience]
-            # Merge speaker and audience into one participants list.
             participants = [speaker] + audience
-    
             if act.get("type") in ["Message"]:
                 self.add_message_to_conversation(participants, speaker, act)
 
@@ -291,9 +308,6 @@ class ConversationManager:
     def extract_all_unique_participants(self):
         """
         Extracts a list of unique individual participant names from the ConversationManager.
-        This function iterates over each Conversation instance and appends each participant
-        to a list if they haven't already been added.
-    
         :return: A list of unique participant names.
         """
         unique_participants = []
@@ -305,21 +319,49 @@ class ConversationManager:
 
     def get_all_conversations_for_player_print(self):
         """
-        Prints all conversations stored in the ConversationManager that involve the specified player.
-    
-        :param player_name: The name of the player whose conversations should be printed.
+        Prints all conversations stored in the ConversationManager that involve each unique player.
         """
         unique_participants = self.extract_all_unique_participants()
         for player_name in unique_participants:
             convs = self.get_conversation_for_player(player_name)
             if convs:
-                print(f"Conversation where {player_name} is involved")
-                for conv in convs:                    
+                print(f"Conversation where {player_name} is involved:")
+                for conv in convs:
                     for entry in conv.history:
                         print(f"{entry['sender']}: {entry['message']}")
                 print("-" * 40)
             else:
                 print(f"No conversations found for player: {player_name}")
+
+    def store_prompt_outcome(self, prompt, outcome):
+        """
+        Stores a tuple of (prompt, outcome) in the prompt outcome log.
+        
+        :param prompt: The prompt string sent to the LLM.
+        :param outcome: The outcome string received from the LLM.
+        """
+        self.prompt_outcome_log.append((prompt, outcome))
+
+    def get_prompt_outcomes(self):
+        """
+        Returns the list of all stored (prompt, outcome) tuples.
+        
+        :return: List of tuples (prompt, outcome).
+        """
+        return self.prompt_outcome_log
+
+    def export_prompt_outcome_log(self, file_path):
+        """
+        Exports the prompt_outcome_log to a file in JSON Lines format.
+        Each line in the file is a JSON object with keys 'prompt' and 'outcome',
+        which can be used for training a Hugging Face LLM model.
+        
+        :param file_path: The file path to write the log.
+        """
+        with open(file_path, "w", encoding="utf-8") as f:
+            for prompt, outcome in self.prompt_outcome_log:
+                record = {"prompt": prompt, "outcome": outcome}
+                f.write(json.dumps(record) + "\n")
 
 
 # ------------------ Actions classes ------------------
@@ -335,7 +377,7 @@ class ActionProcessor:
         self.game_state = game_state
         self.conversation_manager = conversation_manager
         self.action_queue = []  # List to hold actions (each action is a dictionary)
-        self.action_budget = 50
+        self.action_budget = 30
 
     def add_action(self, action):
         """
@@ -405,7 +447,7 @@ class ActionProcessor:
         :param conversation_manager: The conversation manager to log messages.
         """
         # Call the LLM to complete the action for this respondent.
-        result_action = complete_action_with_llm(game_state, respondent, conversation_manager)
+        prompt, chat_completed, result_action = complete_action_with_llm(game_state, respondent, conversation_manager)
     
         # If the result is a list, iterate over its items.
         if isinstance(result_action, list):
@@ -418,6 +460,7 @@ class ActionProcessor:
                         audience = [audience]
                     participants = [speaker] + audience
                     conversation_manager.add_message_to_conversation(participants, speaker, item)
+
         else:
             # If result_action is not a list and is of type "Message"
             if result_action.get("type") in ["Message"]:
@@ -427,6 +470,8 @@ class ActionProcessor:
                     audience = [audience]
                 participants = [speaker] + audience
                 conversation_manager.add_message_to_conversation(participants, speaker, result_action)
+                
+        conversation_manager.store_prompt_outcome(prompt, chat_completed)
             
         return result_action
 
@@ -514,7 +559,7 @@ def complete_action_with_llm(game_state, current_player, conversation_manager):
         result = random.choice(result)
         print("Choosen respond: " + current_player +"\n", result)
 
-    return result
+    return prompt, llm_response, result
 
 # ------------------ ISMCTS with LLM Integration ------------------
 
@@ -554,7 +599,7 @@ player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=2)
 
 # Use the ISMCTS with LLM integration to get an action decision.
-_ = ismcts_with_llm(game_state, current_player='A', num_simulations=100, 
+_ = ismcts_with_llm(game_state, current_player='A', num_simulations=50, 
                            conversation_manager=conv_manager,
                            gnn_model=gnn_model)
 
@@ -564,3 +609,10 @@ print('Liar: ' + str(game_state.liar))
 #conv_manager.get_all_conversations_for_player_print()
 conv_manager.print_all_conversations()
 print("Result: " + str(game_state.guess == game_state.secret_number))
+conv_manager.export_prompt_outcome_log('training.csv')
+
+#dataset = load_dataset("json", data_files={"train": "training.csv"}, field=None)
+#print(dataset)
+#for record in dataset["train"]:
+#    print(record)
+   
