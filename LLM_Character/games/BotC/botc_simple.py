@@ -46,73 +46,210 @@ def init_model_local() -> LLM_API:
 #def get_model() -> LLM_API:
 #    return model
 
-# ------------------ Game Environment for Number Guessing ------------------
+
+# ------------------ Private player info ------------------
+
+class PlayerFeatures:
+    def __init__(self, players):
+        """
+        Initializes the private feature matrix for all players.
+        Each player gets a dictionary mapping every other player to a feature vector:
+        [# conversations with that player, private info string].
+        
+        :param players: List of player names.
+        """
+        self.features = {
+            player: {other: [0, "None"] for other in players if other != player}
+            for player in players
+        }
+
+    def increment_conversation(self, player, other_player):
+        """
+        Increments the conversation count for the specified player's observation about another player.
+        
+        :param player: The name of the player whose features are being updated.
+        :param other_player: The name of the other player with whom a conversation occurred.
+        """
+        if player in self.features and other_player in self.features[player]:
+            self.features[player][other_player][0] += 1
+        else:
+            raise ValueError(f"Either {player} or {other_player} is not a valid player.")
+
+    def update_private_info(self, player, other_player, new_info):
+        """
+        Updates the private info string for a player's observation about another player.
+        
+        :param player: The name of the player whose features are being updated.
+        :param other_player: The other player for whom to update the information.
+        :param new_info: A string containing the new private information.
+        """
+        if player in self.features and other_player in self.features[player]:
+            self.features[player][other_player][1] = new_info
+        else:
+            raise ValueError(f"Either {player} or {other_player} is not a valid player.")
+
+    def __str__(self):
+        """
+        Returns a string representation of the entire private feature matrix.
+        """
+        result_lines = []
+        for player, info in self.features.items():
+            result_lines.append(f"Private features for {player}:")
+            for other, stats in info.items():
+                result_lines.append(f"  {other}: Conversations: {stats[0]}, Private Info: {stats[1]}")
+        return "\n".join(result_lines)
+
+    def generate_private_info_update_prompt(self, player, conversation_history):
+        """
+        Generates an LLM prompt to update a player's private features based on recent conversation history.
+    
+        :param private_features_obj: Instance of PlayerPrivateInformation.
+        :param player: The player whose private features should be updated.
+        :param conversation_history: A string containing the last x conversation messages involving that player.
+        :return: A prompt string.
+        """
+        current_features = self.features.get(player, {})
+        prompt = (
+            "You are an assistant tasked with updating a player's private features based on recent conversation history. "
+            "The player's private feature state contains, for each other player, the number of conversations they've had "
+            "and a string with privately generated information about that player.\n\n"
+            "Recent Conversation History:\n"
+            f"{conversation_history}\n\n"
+            "Current Private Feature State:\n"
+        )
+        for other, stats in current_features.items():
+            prompt += f"{other}: Conversations = {stats[0]}, Private Info = {stats[1]}\n"
+        prompt += (
+            "\nBased on the conversation history, please update the private feature state for each other player "
+            "and output the updated state in JSON format with keys for each player and values being an object "
+            "with 'conversations' and 'private_info' fields."
+            "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes."
+        )
+        return prompt
+
+    def update_features_from_json(self, player, json_data):
+        """
+        Updates the feature vectors for the given player using data provided in json_data.
+        
+        :param player: The player whose feature space will be updated.
+        :param json_data: A dictionary (parsed from JSON) with keys representing other players and values as dictionaries with:
+                          { "conversations": int, "private_info": str or None }
+        Example json_data:
+        {
+          "B": {
+            "conversations": 1,
+            "private_info": "Secret number is 77."
+          },
+          "C": {
+            "conversations": 0,
+            "private_info": null
+          },
+          "D": {
+            "conversations": 0,
+            "private_info": null
+          }
+        }
+        """
+        if player not in self.features:
+            raise ValueError(f"Player {player} not found in features.")
+            
+        for other_player, data in json_data.items():
+            # Only update features if the other player exists in this player's feature space.
+            if other_player in self.features[player]:
+                conversations = data.get("conversations", 0)
+                # If private_info is None, store it as "None" (or choose a default value).
+                private_info = data.get("private_info") if data.get("private_info") is not None else "None"
+                self.features[player][other_player] = [conversations, private_info]
+            else:
+                # Optionally, add a new entry if other_player is not yet present.
+                conversations = data.get("conversations", 0)
+                private_info = data.get("private_info") if data.get("private_info") is not None else "None"
+                self.features[player][other_player] = [conversations, private_info]
+
+
+# ------------------ Game Environment / State ------------------
 
 class BasicGameState:
-    def __init__(self):
+    def __init__(self, players):
         # Common elements: list of players.
-        self.players = ['A', 'B', 'C', 'D']
+        self.players = players
 
     def randomly_select_player(self):
         """Randomly select one player from the list."""
         return random.choice(self.players)
 
-    def get_public_state(self, player):
+    def get_game_state(self, player):
         """
         This method should be implemented by subclasses to return a 
         human-readable public state description.
         """
         raise NotImplementedError("Subclasses must implement this method.")
 
+    def generate_game_state_prompt(self, current_player, conversation_history):
+        raise NotImplementedError("Subclasses must implement this method.")
+
+    def generate_prompt(self, current_player, conversation_history):
+        raise NotImplementedError("Subclasses must implement this method.")
+
 
 class SimpleNumberGuessGameState(BasicGameState):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, players):
+        super().__init__(players)
         # Secret number is either 0 or 100.
         self.secret_number = random.choice([0, 100])
         # Randomly select one respondent (from B, C, D) to be the liar.
         self.liar = random.choice(['B', 'C', 'D'])
         # Initialize features for each player.
         # Feature vector: [#asked, response for number]
-        self.features = {
-            'A': [0, 'None'],
-            'B': [0, 'None'],
-            'C': [0, 'None'],
-            'D': [0, 'None']
-        }
+        self.features = PlayerFeatures(players)
 
         # The guess is initialized to None.
         self.guess = None
 
-        self.action_space_description = [
-            {'type': 'Guess', 'Speaker': None, 'Number': None},
+    def get_action_space_description(self, current_player):
+        """
+        Returns the action space description tailored to the current player.
+        Only Player A has the 'Guess' action.
+    
+        :param current_player: The name of the current player.
+        :return: A list of dictionaries describing the available actions.
+        """
+        actions = [
             {'type': 'Message', 'Speaker': None, 'Audience': None, 'Message:': None},
             {'type': 'No Action', 'Speaker': None}
         ]
+        if current_player == "A":
+            # Insert the Guess action at the beginning if the current player is A.
+            actions.insert(0, {'type': 'Guess', 'Speaker': None, 'Number': None})
+        return actions
 
-    def game_state_features_to_string(self):
+    def update_features_from_json(self, player, json_data):
+        self.features.update_features_from_json(player, json_data)
+
+    def game_state_features_to_string(self, player):
         """
-        Converts the game state's feature vectors into a human-readable string.
-        Each feature vector is assumed to be [number_of_asked, response_for_number].
+        Returns a human-readable string representation of the entire feature space for the specified player.
+        The feature space is a dictionary mapping every other player in the game to a feature vector,
+        where the feature vector is of the form [# conversations, private info string].
+
+        :param player: The player for whom to return the feature space.
+        :return: A formatted string representing the feature space for the specified player.
+        """
+        if player not in self.features.features:
+            return f"Player {player} not found in feature space."
     
-        :param game_state: An instance of a game state that has an attribute 'features',
-                           which is a dictionary with player names as keys and feature vectors as values.
-        :return: A formatted string representing the game state features.
-        """
-        result_lines = ["Game State Features:"]
-        for player, features in self.features.items():
-            # Construct a line for each player
-            line = (f"Player {player}: "
-                    f"number of conversations = {features[0]}, response = {features[1]}")
+        result_lines = [f"Feature space for player {player}:"]
+        for other_player, feature_vector in self.features.features[player].items():
+            line = (f"{other_player}: number of conversations = {feature_vector[0]}, "
+                    f"private info = {feature_vector[1]}")
             result_lines.append(line)
-        # Join all lines into a single string separated by newlines.
         return "\n".join(result_lines)
 
     def is_terminal(self):
         """Game ends when a guess is made."""
         return self.guess
 
-    def get_public_state(self, player):
+    def get_game_state(self, player):
         """
         Returns a human-readable public state description.
         For Player A, the secret number remains hidden.
@@ -126,7 +263,10 @@ class SimpleNumberGuessGameState(BasicGameState):
             if player == self.liar:
                 secret_info += " (You are the liar!)"
         player_info = "Players: " + ", ".join(self.players)
-        return f"{secret_info}\n\n{player_info}" + "\n" + self.game_state_features_to_string()
+        return f"{secret_info}\n\n{player_info}" + "\n" + self.game_state_features_to_string(player)
+
+    def generate_game_state_prompt(self, current_player, conversation_history):
+        return self.features.generate_private_info_update_prompt(current_player, conversation_history)
 
     def generate_prompt(self, current_player, conversation_history):
         """
@@ -139,7 +279,7 @@ class SimpleNumberGuessGameState(BasicGameState):
         :return: A prompt string in plain text.
         """
         # Get the public state description for the current player.
-        state_description = self.get_public_state(current_player)
+        state_description = self.get_game_state(current_player)
         
         prompt = (
             "You are a helpful board game AI assistant for the number guessing minigame. "
@@ -148,7 +288,7 @@ class SimpleNumberGuessGameState(BasicGameState):
             f"Current Player: {current_player}\n\n"
             "The available actions are given below, but each action is incomplete and missing parameters marked as None.\n"
             "Available Actions Description:\n"
-            f"{self.action_space_description}\n\n"
+            f"{self.get_action_space_description(current_player)}\n\n"
             "Game State:\n"
             f"{state_description}\n\n"
             "Chronological conversation History:\n"
@@ -185,6 +325,11 @@ class SimpleNumberGuessGameState(BasicGameState):
             # For each respondent in the audience:
             for respondent in audience:
                 result_action = action_processor.create_action(self, respondent, conversation_manager)
+
+            # Update game state for player
+            prompt_state, chat_completed_state, action_state = complete_action_with_llm(speaker, self.generate_game_state_prompt(speaker, conversation_manager.get_conversation_history_for_player(speaker)))
+            game_state.update_features_from_json(speaker, action_state)
+            conversation_manager.store_prompt_outcome(prompt_state, chat_completed_state)
 
         elif action_type == "Guess":
             guessed_number = action.get("Number")
@@ -287,12 +432,27 @@ class ConversationManager:
             if act.get("type") in ["Message"]:
                 self.add_message_to_conversation(participants, speaker, act)
 
-    def get_conversation_for_player(self, player_name):
+    def get_conversation_for_player(self, player_name) -> Conversation:
         result = []
         for participants_tuple, conv in self.conversations.items():
             if player_name in participants_tuple:
                 result.append(conv)
         return result
+
+    def get_conversation_history_for_player(self, current_player) -> str:
+        """
+        Retrieves and returns a formatted conversation history for the given player.
+    
+        :param conversation_manager: The ConversationManager instance that manages all conversations.
+        :param current_player: The name of the player for whom to retrieve the conversation history.
+        :return: A string containing the conversation history, or a default message if none exist.
+        """
+        convs = self.get_conversation_for_player(current_player)
+        if convs:
+            conversation_history = "\n".join(conv.get_history_text() for conv in convs)
+        else:
+            conversation_history = "No conversation history."
+        return conversation_history
 
     def print_all_conversations(self):
         """
@@ -420,11 +580,11 @@ class ActionProcessor:
             # Pop the first action from the queue.
             action = self.action_queue.pop(0)
             #action_type = action.get("type")
-            
+
             # Apply the action. This function updates the game state and conversation manager.
             action = self.game_state.apply_action(self, self.conversation_manager, action)
             self.action_budget = self.action_budget - 1
-                
+
             # If a result is returned, add it/them to the queue.
             if action is not None:
                 if isinstance(action, list):
@@ -437,7 +597,7 @@ class ActionProcessor:
 
         return
 
-    def create_action(self, game_state, respondent, conversation_manager):
+    def create_action(self, game_state, player, conversation_manager):
         """
         Calls complete_action_with_llm for the given respondent and logs any completed action(s) of type "Message"
         into the conversation manager.
@@ -447,8 +607,8 @@ class ActionProcessor:
         :param conversation_manager: The conversation manager to log messages.
         """
         # Call the LLM to complete the action for this respondent.
-        prompt, chat_completed, result_action = complete_action_with_llm(game_state, respondent, conversation_manager)
-    
+        prompt, chat_completed, result_action = complete_action_with_llm(player, game_state.generate_prompt(player, conversation_manager.get_conversation_history_for_player(player)))
+
         # If the result is a list, iterate over its items.
         if isinstance(result_action, list):
             for item in result_action:
@@ -503,7 +663,48 @@ class ActionPredictionGNN(torch.nn.Module):
 
 # ------------------ LLM Action Completion Function ------------------
 
-def complete_action_with_llm(game_state, current_player, conversation_manager):
+def complete_action_with_llm(current_player, prompt):
+    """
+    Given the global actions (action templates) for the number guessing game,
+    ask the LLM to complete an action (fill in missing parameters) and return a JSON object.
+    The JSON should have two keys: "conversation" (a list of conversation messages)
+    and "action" (the selected complete action as a string).
+    
+    :param current_player: Current player name (should be 'A').
+    :param prompt: generated prompt
+    :return: The LLM's JSON response as a dictionary.
+    """ 
+    
+    # Prepare messages for the LLM.
+    if server_based:
+        role = "developer"
+    else:
+       role = "user"
+    messages = AIMessages()
+    message = AIMessage(message=prompt, role=role, class_type="MessageAI", sender=role)
+    messages.add_message(message)
+    
+    # Initialize the LLM.
+    #model = get_model()
+    llm_response = model.query_text(messages)
+    
+    try:
+        result = json.loads(llm_response)
+    except Exception as e:
+        print("Error parsing LLM response: " + ' \nMessage:\n' + llm_response, e)
+        result = {"action": "No Action", 'Speaker': current_player}
+
+    print("LLM Responds: " + current_player +"\n", result)
+
+    # Take most plausible results
+    if isinstance(result, list):
+        result = random.choice(result)
+        print("Choosen respond: " + current_player +"\n", result)
+
+    return prompt, llm_response, result
+
+
+def complete_game_state_with_llm(game_state, current_player, conversation_manager):
     """
     Given the global actions (action templates) for the number guessing game,
     ask the LLM to complete an action (fill in missing parameters) and return a JSON object.
@@ -516,20 +717,10 @@ def complete_action_with_llm(game_state, current_player, conversation_manager):
     :param global_actions: List of action templates.
     :return: The LLM's JSON response as a dictionary.
     """
-    # For our minigame, we create a simple description.
-    state_description = f"Game state: {game_state.get_public_state(current_player)}"
-    conversation_history = ""
-    convs = conversation_manager.get_conversation_for_player(current_player)
-    if convs:
-        conversation_history = "\n".join(conv.get_history_text() for conv in convs)
-    else:
-        conversation_history = "No conversation history."
-    
-    # Assume Player A has no role in the sense of game roles; use "Seeker"
-    #current_role = " "
+    conversation_history = conversation_manager.get_conversation_history_for_player(current_player)
     
     # Create a prompt.
-    prompt = game_state.generate_prompt(current_player, conversation_history)
+    prompt = game_state.generate_game_state_prompt(current_player, conversation_history)
     
     #print("LLM Prompt:\n", prompt)
     
@@ -537,9 +728,9 @@ def complete_action_with_llm(game_state, current_player, conversation_manager):
     if server_based:
         role = "developer"
     else:
-       role = "user"
+        role = "user"
     messages = AIMessages()
-    message = AIMessage(message=prompt, role=role, class_type="LLMActionCompletion", sender=role)
+    message = AIMessage(message=prompt, role=role, class_type="MessageAI", sender=role)
     messages.add_message(message)
     
     # Initialize the LLM.
@@ -588,7 +779,7 @@ def ismcts_with_llm(game_state, current_player, num_simulations, conversation_ma
 
 model = init_model()
 
-game_state = SimpleNumberGuessGameState()
+game_state = SimpleNumberGuessGameState(['A', 'B', 'C', 'D'])
 
 # Create a dummy ConversationManager and add a conversation.
 conv_manager = ConversationManager()
@@ -611,8 +802,8 @@ conv_manager.print_all_conversations()
 print("Result: " + str(game_state.guess == game_state.secret_number))
 conv_manager.export_prompt_outcome_log('training.csv')
 
-#dataset = load_dataset("json", data_files={"train": "training.csv"}, field=None)
-#print(dataset)
-#for record in dataset["train"]:
-#    print(record)
+dataset = load_dataset("json", data_files={"train": "training.csv"}, field=None)
+print(dataset)
+for record in dataset["train"]:
+    print(record)
    
