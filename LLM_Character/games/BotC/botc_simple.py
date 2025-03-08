@@ -6,7 +6,10 @@ import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 from torch_geometric.data import Data
 
+import os
+from datasets import Dataset
 from datasets import load_dataset
+from datasets import load_from_disk
 
 from LLM_Character.llm_comms.llm_api import LLM_API
 from LLM_Character.llm_comms.llm_local import LocalComms
@@ -40,6 +43,16 @@ def init_model_local() -> LLM_API:
     #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
     model.max_tokens = 200
     model.init(model_id)
+    wrapped_model = LLM_API(model)
+    return wrapped_model
+
+def init_model_local_trained() -> LLM_API:
+    model = LocalComms()
+    model_id = "mistralai/Mistral-7B-Instruct-v0.3"
+    #model_id = "deepseek-ai/deepseek-llm-7b-chat"
+    #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
+    model.max_tokens = 200
+    model.init(model_id, "trained\\Mistral-7b-v3-finetune")
     wrapped_model = LLM_API(model)
     return wrapped_model
 
@@ -283,7 +296,7 @@ class SimpleNumberGuessGameState(BasicGameState):
         
         prompt = (
             "You are a helpful board game AI assistant for the number guessing minigame. "
-            "Player A's goal is to determine the secret number (from 0 to 100) by asking other player for their respondents or by making a guess if player A has enough information about the game state. "
+            "Player A's goal is to determine the secret number [0 to 100] by asking other player for their respondents or by making a guess if player A has enough information about the game state. "
             "Other players return the secret number. Some players are liars. They return a number not equal to the secret number. "
             f"Current Player: {current_player}\n\n"
             "The available actions are given below, but each action is incomplete and missing parameters marked as None.\n"
@@ -328,8 +341,10 @@ class SimpleNumberGuessGameState(BasicGameState):
 
             # Update game state for player
             prompt_state, chat_completed_state, action_state = complete_action_with_llm(speaker, self.generate_game_state_prompt(speaker, conversation_manager.get_conversation_history_for_player(speaker)))
-            game_state.update_features_from_json(speaker, action_state)
-            conversation_manager.store_prompt_outcome(prompt_state, chat_completed_state)
+            
+            if action_state is not str and action_state.get("action") is None:
+                game_state.update_features_from_json(speaker, action_state)
+                conversation_manager.store_prompt_outcome(prompt_state, chat_completed_state)
 
         elif action_type == "Guess":
             guessed_number = action.get("Number")
@@ -510,18 +525,35 @@ class ConversationManager:
         """
         return self.prompt_outcome_log
 
+    def set_prompt_outcomes(self, log):
+        """
+        Stores the list of all stored (prompt, outcome) tuples.
+        
+        :param log: List of tuples (prompt, outcome).
+        """
+        self.prompt_outcome_log = log
+
     def export_prompt_outcome_log(self, file_path):
         """
-        Exports the prompt_outcome_log to a file in JSON Lines format.
-        Each line in the file is a JSON object with keys 'prompt' and 'outcome',
-        which can be used for training a Hugging Face LLM model.
-        
-        :param file_path: The file path to write the log.
-        """
-        with open(file_path, "w", encoding="utf-8") as f:
-            for prompt, outcome in self.prompt_outcome_log:
-                record = {"prompt": prompt, "outcome": outcome}
-                f.write(json.dumps(record) + "\n")
+        Exports the prompt_outcome_log as a Hugging Face Dataset with a single feature 'text'.
+        Each record is formatted as:
+            <s>[INST] prompt [/INST] outcome </s>
+        The dataset is then saved to disk at the provided file path.
+    
+        If the file_path exists, it is removed beforehand.
+    
+        Assumption:
+            self.prompt_outcome_log is a list of tuples (prompt, outcome).
+    
+        :param file_path: The directory path where the dataset will be saved.
+        """   
+        records = []
+        for prompt, outcome in self.prompt_outcome_log:
+            formatted = f"<s>[INST] {prompt} [/INST] {outcome} </s>"
+            records.append(formatted)
+        dataset = Dataset.from_dict({"text": records})
+        dataset.save_to_disk(file_path)
+
 
 
 # ------------------ Actions classes ------------------
@@ -775,35 +807,49 @@ def ismcts_with_llm(game_state, current_player, num_simulations, conversation_ma
     
     return 0
 
-# ------------------ Example Usage ------------------
+
+# ------------------ Main ------------------
 
 model = init_model()
 
-game_state = SimpleNumberGuessGameState(['A', 'B', 'C', 'D'])
-
-# Create a dummy ConversationManager and add a conversation.
-conv_manager = ConversationManager()
+log = []
 
 # Define a dummy player_to_idx mapping for graph construction (for players A, B, C, D).
 player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 
 gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=2)
 
-# Use the ISMCTS with LLM integration to get an action decision.
-_ = ismcts_with_llm(game_state, current_player='A', num_simulations=50, 
-                           conversation_manager=conv_manager,
-                           gnn_model=gnn_model)
 
-print('Secret number: ' + str(game_state.secret_number))
-print('Guess: ' + str(game_state.guess))
-print('Liar: ' + str(game_state.liar))
-#conv_manager.get_all_conversations_for_player_print()
-conv_manager.print_all_conversations()
-print("Result: " + str(game_state.guess == game_state.secret_number))
-conv_manager.export_prompt_outcome_log('training.csv')
+for x in range(100):
 
-dataset = load_dataset("json", data_files={"train": "training.csv"}, field=None)
-print(dataset)
-for record in dataset["train"]:
-    print(record)
+    game_state = SimpleNumberGuessGameState(['A', 'B', 'C', 'D'])
+
+    # Create a dummy ConversationManager and add a conversation.
+    conv_manager = ConversationManager()
+
+    # Use the ISMCTS with LLM integration to get an action decision.
+    _ = ismcts_with_llm(game_state, current_player='A', num_simulations=50, 
+                               conversation_manager=conv_manager,
+                               gnn_model=gnn_model)
+
+    print('Secret number: ' + str(game_state.secret_number))
+    print('Guess: ' + str(game_state.guess))
+    print('Liar: ' + str(game_state.liar))
+    #conv_manager.get_all_conversations_for_player_print()
+    conv_manager.print_all_conversations()
+    print("Result: " + str(game_state.guess == game_state.secret_number))
+
+    if game_state.guess == game_state.secret_number:
+        log.extend(conv_manager.get_prompt_outcomes())
+
+
+if log:
+    conv_manager.set_prompt_outcomes(log)
+    file_name = 'training.csv'
+    conv_manager.export_prompt_outcome_log(file_name)
+
+    dataset = load_from_disk(file_name)
+    print("Dataset loaded from:", file_name)
+    for record in dataset:
+        print(record["text"])
    
