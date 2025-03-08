@@ -20,13 +20,17 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 
 model = []
 
-server_based = True
+server_based = False
+use_trained = True
 
 def init_model() -> LLM_API:
     if server_based:
         return init_model_server()
     else:
-        return init_model_local()
+        if use_trained:
+            return init_model_local_trained()
+        else:
+            return init_model_local()
 
 def init_model_server() -> LLM_API:
     model = OpenAIComms()

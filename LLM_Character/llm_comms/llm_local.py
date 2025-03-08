@@ -167,14 +167,13 @@ class LocalComms(LLMComms):
         return False
 
     def _check_local(self, finetuned_model_id):
-        return os.path.isdir(f"trained\\{finetuned_model_id}")
+        return os.path.isdir(f"{finetuned_model_id}")
 
     def _load_model_loc(
-        self, model_id: str, finetuned_model_id: str
+        self, model_id: str, adapters_id: str
     ) -> tuple[PreTrainedModel, PreTrainedTokenizer]:
         base_model = load_base_model(model_id)
-        path = f"trained\\{finetuned_model_id}"
-        model = PeftModel.from_pretrained(base_model, path)
+        model = PeftModel.from_pretrained(base_model, adapters_id)
         tokenizer = AutoTokenizer.from_pretrained(
             model_id, padding_side="right", use_fast=False
         )
@@ -244,7 +243,8 @@ class LocalComms(LLMComms):
         )
         generation_config.eos_token_id = tokenizer.eos_token_id
 
-        outputs = model.generate(inputs, generation_config=generation_config)
+        #outputs = model.generate(inputs, generation_config=generation_config)
+        outputs = model.generate(input_ids=inputs["input_ids"], generation_config=generation_config)
         #response = tokenizer.decode(outputs[0], skip_special_tokens=True)
         
         # Temp for Mistral 7 v03

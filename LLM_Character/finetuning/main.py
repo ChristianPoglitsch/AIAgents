@@ -206,10 +206,22 @@ def run_trained_model(model_id, trained_path):
     )
 
     prompt = "Ich habe extreme Schmerzen im unteren Rücken."
+    prompt = "The capital of Austria?"
     formatted_prompt = get_formatted_prompt(prompt)
 
     inputs = tokenizer(formatted_prompt, return_tensors="pt").to(model.device)
-    outputs = model.generate(inputs=inputs.input_ids, max_new_tokens=300)
+    #outputs = model.generate(inputs=inputs.input_ids, max_new_tokens=300)
+
+    generation_config = GenerationConfig(
+        do_sample=True,
+        temperature=0.2,  # 1.0
+        pad_token_id=tokenizer.eos_token_id,
+        max_new_tokens=50,
+    )
+    generation_config.eos_token_id = tokenizer.eos_token_id
+
+    outputs = model.generate(input_ids=inputs["input_ids"], generation_config=generation_config)
+
     print(tokenizer.decode(outputs[0], skip_special_tokens=True))
 
 
@@ -223,10 +235,10 @@ if __name__ == "__main__":
     # load_mistral_example()
 
     model_id = "openlm-research/open_llama_7b_v2"
-    model_id = "mistralai/Mistral-7B-Instruct-v0.2"
-    model_id = "genericgod/GerMerge-em-leo-mistral-v0.2-SLERP"
+    model_id = "mistralai/Mistral-7B-Instruct-v0.3"
     trained_path = "trained\\Mistral-7b-v2-finetune"
     trained_path = "trained/health_care_german"
+    trained_path = "trained\\Mistral-7b-v3-finetune"
 
     # run_formatting_example(model_id)
     # run_train_model_example(model_id, trained_path)
