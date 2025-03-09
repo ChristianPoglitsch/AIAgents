@@ -854,7 +854,7 @@ for x in range(5):
     print('Liar: ' + str(game_state.liar))
     #conv_manager.get_all_conversations_for_player_print()
     conv_manager.print_all_conversations()
-    print("Result: " + str(game_state.guess == game_state.secret_number))
+    print("Result: " + str(int(game_state.guess) == int(game_state.secret_number)))
 
     if game_state.guess == game_state.secret_number:
         log.extend(conv_manager.get_prompt_outcomes())
