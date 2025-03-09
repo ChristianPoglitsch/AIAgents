@@ -539,23 +539,36 @@ class ConversationManager:
 
     def export_prompt_outcome_log(self, file_path):
         """
-        Exports the prompt_outcome_log as a Hugging Face Dataset with a single feature 'text'.
-        Each record is formatted as:
-            <s>[INST] prompt [/INST] outcome </s>
+        Exports the prompt_outcome_log as a Hugging Face Dataset formatted for Mistral-7B-Instruct training.
+    
+        Each record follows the ChatML-style format:
+            <s>[INST] instruction + input [/INST] output </s>
+
+        If `input_text` is available, it's included as additional context.
+
         The dataset is then saved to disk at the provided file path.
     
         If the file_path exists, it is removed beforehand.
-    
+
         Assumption:
-            self.prompt_outcome_log is a list of tuples (prompt, outcome).
+            self.prompt_outcome_log is a list of tuples (instruction, input_text, output).
     
         :param file_path: The directory path where the dataset will be saved.
-        """   
-        records = []
-        for prompt, outcome in self.prompt_outcome_log:
-            formatted = f"<s>[INST] {prompt} [/INST] {outcome} </s>"
-            records.append(formatted)
-        dataset = Dataset.from_dict({"text": records})
+        """
+        # Remove existing dataset directory
+        if os.path.exists(file_path):
+            os.system(f"rm -rf {file_path}")  # Alternative: use `shutil.rmtree(file_path)`
+
+        inputs, outputs = [], []
+
+        for input, output in self.prompt_outcome_log:
+            inputs.append(input.strip())
+            outputs.append(output.strip())
+
+        # Convert to Hugging Face Dataset format
+        dataset = Dataset.from_dict({"input": inputs, "output": outputs})
+
+        # Save dataset
         dataset.save_to_disk(file_path)
 
 
@@ -824,7 +837,7 @@ player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=2)
 
 
-for x in range(100):
+for x in range(5):
 
     game_state = SimpleNumberGuessGameState(['A', 'B', 'C', 'D'])
 
@@ -855,5 +868,5 @@ if log:
     dataset = load_from_disk(file_name)
     print("Dataset loaded from:", file_name)
     for record in dataset:
-        print(record["text"])
+        print(record["input"])
    

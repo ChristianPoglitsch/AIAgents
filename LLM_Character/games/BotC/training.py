@@ -1,4 +1,4 @@
-import torch
+﻿import torch
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from transformers import DataCollatorForSeq2Seq, Trainer, TrainingArguments
 from trl import SFTTrainer
@@ -37,7 +37,7 @@ def train_mistral(model, tokenizer, instruct_tune_dataset) -> SFTTrainer:
         # manner.
         # num_train_epochs=5,
 
-        max_steps=2,  # comment out this line if you want to train in epochs - 100+ recommended
+        max_steps=300,  # comment out this line if you want to train in epochs - 100+ recommended
         save_strategy="epoch",
         # evaluation_strategy="epoch",
         evaluation_strategy="steps",
@@ -77,6 +77,24 @@ def train_mistral(model, tokenizer, instruct_tune_dataset) -> SFTTrainer:
     # model.eval()
     return trainer
 
+def format_prompts(examples):
+    formatted_examples = {
+        "prompt": [],
+        "response": []
+    }
+    
+    for i in range(len(examples["input"])):
+        prompt = examples["input"][i]
+        response = examples["output"][i]
+        
+        # Format the prompt for Mistral-style training
+        formatted_prompt = f"<s>[INST] {prompt} [/INST]"
+        
+        formatted_examples["prompt"].append(formatted_prompt)
+        formatted_examples["response"].append(response)
+
+    #return formatted_examples
+    return {"text": [f"{p} {r}" for p, r in zip(formatted_examples["prompt"], formatted_examples["response"])]}
 
 if __name__ == "__main__":
     # fine tuning
@@ -84,8 +102,10 @@ if __name__ == "__main__":
     from datasets import load_dataset
     from models import load_mistral_instr_model    
 
-    file_name = 'training.csv_'
+    file_name = 'training.csv'
     dataset = load_from_disk(file_name)
+
+    dataset = dataset.map(format_prompts, batched=True)
 
     model, tokenizer = load_mistral_instr_model()
     train_mistral(model, tokenizer, dataset)
