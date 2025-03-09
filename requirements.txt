@@ -10,7 +10,7 @@ bitsandbytes==0.43.2
 datasets==2.20.0
 einops==0.6.1
 gradio==4.14.0
-peft==0.4.0
+peft==0.6
 protobuf==4.23.4
 #protobuf==3.20.0
 scipy==1.11.1
@@ -35,3 +35,4 @@ requests
 git+https://github.com/huggingface/parler-tts.git
 #parler_tts
 torch_geometric
+huggingface-hub==0.24.7

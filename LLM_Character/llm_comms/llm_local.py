@@ -172,11 +172,34 @@ class LocalComms(LLMComms):
     def _load_model_loc(
         self, model_id: str, adapters_id: str
     ) -> tuple[PreTrainedModel, PreTrainedTokenizer]:
-        base_model = load_base_model(model_id)
-        model = PeftModel.from_pretrained(base_model, adapters_id)
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_id, padding_side="right", use_fast=False
+        #base_model = load_base_model(model_id)
+        #model = PeftModel.from_pretrained(base_model, adapters_id)
+        #tokenizer = AutoTokenizer.from_pretrained(
+        #    model_id, padding_side="right", use_fast=False
+        #)
+        
+        # The `load_in_4bit` and `load_in_8bit` arguments
+        # are deprecated and will be removed in the future versions.
+        # Please, pass a `BitsAndBytesConfig` object in `quantization_config`
+        # argument instead.
+        quantization_config = BitsAndBytesConfig(load_in_4bit=True)
+
+        model = AutoModelForCausalLM.from_pretrained(  # device_map="auto"
+            model_id,
+            quantization_config=quantization_config,
+            torch_dtype=torch.bfloat16, # token=' '
         )
+
+        #model = PeftModel.from_pretrained(model, adapters_id)
+        model.load_adapter(adapters_id)
+
+        model.config.sliding_window = 4096
+        tokenizer = AutoTokenizer.from_pretrained(model_id)
+        # tokenizer.bos_token = "<bos>"
+        # tokenizer.pad_token = "<pad>"
+        tokenizer.cls_token = "<cls>"
+        tokenizer.sep_token = "<s>"
+        tokenizer.mask_token = "<mask>"
         return model, tokenizer
 
     def _load_model_hf(
@@ -243,13 +266,14 @@ class LocalComms(LLMComms):
         )
         generation_config.eos_token_id = tokenizer.eos_token_id
 
-        #outputs = model.generate(inputs, generation_config=generation_config)
-        outputs = model.generate(input_ids=inputs["input_ids"], generation_config=generation_config)
+        outputs = model.generate(inputs, generation_config=generation_config)
+        #outputs = model.generate(input_ids=inputs["input_ids"], generation_config=generation_config)
         #response = tokenizer.decode(outputs[0], skip_special_tokens=True)
         
         # Temp for Mistral 7 v03
         prompt_length = inputs.shape[1]
         response = tokenizer.decode(outputs[0][prompt_length:], skip_special_tokens=True)
+        #response = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
         # print("Processing time: " + str(time.process_time() - start_time) + " sec")
         return response

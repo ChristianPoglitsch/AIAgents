@@ -1,6 +1,5 @@
 import torch
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-from peft.tuners.lora import LoraLayer
 from transformers import DataCollatorForSeq2Seq, Trainer, TrainingArguments
 from trl import SFTTrainer
 
@@ -38,7 +37,7 @@ def train_mistral(model, tokenizer, instruct_tune_dataset) -> SFTTrainer:
         # manner.
         # num_train_epochs=5,
 
-        max_steps=500,  # comment out this line if you want to train in epochs - 100+ recommended
+        max_steps=2,  # comment out this line if you want to train in epochs - 100+ recommended
         save_strategy="epoch",
         # evaluation_strategy="epoch",
         evaluation_strategy="steps",
@@ -85,10 +84,8 @@ if __name__ == "__main__":
     from datasets import load_dataset
     from models import load_mistral_instr_model    
 
-    file_name = 'training.csv'
+    file_name = 'training.csv_'
     dataset = load_from_disk(file_name)
 
     model, tokenizer = load_mistral_instr_model()
     train_mistral(model, tokenizer, dataset)
-
-
