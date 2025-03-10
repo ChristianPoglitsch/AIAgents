@@ -21,7 +21,7 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 model = []
 
 server_based = False
-use_trained = True
+use_trained = False
 
 def init_model() -> LLM_API:
     if server_based:
@@ -213,7 +213,7 @@ class SimpleNumberGuessGameState(BasicGameState):
     def __init__(self, players):
         super().__init__(players)
         # Secret number is either 0 or 100.
-        self.secret_number = random.choice([0, 100])
+        self.secret_number = random.randint(0, 100)
         # Randomly select one respondent (from B, C, D) to be the liar.
         self.liar = random.choice(['B', 'C', 'D'])
         # Initialize features for each player.
@@ -836,8 +836,11 @@ player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 
 gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=2)
 
+num_correct_games = 0
+num_games = 50
+for x in range(num_games):
 
-for x in range(5):
+    print("Iteration " + str(x) + " / " + str(num_games))
 
     game_state = SimpleNumberGuessGameState(['A', 'B', 'C', 'D'])
 
@@ -854,11 +857,14 @@ for x in range(5):
     print('Liar: ' + str(game_state.liar))
     #conv_manager.get_all_conversations_for_player_print()
     conv_manager.print_all_conversations()
-    print("Result: " + str(int(game_state.guess) == int(game_state.secret_number)))
+    if game_state.guess is not None and game_state.secret_number is not None:
+        print("Result: " + str(int(game_state.guess) == int(game_state.secret_number)))
 
     if game_state.guess == game_state.secret_number:
         log.extend(conv_manager.get_prompt_outcomes())
+        num_correct_games = num_correct_games + 1
 
+print("Successfull games: " + str(num_correct_games) + " / Played games: " + str(num_games))
 
 if log:
     conv_manager.set_prompt_outcomes(log)
@@ -866,7 +872,7 @@ if log:
     conv_manager.export_prompt_outcome_log(file_name)
 
     dataset = load_from_disk(file_name)
-    print("Dataset loaded from:", file_name)
-    for record in dataset:
-        print(record["input"])
+    #print("Dataset loaded from:", file_name)
+    #for record in dataset:
+    #    print(record["input"])
    
