@@ -7,9 +7,9 @@ from torch_geometric.nn import GCNConv
 from torch_geometric.data import Data
 
 import os
+import shutil
 from datasets import Dataset
-from datasets import load_dataset
-from datasets import load_from_disk
+from datasets import load_from_disk, concatenate_datasets
 
 from LLM_Character.llm_comms.llm_api import LLM_API
 from LLM_Character.llm_comms.llm_local import LocalComms
@@ -21,7 +21,8 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 model = []
 
 server_based = False
-use_trained = False
+use_trained = True
+store_data = False
 
 def init_model() -> LLM_API:
     if server_based:
@@ -537,12 +538,12 @@ class ConversationManager:
         """
         self.prompt_outcome_log = log
 
-    def export_prompt_outcome_log(self, file_path):
+    def export_prompt_outcome_log(self, file_path, append=False):
         """
         Exports the prompt_outcome_log as a Hugging Face Dataset formatted for Mistral-7B-Instruct training.
     
         Each record follows the ChatML-style format:
-            <s>[INST] instruction + input [/INST] output </s>
+            <s>[INST] input [/INST] output </s>
 
         If `input_text` is available, it's included as additional context.
 
@@ -551,14 +552,11 @@ class ConversationManager:
         If the file_path exists, it is removed beforehand.
 
         Assumption:
-            self.prompt_outcome_log is a list of tuples (instruction, input_text, output).
+            self.prompt_outcome_log is a list of tuples (input, output).
     
         :param file_path: The directory path where the dataset will be saved.
+        :param append: If True, load the existing dataset from file_path and append new data.        
         """
-        # Remove existing dataset directory
-        if os.path.exists(file_path):
-            os.system(f"rm -rf {file_path}")  # Alternative: use `shutil.rmtree(file_path)`
-
         inputs, outputs = [], []
 
         for input, output in self.prompt_outcome_log:
@@ -568,10 +566,17 @@ class ConversationManager:
         # Convert to Hugging Face Dataset format
         dataset = Dataset.from_dict({"input": inputs, "output": outputs})
 
+        if append and os.path.exists(file_path):
+            existing_dataset = load_from_disk(file_path)
+            combined_dataset = concatenate_datasets([existing_dataset, dataset])
+        else:
+            combined_dataset = dataset
+
         # Save dataset
-        dataset.save_to_disk(file_path)
-
-
+        # Remove existing dataset directory
+        if os.path.exists(file_path):
+            shutil.rmtree(file_path)          
+        combined_dataset.save_to_disk(file_path)
 
 # ------------------ Actions classes ------------------
 
@@ -827,8 +832,6 @@ def ismcts_with_llm(game_state, current_player, num_simulations, conversation_ma
 
 # ------------------ Main ------------------
 
-model = init_model()
-
 log = []
 
 # Define a dummy player_to_idx mapping for graph construction (for players A, B, C, D).
@@ -837,7 +840,10 @@ player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=2)
 
 num_correct_games = 0
-num_games = 50
+num_games = 32
+
+model = init_model()
+
 for x in range(num_games):
 
     print("Iteration " + str(x) + " / " + str(num_games))
@@ -860,19 +866,19 @@ for x in range(num_games):
     if game_state.guess is not None and game_state.secret_number is not None:
         print("Result: " + str(int(game_state.guess) == int(game_state.secret_number)))
 
-    if game_state.guess == game_state.secret_number:
+    if str(game_state.guess) == str(game_state.secret_number):
         log.extend(conv_manager.get_prompt_outcomes())
         num_correct_games = num_correct_games + 1
 
 print("Successfull games: " + str(num_correct_games) + " / Played games: " + str(num_games))
 
-if log:
+if log and store_data:
     conv_manager.set_prompt_outcomes(log)
     file_name = 'training.csv'
-    conv_manager.export_prompt_outcome_log(file_name)
+    conv_manager.export_prompt_outcome_log(file_name, True)
 
-    dataset = load_from_disk(file_name)
+    #dataset = load_from_disk(file_name)
     #print("Dataset loaded from:", file_name)
     #for record in dataset:
     #    print(record["input"])
-   
+
