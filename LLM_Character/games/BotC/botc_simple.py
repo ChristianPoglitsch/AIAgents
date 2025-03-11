@@ -840,7 +840,7 @@ player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=2)
 
 num_correct_games = 0
-num_games = 32
+num_games = 50
 
 model = init_model()
 
