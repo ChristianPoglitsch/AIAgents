@@ -37,7 +37,7 @@ def train_mistral(model, tokenizer, instruct_tune_dataset) -> SFTTrainer:
         # manner.
         # num_train_epochs=5,
 
-        max_steps=300,  # comment out this line if you want to train in epochs - 100+ recommended
+        max_steps=100,  # comment out this line if you want to train in epochs - 100+ recommended
         save_strategy="epoch",
         # evaluation_strategy="epoch",
         evaluation_strategy="steps",

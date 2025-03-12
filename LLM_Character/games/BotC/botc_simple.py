@@ -576,7 +576,7 @@ class ConversationManager:
         # Save dataset
         # Remove existing dataset directory
         if os.path.exists(file_path):
-            shutil.rmtree(file_path)          
+            shutil.rmtree(file_path)
         combined_dataset.save_to_disk(file_path)
 
 # ------------------ Actions classes ------------------
@@ -841,7 +841,7 @@ player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=2)
 
 num_correct_games = 0
-num_games = 32
+num_games = 48
 
 model = init_model()
 
