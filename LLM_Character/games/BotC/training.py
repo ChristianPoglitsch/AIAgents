@@ -75,6 +75,10 @@ def train_mistral(model, tokenizer, instruct_tune_dataset) -> SFTTrainer:
     trainer.train()
     trainer.save_model("trained\\Mistral-7b-v3-finetune")
     # model.eval()
+
+    # save trained model?
+    #model.save_pretrained('trained\\trained_Mistral_7b_with_adapter')
+
     return trainer
 
 def format_prompts(examples):

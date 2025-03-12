@@ -22,7 +22,8 @@ model = []
 
 server_based = False
 use_trained = True
-store_data = False
+store_data = True
+show_output = False
 
 def init_model() -> LLM_API:
     if server_based:
@@ -559,9 +560,9 @@ class ConversationManager:
         """
         inputs, outputs = [], []
 
-        for input, output in self.prompt_outcome_log:
-            inputs.append(input.strip())
-            outputs.append(output.strip())
+        for i, o in self.prompt_outcome_log:
+            inputs.append(i.strip())
+            outputs.append(o.strip())
 
         # Convert to Hugging Face Dataset format
         dataset = Dataset.from_dict({"input": inputs, "output": outputs})
@@ -840,7 +841,7 @@ player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=2)
 
 num_correct_games = 0
-num_games = 50
+num_games = 32
 
 model = init_model()
 
@@ -872,13 +873,17 @@ for x in range(num_games):
 
 print("Successfull games: " + str(num_correct_games) + " / Played games: " + str(num_games))
 
+file_name = 'training.csv'
 if log and store_data:
-    conv_manager.set_prompt_outcomes(log)
-    file_name = 'training.csv'
+    conv_manager.set_prompt_outcomes(log)    
     conv_manager.export_prompt_outcome_log(file_name, True)
 
-    #dataset = load_from_disk(file_name)
-    #print("Dataset loaded from:", file_name)
-    #for record in dataset:
-    #    print(record["input"])
-
+if show_output:
+    dataset = load_from_disk(file_name)
+    print("Dataset loaded from:", file_name)
+    for record in dataset:
+        print("--- --- ---")
+        print(record["input"])
+        print("*** *** ***")
+        print(record["output"])
+        print("--- --- ---")
