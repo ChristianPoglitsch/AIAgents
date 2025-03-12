@@ -348,7 +348,7 @@ class SimpleNumberGuessGameState(BasicGameState):
             # Update game state for player
             prompt_state, chat_completed_state, action_state = complete_action_with_llm(speaker, self.generate_game_state_prompt(speaker, conversation_manager.get_conversation_history_for_player(speaker)))
             
-            if action_state is not str and action_state.get("action") is None:
+            if action_state is not str and action_state.get("action") is None and action_state.get("error") is None:
                 game_state.update_features_from_json(speaker, action_state)
                 conversation_manager.store_prompt_outcome(prompt_state, chat_completed_state)
 
@@ -685,8 +685,9 @@ class ActionProcessor:
                     audience = [audience]
                 participants = [speaker] + audience
                 conversation_manager.add_message_to_conversation(participants, speaker, result_action)
-                
-        conversation_manager.store_prompt_outcome(prompt, chat_completed)
+        
+        if result_action.get("error") is None:
+            conversation_manager.store_prompt_outcome(prompt, chat_completed)
             
         return result_action
 
@@ -747,7 +748,7 @@ def complete_action_with_llm(current_player, prompt):
         result = json.loads(llm_response)
     except Exception as e:
         print("Error parsing LLM response: " + ' \nMessage:\n' + llm_response, e)
-        result = {"action": "No Action", 'Speaker': current_player}
+        result = {"error": "No Action", 'Speaker': current_player}
 
     print("LLM Responds: " + current_player +"\n", result)
 
