@@ -240,6 +240,8 @@ class SimpleNumberGuessGameState(BasicGameState):
         if current_player == "A":
             # Insert the Guess action at the beginning if the current player is A.
             actions.insert(0, {'type': 'Guess', 'Speaker': None, 'Number': None})
+
+        actions = str(actions).replace("'", '"')
         return actions
 
     def update_features_from_json(self, player, json_data):
@@ -842,7 +844,7 @@ player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=2)
 
 num_correct_games = 0
-num_games = 48
+num_games = 3
 
 model = init_model()
 
