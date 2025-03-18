@@ -1,6 +1,7 @@
 import json
 import random
 import torch
+import copy
 
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
@@ -20,10 +21,13 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 
 model = []
 
-server_based = False
+server_based = True
 use_trained = True
 store_data = True
 show_output = False
+
+reward = 16
+reward_node = 0.01
 
 def init_model() -> LLM_API:
     if server_based:
@@ -82,42 +86,6 @@ class PlayerFeatures:
             for player in players
         }
 
-    def increment_conversation(self, player, other_player):
-        """
-        Increments the conversation count for the specified player's observation about another player.
-        
-        :param player: The name of the player whose features are being updated.
-        :param other_player: The name of the other player with whom a conversation occurred.
-        """
-        if player in self.features and other_player in self.features[player]:
-            self.features[player][other_player][0] += 1
-        else:
-            raise ValueError(f"Either {player} or {other_player} is not a valid player.")
-
-    def update_private_info(self, player, other_player, new_info):
-        """
-        Updates the private info string for a player's observation about another player.
-        
-        :param player: The name of the player whose features are being updated.
-        :param other_player: The other player for whom to update the information.
-        :param new_info: A string containing the new private information.
-        """
-        if player in self.features and other_player in self.features[player]:
-            self.features[player][other_player][1] = new_info
-        else:
-            raise ValueError(f"Either {player} or {other_player} is not a valid player.")
-
-    def __str__(self):
-        """
-        Returns a string representation of the entire private feature matrix.
-        """
-        result_lines = []
-        for player, info in self.features.items():
-            result_lines.append(f"Private features for {player}:")
-            for other, stats in info.items():
-                result_lines.append(f"  {other}: Conversations: {stats[0]}, Private Info: {stats[1]}")
-        return "\n".join(result_lines)
-
     def generate_private_info_update_prompt(self, player, conversation_history):
         """
         Generates an LLM prompt to update a player's private features based on recent conversation history.
@@ -173,17 +141,10 @@ class PlayerFeatures:
             raise ValueError(f"Player {player} not found in features.")
             
         for other_player, data in json_data.items():
-            # Only update features if the other player exists in this player's feature space.
-            if other_player in self.features[player]:
-                conversations = data.get("conversations", 0)
-                # If private_info is None, store it as "None" (or choose a default value).
-                private_info = data.get("private_info") if data.get("private_info") is not None else "None"
-                self.features[player][other_player] = [conversations, private_info]
-            else:
-                # Optionally, add a new entry if other_player is not yet present.
-                conversations = data.get("conversations", 0)
-                private_info = data.get("private_info") if data.get("private_info") is not None else "None"
-                self.features[player][other_player] = [conversations, private_info]
+            # Optionally, add a new entry if other_player is not yet present.
+            conversations = data.get("conversations", 0)
+            private_info = data.get("private_info") if data.get("private_info") is not None else "None"
+            self.features[player][other_player] = [conversations, private_info]
 
 
 # ------------------ Game Environment / State ------------------
@@ -192,10 +153,25 @@ class BasicGameState:
     def __init__(self, players):
         # Common elements: list of players.
         self.players = players
+        self.next_players = []
 
     def randomly_select_player(self):
         """Randomly select one player from the list."""
         return random.choice(self.players)
+
+    def add_next_player(self, player):
+        """Add a player or a list of players to the queue."""
+        if isinstance(player, list):  # Check if input is a list
+            for p in player:
+                self.next_players.append(p)  # Add only valid players
+        else:
+            self.next_players.append(player)  # Add a single valid player
+
+    def get_player(self):
+        """Get the first player in queue or randomly select if empty."""
+        if self.next_players:
+            return self.next_players.pop(0)  # FIFO: Get first in queue
+        return random.choice(self.players)  # Select randomly if queue is empty
 
     def get_game_state(self, player):
         """
@@ -209,6 +185,33 @@ class BasicGameState:
 
     def generate_prompt(self, current_player, conversation_history):
         raise NotImplementedError("Subclasses must implement this method.")
+    
+    def is_terminal(self):
+        """Game ends when a guess is made."""
+        raise NotImplementedError("Subclasses must implement this method.")
+
+    def create_action(self, player, conversation_manager):
+        """
+        Calls complete_action_with_llm for the given respondent and logs any completed action(s) of type "Message"
+        into the conversation manager.
+    
+        :param respondent: The respondent for which the action completion is requested.
+        :param conversation_manager: The conversation manager to log messages.
+        """
+        # Call the LLM to complete the action for this respondent.
+        prompt, chat_completed, result_action = complete_action_with_llm(player, game_state.generate_prompt(player, conversation_manager.get_conversation_history_for_player(player)))
+
+        # If result_action is not a list and is of type "Message"
+        if result_action.get("type") in ["Message"]:
+            speaker = result_action.get("Speaker")
+            audience = result_action.get("Audience")
+            if not isinstance(audience, list):
+                audience = [audience]
+            participants = [speaker] + audience
+            conversation_manager.add_message_to_conversation(participants, speaker, result_action)
+            conversation_manager.store_prompt_outcome(prompt, chat_completed)
+            
+        return result_action
 
 
 class SimpleNumberGuessGameState(BasicGameState):
@@ -320,14 +323,13 @@ class SimpleNumberGuessGameState(BasicGameState):
         return prompt
 
 
-    def apply_action(self, action_processor, conversation_manager, action):
+    def apply_action(self, conv_manager, action):
         """
         Updates the game state and conversation history based on the selected action.
         For both "Message" and "Guess" actions, calls complete_action_with_llm to generate a
-        complete action and returns that result.
-    
-        :param game_state: The current game state (NumberGuessGameState).
-        :param conversation_manager: The conversation manager to track interactions.
+        complete action and returns that result.    
+
+        :param conv_manager: The conversation manager to track interactions.
         :param action: A dictionary representing the action (from LLM or another source).
         :return: The completed action as generated by complete_action_with_llm.
         """
@@ -340,19 +342,14 @@ class SimpleNumberGuessGameState(BasicGameState):
             speaker = action.get("Speaker")
             audience = action.get("Audience")        
             # Ensure audience is handled as a list.
-            if not isinstance(audience, list):
-                audience = [audience]
-        
-            # For each respondent in the audience:
-            for respondent in audience:
-                result_action = action_processor.create_action(self, respondent, conversation_manager)
+            self.add_next_player(audience)
+            #union_set = set(speaker) | set(audience)  # Union of both sets
 
             # Update game state for player
-            prompt_state, chat_completed_state, action_state = complete_action_with_llm(speaker, self.generate_game_state_prompt(speaker, conversation_manager.get_conversation_history_for_player(speaker)))
-            
+            prompt_state, chat_completed_state, action_state = complete_action_with_llm(speaker, self.generate_game_state_prompt(speaker, conv_manager.get_conversation_history_for_player(speaker)))          
             if action_state is not str and action_state.get("action") is None and action_state.get("error") is None:
-                game_state.update_features_from_json(speaker, action_state)
-                conversation_manager.store_prompt_outcome(prompt_state, chat_completed_state)
+                self.update_features_from_json(speaker, action_state)
+                conv_manager.store_prompt_outcome(prompt_state, chat_completed_state)
 
         elif action_type == "Guess":
             guessed_number = action.get("Number")
@@ -362,7 +359,7 @@ class SimpleNumberGuessGameState(BasicGameState):
             self.guess = guessed_number
         
             # Log the guess in the conversation manager.
-            conversation_manager.add_message_to_conversation(speaker, speaker, f"My guess is {guessed_number}.")
+            conv_manager.add_message_to_conversation(speaker, speaker, f"My guess is {guessed_number}.")
             result_action = None
 
         elif action_type == "No Action":
@@ -581,118 +578,6 @@ class ConversationManager:
             shutil.rmtree(file_path)
         combined_dataset.save_to_disk(file_path)
 
-# ------------------ Actions classes ------------------
-
-class ActionProcessor:
-    def __init__(self, game_state, conversation_manager):
-        """
-        Initializes the action processor with the current game state and conversation manager.
-        
-        :param game_state: The current game state (e.g., an instance of NumberGuessGameState).
-        :param conversation_manager: The conversation manager handling conversation histories.
-        """
-        self.game_state = game_state
-        self.conversation_manager = conversation_manager
-        self.action_queue = []  # List to hold actions (each action is a dictionary)
-        self.action_budget = 30
-
-    def add_action(self, action):
-        """
-        Adds an action or a list of actions to the action queue.
-    
-        :param action: A dictionary representing an action, or a list containing one or more such dictionaries.
-        """
-        if isinstance(action, list):
-            # If action is a list, extend the queue with all its items.
-            self.action_queue.extend(action)
-        else:
-            # Otherwise, append the single action.
-            self.action_queue.append(action)
-         
-        if not isinstance(action, list):
-            action = [action]            
-        for act in action:
-            self.conversation_manager.add_action_to_conversation(act)
-
-    def process_actions(self):
-        """
-        Processes all actions in the queue by applying each action using the apply_action function.
-        Any actions returned by apply_action (if the result is a list, all its items) are added to the queue.
-        The process continues until the queue is empty.
-        """
-
-        terminal_state = False
-
-        while not terminal_state and self.action_budget > 0:
-
-            if not self.action_queue:
-                action = self.create_action(game_state, game_state.randomly_select_player(), self.conversation_manager)
-                # If a result is returned, add it/them to the queue.
-                if action is not None:
-                    if isinstance(action, list):
-                        self.action_queue.extend(action)  # Add all items if result is a list.
-                    else:
-                        self.action_queue.append(action)  # Add the single action.
-
-            # Pop the first action from the queue.
-            action = self.action_queue.pop(0)
-            #action_type = action.get("type")
-
-            # Apply the action. This function updates the game state and conversation manager.
-            action = self.game_state.apply_action(self, self.conversation_manager, action)
-            self.action_budget = self.action_budget - 1
-
-            # If a result is returned, add it/them to the queue.
-            if action is not None:
-                if isinstance(action, list):
-                    self.action_queue.extend(action)  # Add all items if result is a list.
-                else:
-                    self.action_queue.append(action)  # Add the single action.
-    
-            if game_state.is_terminal() is not None:
-                terminal_state = True
-
-        return
-
-    def create_action(self, game_state, player, conversation_manager):
-        """
-        Calls complete_action_with_llm for the given respondent and logs any completed action(s) of type "Message"
-        into the conversation manager.
-    
-        :param game_state: The current game state.
-        :param respondent: The respondent for which the action completion is requested.
-        :param conversation_manager: The conversation manager to log messages.
-        """
-        # Call the LLM to complete the action for this respondent.
-        prompt, chat_completed, result_action = complete_action_with_llm(player, game_state.generate_prompt(player, conversation_manager.get_conversation_history_for_player(player)))
-
-        # If the result is a list, iterate over its items.
-        if isinstance(result_action, list):
-            for item in result_action:
-                if item.get("type") in ["Message"]:
-                    speaker = item.get("Speaker")
-                    audience = item.get("Audience")
-                    # Ensure audience is a list
-                    if not isinstance(audience, list):
-                        audience = [audience]
-                    participants = [speaker] + audience
-                    conversation_manager.add_message_to_conversation(participants, speaker, item)
-
-        else:
-            # If result_action is not a list and is of type "Message"
-            if result_action.get("type") in ["Message"]:
-                speaker = result_action.get("Speaker")
-                audience = result_action.get("Audience")
-                if not isinstance(audience, list):
-                    audience = [audience]
-                participants = [speaker] + audience
-                conversation_manager.add_message_to_conversation(participants, speaker, result_action)
-        
-        if result_action.get("error") is None:
-            conversation_manager.store_prompt_outcome(prompt, chat_completed)
-            
-        return result_action
-
 # ------------------ GNN Model ------------------
 
 class ActionPredictionGNN(torch.nn.Module):
@@ -810,29 +695,153 @@ def complete_game_state_with_llm(game_state, current_player, conversation_manage
 
     return prompt, llm_response, result
 
-# ------------------ ISMCTS with LLM Integration ------------------
 
-def ismcts_with_llm(game_state, current_player, num_simulations, conversation_manager, gnn_model):
-    """
-    A simplified ISMCTS-like function that uses an LLM to decide on an action for the number guessing game.
-    This function is adapted for the minigame, where Player A's possible actions are:
-      "Ask B", "Ask C", "Ask D", "Guess 0", and "Guess 1".
-    The LLM is provided with the game state and conversation history and must output a complete action (as a string)
-    along with its reasoning.
-    
-    :param game_state: The current NumberGuessGameState instance.
-    :param current_player: The current player's name (should be 'A').
-    :param num_simulations: Number of ISMCTS simulations (not used extensively in this simple stub).
-    :param conversation_manager: ConversationManager instance.
-    :param gnn_model: The GNN model (not directly used in this LLM stub version).
-    :return: The recommended action from the LLM as a string, along with its reasoning.
-    """
-    
-    actionProcessor = ActionProcessor(game_state, conversation_manager)
-    actionProcessor.process_actions()
-    
-    return 0
+# ------------------ MCTS with LLM Integration ------------------
 
+def simulation_policy(game_state, conversation_manager):
+    """
+    Uses ActionProcessor to simulate actions and generate the next game state and conversation state.
+    
+    :param game_state: The current game state.
+    :param conversation_manager: The current conversation manager.
+    :return: A new (game_state, conversation_manager) pair.
+    """
+    # Create deep copies to avoid modifying the original objects
+    game_state_copy = copy.deepcopy(game_state)
+    conversation_manager_copy = copy.deepcopy(conversation_manager)
+    terminal_state = False
+    action = game_state_copy.create_action(game_state_copy.get_player(), conversation_manager_copy)
+    # Apply the action. This function updates the game state and conversation manager.
+    action = game_state_copy.apply_action(conversation_manager_copy, action)
+    if game_state_copy.is_terminal() is not None:
+        terminal_state = True
+    
+    # Return the updated state and conversation manager
+    return game_state_copy, conversation_manager_copy, terminal_state
+
+
+def reward_function(game_state, conversation_manager):
+    if str(game_state.guess) == str(game_state.secret_number):
+        return reward;
+    return -reward  # Reward
+
+
+class MCTSNode:
+    def __init__(self, state, conversation_manager, terminal_state=False, parent=None):
+        self.state = state
+        self.conversation_manager = conversation_manager
+        self.parent = parent
+        self.children = []
+        self.visits = 0
+        self.value = 0
+        self.is_terminal = terminal_state
+
+    def is_fully_expanded(self):
+        return len(self.children) > 1
+
+    def best_child(self, exploration_weight=1.0):
+        if not self.children:
+            return None  # Return None if there are no children to select from
+
+        if self.parent is None:
+            # If there is no parent, use only the exploitation term (greedy selection)
+            return max(self.children, key=lambda child: child.value / (child.visits + 1e-6))
+
+        # Compute UCT (Upper Confidence Bound for Trees) formula when the parent exists
+        return max(
+            self.children,
+            key=lambda child: (
+                child.value / (child.visits + 1e-6)  # Exploitation term
+                + exploration_weight * ((2 * (self.parent.visits + 1) / (child.visits + 1e-6)) ** 0.5)  # Exploration term
+            )
+        )
+    
+    def best_leaf(self, exploration_weight=1.0):
+        if not self.children:
+            return self  # If this is a leaf node, return itself
+
+        # If there are children, select the best one using UCT
+        best_node = self.best_child(exploration_weight)
+    
+        return best_node.best_leaf(exploration_weight)  # Recursively go down until a leaf node is found
+
+
+
+class MCTS:
+    def __init__(self, simulation_policy, reward_function, iterations=100):
+        self.simulation_policy = simulation_policy
+        self.reward_function = reward_function
+        self.iterations = iterations
+        self.tree = {}
+
+    def search(self, initial_state, conversation_manager):
+        root = self.get_node(initial_state, conversation_manager)
+
+        for _ in range(self.iterations):
+            node = self.select(root)
+            if node.is_terminal:
+                self.backpropagate(node, self.reward_function(node.state, node.conversation_manager))
+                continue  # Move up if terminal
+
+            reward = self.simulate(node.state, node.conversation_manager)
+            self.backpropagate(node, reward)
+
+        return root.best_leaf(exploration_weight=0.0)
+
+    def select(self, node):        
+        while node.is_fully_expanded():
+            node = node.best_child()
+        return self.expand(node)
+
+    def expand(self, node):
+        if node.is_terminal:  # Stop expansion if game is over
+            return node.parent if node.parent else node  # Move up if terminal  
+
+        new_state, new_conversation_manager, terminal_state = self.simulation_policy(node.state, node.conversation_manager)
+
+        if (new_state, new_conversation_manager) not in self.tree:
+            child_node = MCTSNode(new_state, new_conversation_manager, terminal_state, parent=node)
+            node.children.append(child_node)
+            self.tree[(new_state, new_conversation_manager)] = child_node
+            return child_node
+
+        return self.tree[(new_state, new_conversation_manager)]
+
+    def simulate(self, state, conversation_manager):
+        if state.is_terminal():
+            return self.reward_function(state, conversation_manager)  # Get reward for terminal state
+        return -reward_node  # Continue simulation
+
+    def backpropagate(self, node, reward):
+        while node is not None:
+            node.visits += 1
+            node.value += reward
+            node = node.parent
+
+    def get_node(self, state, conversation_manager):
+        if (state, conversation_manager) not in self.tree:
+            self.tree[(state, conversation_manager)] = MCTSNode(state, conversation_manager)
+        return self.tree[(state, conversation_manager)]
+
+    def print_tree(self, node=None, depth=0):
+        """
+        Recursively prints the tree structure.
+
+        :param node: The current node being printed (defaults to root if None).
+        :param depth: The current depth in the tree (for indentation).
+        """
+        if node is None:
+            if not self.tree:
+                print("Tree is empty.")
+                return
+            node = next(iter(self.tree.values()))  # Get the root node
+
+        indent = "  " * depth
+        terminal_status = " (Terminal)" if node.is_terminal else ""
+        print(f"{indent}- Guessed Number: {node.state.secret_number}, Correct Number: {node.state.guess} Visits: {node.visits}, Value: {node.value:.2f}{terminal_status}")
+
+        for child in node.children:
+            self.print_tree(child, depth + 1)
 
 # ------------------ Main ------------------
 
@@ -843,43 +852,37 @@ player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 
 gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=2)
 
-num_correct_games = 0
-num_games = 32
+num_iterations = 20
 
 model = init_model()
 
-for x in range(num_games):
 
-    print("Iteration " + str(x) + " / " + str(num_games))
+game_state = SimpleNumberGuessGameState(['A', 'B', 'C', 'D'])
+game_state.add_next_player('A')
+# Create a dummy ConversationManager and add a conversation.
+conv_manager = ConversationManager()
 
-    game_state = SimpleNumberGuessGameState(['A', 'B', 'C', 'D'])
+# Create an MCTS instance
+mcts = MCTS(simulation_policy, reward_function, iterations=num_iterations)
 
-    # Create a dummy ConversationManager and add a conversation.
-    conv_manager = ConversationManager()
+# Run MCTS to get the best action/state
+best_node = mcts.search(game_state, conv_manager)
 
-    # Use the ISMCTS with LLM integration to get an action decision.
-    _ = ismcts_with_llm(game_state, current_player='A', num_simulations=50, 
-                               conversation_manager=conv_manager,
-                               gnn_model=gnn_model)
+print(mcts.print_tree())
 
-    print('Secret number: ' + str(game_state.secret_number))
-    print('Guess: ' + str(game_state.guess))
-    print('Liar: ' + str(game_state.liar))
-    #conv_manager.get_all_conversations_for_player_print()
-    conv_manager.print_all_conversations()
-    if game_state.guess is not None and game_state.secret_number is not None:
-        print("Result: " + str(int(game_state.guess) == int(game_state.secret_number)))
+print('Secret number: ' + str(best_node.state.secret_number))
+print('Guess: ' + str(best_node.state.guess))
+print('Liar: ' + str(game_state.liar))
+#conv_manager.get_all_conversations_for_player_print()
+#conv_manager.print_all_conversations()
+if game_state.guess is not None and game_state.secret_number is not None:
+    print("Result: " + str(int(game_state.guess) == int(game_state.secret_number)))
 
-    if str(game_state.guess) == str(game_state.secret_number):
-        log.extend(conv_manager.get_prompt_outcomes())
-        num_correct_games = num_correct_games + 1
-
-print("Successfull games: " + str(num_correct_games) + " / Played games: " + str(num_games))
 
 file_name = 'training.csv'
 if log and store_data:
-    conv_manager.set_prompt_outcomes(log)    
-    conv_manager.export_prompt_outcome_log(file_name, True)
+    best_node.conversation_manager.set_prompt_outcomes(log)    
+    best_node.conversation_manager.export_prompt_outcome_log(file_name, True)
 
 if show_output:
     dataset = load_from_disk(file_name)
