@@ -2,6 +2,7 @@ import json
 import random
 import torch
 import copy
+import math
 
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
@@ -21,7 +22,7 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 
 model = []
 
-server_based = True
+server_based = False
 use_trained = False
 store_data = True
 show_output = False
@@ -312,7 +313,7 @@ class SimpleNumberGuessGameState(BasicGameState):
         prompt = (
             "You are a helpful board game AI assistant for the number guessing minigame. "
             "Player A's goal is to determine the secret number [0 to 100] by asking other player for their respondents or by making a guess if player A has enough information about the game state. "
-            "Other players return the secret number. Some players are liars. They return a number not equal to the secret number. "
+            "Other players return the secret number. Some players are liars. They return a number not equal to the secret number.\n"
             f"Current Player: {current_player}\n\n"
             "The available actions are given below, but each action is incomplete and missing parameters marked as None.\n"
             "Available Actions Description:\n"
@@ -322,7 +323,7 @@ class SimpleNumberGuessGameState(BasicGameState):
             "Chronological conversation History:\n"
             f"{conversation_history}\n\n"
             "Please output one complete possible action from the Available Actions Description list in JSON format. "
-            "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.\n\n"
+            "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.\n"
         )
         return prompt
 
@@ -698,34 +699,36 @@ class StateChecker:
         """Check if any node in the tree has the same action type and player conversation counts."""
         new_state, _, new_action = item  # Extract state and action
         new_action_type = new_action.get('type')  # Extract 'type' field
-        new_player_features = new_state.player_features.features  # Extract player features
+        new_player_features = new_state.features  # Extract player features
 
-        for node in self.tree.values():
-            # Check if action type matches
-            if node.action.get('type') == new_action_type:
-                # Check if player conversation counts match
-                if self.compare_player_features(new_player_features, node.state.player_features.features):
-                    return True
+        for node in self.tree:
+            if self.compare_player_features(new_player_features, node.state.features):
+                return True
         return False
 
     def get_by_action_type_and_features(self, new_state, new_action):
         """Find and return the MCTSNode with the given action type and matching player features."""
         new_action_type = new_action.get('type')
-        new_player_features = new_state.player_features.features
+        new_player_features = new_state.features
 
         for node in self.tree.values():
             if node.action.get('type') == new_action_type:
-                if self.compare_player_features(new_player_features, node.state.player_features.features):
+                if self.compare_player_features(new_player_features, node.state.features):
                     return node  # Return matching MCTSNode
         return None  # If not found
 
     def compare_player_features(self, features1, features2):
-        """Compare two PlayerFeatures objects to check if number of conversations matches."""
-        for player, interactions in features1.items():
-            if player not in features2:
+        """Compare two PlayerFeatures objects to check if the number of conversations matches for all players."""
+        if set(features1.features.keys()) != set(features2.features.keys()):  
+            return False  # Ensure both structures contain the same players
+
+        for player, interactions in features1.features.items():
+            if player not in features2.features:
                 return False
             for other, stats in interactions.items():
-                if other not in features2[player] or stats[0] != features2[player][other][0]:  # Compare conversations
+                if other not in features2.features[player]:
+                    return False
+                if stats[0] != features2.features[player][other][0]:  # Compare conversation count only
                     return False
         return True
 
@@ -748,6 +751,8 @@ def simulation_policy(game_state, conversation_manager):
     if game_state_copy.is_terminal() is not None:
         terminal_state = True
     
+    print("*** *** *** ***")
+
     # Return the updated state and conversation manager
     return game_state_copy, conversation_manager_copy, terminal_state, action
 
@@ -769,8 +774,8 @@ class MCTSNode:
         self.is_terminal = terminal_state
         self.action = action  # Action that led to this node
 
-    def is_fully_expanded(self):
-        return len(self.children) > 1
+    #def is_fully_expanded(self):
+    #    return len(self.children) > 1
 
     def best_child(self, exploration_weight=1.0):
         if not self.children:
@@ -811,6 +816,9 @@ class MCTS:
 
         for _ in range(self.iterations):
             node = self.select(root)
+            node = self.expand(node)
+            if node is None:
+                continue
             if node.is_terminal:
                 self.backpropagate(node, self.reward_function(node.state, node.conversation_manager))
                 continue  # Move up if terminal
@@ -820,25 +828,46 @@ class MCTS:
 
         return root.best_leaf(exploration_weight=0.0)
 
-    def select(self, node):        
-        while node.is_fully_expanded():
-            node = node.best_child()
-        return self.expand(node)
+    #def select(self, node):        
+    #    while node.is_fully_expanded():
+    #        node = node.best_child()
+    #    return self.expand(node)
+
+    def select(self, node):
+        """Balanced exploration (new nodes) and exploitation (best child)"""
+        
+        exploration_rate = 0.2
+
+        if not node.is_terminal:
+            if not node.children:
+                return node  # No children, return itself
+    
+            # New child for this node
+            if random.random() < exploration_rate:
+                return random.choice(list(self.tree.values()))
+            
+            # Otherwise, use UCT to select the best-explored child
+            while(node.children):
+                node = node.best_child()
+
+        return node  # Return terminal node
 
     def expand(self, node):
+        if node is None:
+            return None
         if node.is_terminal:  # Stop expansion if game is over
             return node.parent if node.parent else node  # Move up if terminal  
 
         new_state, new_conversation_manager, terminal_state, action = self.simulation_policy(node.state, node.conversation_manager)
 
-        checker = StateChecker(self.tree)
-        if (new_state, new_conversation_manager, action) not in checker:
+        checker = StateChecker(node.children)
+        if not node.children or (new_state, new_conversation_manager, action) not in checker:
             child_node = MCTSNode(new_state, new_conversation_manager, action, terminal_state, parent=node)
             node.children.append(child_node)
             self.tree[new_state] = child_node
             return child_node
 
-        return checker.get_by_action_type_and_features(new_state, action)
+        return None
 
     def simulate(self, state, conversation_manager):
         if state.is_terminal():
@@ -886,9 +915,10 @@ player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 
 gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=2)
 
-num_iterations = 40
-
+num_iterations = 50
+num_correct_games = 0
 model = init_model()
+
 
 
 game_state = SimpleNumberGuessGameState(['A', 'B', 'C', 'D'])
@@ -911,6 +941,11 @@ print('Liar: ' + str(game_state.liar))
 #conv_manager.print_all_conversations()
 if game_state.guess is not None and game_state.secret_number is not None:
     print("Result: " + str(int(game_state.guess) == int(game_state.secret_number)))
+
+if str(best_node.state.guess) == str(best_node.state.secret_number):
+    log.extend(best_node.conversation_manager.get_prompt_outcomes())
+    num_correct_games = num_correct_games + 1
+
 
 
 file_name = 'training.csv'
