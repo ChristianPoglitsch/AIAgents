@@ -22,7 +22,7 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 
 model = []
 
-server_based = False
+server_based = True
 use_trained = False
 store_data = True
 show_output = False
@@ -91,7 +91,6 @@ class PlayerFeatures:
         """
         Generates an LLM prompt to update a player's private features based on recent conversation history.
     
-        :param private_features_obj: Instance of PlayerPrivateInformation.
         :param player: The player whose private features should be updated.
         :param conversation_history: A string containing the last x conversation messages involving that player.
         :return: A prompt string.
@@ -114,6 +113,45 @@ class PlayerFeatures:
             "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes."
         )
         return prompt
+
+    def generate_game_strategy_prompt(self, player, conversation_history):
+        """
+        Generates an LLM prompt to create a short-term and long-term game strategy 
+        for a player based on recent conversation history.
+
+        :param player: The player for whom the strategy is being generated.
+        :param conversation_history: A string containing the last x conversation messages involving that player.
+        :return: A prompt string.
+        """
+        current_game_state = self.features.get(player, {})
+    
+        prompt = (
+            "You are an intelligent strategist analyzing a player's recent conversation history to generate a short-term and "
+            "long-term game plan. The short-term plan should focus on immediate actions for the next few interactions, while "
+            "the long-term plan should guide the player's overall strategy throughout the game.\n\n"
+            "Recent Conversation History:\n"
+            f"{conversation_history}\n\n"
+            "Current Game Context:\n"
+        )
+    
+        for other, stats in current_game_state.items():
+            prompt += f"{other}: Conversations = {stats[0]}, Game Info = {stats[1]}\n"
+    
+        prompt += (
+            "\nBased on the conversation history and current game context, generate:\n"
+            "1. A Short-Term Plan: Immediate actions and decisions for the next few interactions as text.\n"
+            "2. A Long-Term Plan: A strategic approach for progressing in the game over time as text.\n\n"
+            "Example:\n"
+            "{"
+            '"short_term_plan": "Convince Player to", '
+            '"long_term_plan": "Finally do"'
+            "}\n"
+            "Output the response in JSON format with 'short_term_plan' and 'long_term_plan' fields. "
+            "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes."
+        )
+    
+        return prompt
+
 
     def update_features_from_json(self, player, json_data):
         """
@@ -204,7 +242,7 @@ class BasicGameState:
         :param conversation_manager: The conversation manager to log messages.
         """
         # Call the LLM to complete the action for this respondent.
-        prompt, chat_completed, result_action = complete_action_with_llm(player, game_state.generate_prompt(player, conversation_manager.get_conversation_history_for_player(player)))
+        prompt, chat_completed, result_action = complete_action_with_llm(player, game_state.generate_prompt(player, conversation_manager))
 
         # If result_action is not a list and is of type "Message"
         if result_action.get("type") in ["Message"]:
@@ -217,6 +255,9 @@ class BasicGameState:
             conversation_manager.store_prompt_outcome(prompt, chat_completed)
             
         return result_action
+
+    def apply_action(self, conv_manager, action):
+        raise NotImplementedError("Subclasses must implement this method.")
 
 
 class SimpleNumberGuessGameState(BasicGameState):
@@ -296,20 +337,25 @@ class SimpleNumberGuessGameState(BasicGameState):
 
     def generate_game_state_prompt(self, current_player, conversation_history):
         return self.features.generate_private_info_update_prompt(current_player, conversation_history)
+    
+    def generate_game_strategy_prompt(self, current_player, conversation_history):
+        return self.features.generate_game_strategy_prompt(current_player, conversation_history)
 
-    def generate_prompt(self, current_player, conversation_history):
+    def generate_prompt(self, current_player, conversation_manager):
         """
         Creates a prompt string for the LLM based on the current game state,
         available actions, and conversation history.
         
         :param current_player: The name of the current player.
         :param action_space_description: A string describing the available action templates.
-        :param conversation_history: A string representing the conversation history.
+        :param conversation_manager: ConversationManager
         :return: A prompt string in plain text.
         """
         # Get the public state description for the current player.
         state_description = self.get_game_state(current_player)
-        
+        conversation_history = conversation_manager.get_conversation_history_for_player(current_player)
+        get_player_plan = conversation_manager.get_player_plan(current_player)
+
         prompt = (
             "You are a helpful board game AI assistant for the number guessing minigame. "
             "Player A's goal is to determine the secret number [0 to 100] by asking other player for their respondents or by making a guess if player A has enough information about the game state. "
@@ -322,6 +368,8 @@ class SimpleNumberGuessGameState(BasicGameState):
             f"{state_description}\n\n"
             "Chronological conversation History:\n"
             f"{conversation_history}\n\n"
+            "Current plans\n"
+            f"{conversation_history}\n\n"            
             "Please output one complete possible action from the Available Actions Description list in JSON format. "
             "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.\n"
         )
@@ -349,10 +397,14 @@ class SimpleNumberGuessGameState(BasicGameState):
             #union_set = set(speaker) | set(audience)  # Union of both sets
 
             # Update game state for player
-            prompt_state, chat_completed_state, action_state = complete_action_with_llm(speaker, self.generate_game_state_prompt(speaker, conv_manager.get_conversation_history_for_player(speaker)))          
+            prompt_state, chat_completed_state, action_state = complete_action_with_llm(speaker, self.generate_game_state_prompt(speaker, conv_manager.get_conversation_history_for_player(speaker)))
             if action_state is not str and action_state.get("action") is None and action_state.get("error") is None:
                 self.update_features_from_json(speaker, action_state)
                 conv_manager.store_prompt_outcome(prompt_state, chat_completed_state)
+
+            prompt_state, chat_completed_state, action_state = complete_action_with_llm(speaker, self.generate_game_strategy_prompt(speaker, conv_manager.get_conversation_history_for_player(speaker)))
+            if action_state is not str and action_state.get("action") is None and action_state.get("error") is None:
+                conv_manager.store_player_plan(speaker, chat_completed_state)
 
         elif action_type == "Guess":
             guessed_number = action.get("Number")
@@ -419,6 +471,32 @@ class ConversationManager:
     def __init__(self):
         self.conversations = {}  # key: tuple(participants), value: Conversation instance
         self.prompt_outcome_log = []  # List to store tuples of (prompt, outcome) as strings
+        self.player_plans = {}  # Dictionary to store plans for players
+        
+    # Setter function to store a tuple of (player, plan)
+    def store_player_plan(self, player, plan_str):
+        """
+        Stores a player's game plan as both a string and a parsed JSON object.
+
+        :param player: The name of the player.
+        :param plan_str: The plan as a string (expected to be in JSON format).
+        """
+        try:
+            plan_json = json.loads(plan_str)  # Convert string to JSON
+        except json.JSONDecodeError:
+            raise ValueError("Invalid JSON format for plan.")
+
+        self.player_plans[player] = (plan_str, plan_json)
+
+    # Getter function to retrieve a player's stored plan
+    def get_player_plan(self, player):
+        """
+        Retrieves the stored plan for a player.
+
+        :param player: The name of the player.
+        :return: A tuple of (plan_str, plan_json) if found, otherwise None.
+        """
+        return self.player_plans.get(player, None)
 
     def start_conversation(self, participants):
         participants_tuple = tuple(sorted(participants))
@@ -444,14 +522,14 @@ class ConversationManager:
             if act.get("type") in ["Message"]:
                 self.add_message_to_conversation(participants, speaker, act)
 
-    def get_conversation_for_player(self, player_name) -> Conversation:
+    def get_conversation_for_player(self, player_name, num_convs = 5) -> Conversation:
         result = []
         for participants_tuple, conv in self.conversations.items():
             if player_name in participants_tuple:
                 result.append(conv)
-        return result
+        return result[-num_convs:]  # Return only the last `num_convs` conversations
 
-    def get_conversation_history_for_player(self, current_player) -> str:
+    def get_conversation_history_for_player(self, current_player, num_convs = 5) -> str:
         """
         Retrieves and returns a formatted conversation history for the given player.
     
@@ -459,7 +537,7 @@ class ConversationManager:
         :param current_player: The name of the player for whom to retrieve the conversation history.
         :return: A string containing the conversation history, or a default message if none exist.
         """
-        convs = self.get_conversation_for_player(current_player)
+        convs = self.get_conversation_for_player(current_player, num_convs)
         if convs:
             conversation_history = "\n".join(conv.get_history_text() for conv in convs)
         else:
@@ -915,7 +993,7 @@ player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 
 gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=2)
 
-num_iterations = 50
+num_iterations = 30
 num_correct_games = 0
 model = init_model()
 
