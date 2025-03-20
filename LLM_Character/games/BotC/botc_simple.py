@@ -22,13 +22,21 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 
 model = []
 
-server_based = True
+server_based = False
 use_trained = False
-store_data = True
+store_data = False
 show_output = False
 
-reward = 16
+reward_terminal = 16
+reward_small = 4
 reward_node = 0.01
+
+multiple_answers = True
+num_games = 5
+num_iterations = 50
+
+print_output = False
+
 
 def init_model() -> LLM_API:
     if server_based:
@@ -185,6 +193,18 @@ class PlayerFeatures:
             private_info = data.get("private_info") if data.get("private_info") is not None else "None"
             self.features[player][other_player] = [conversations, private_info]
 
+    def count_num_player_conversations(self, player, num_convs):
+        """
+        Returns the number of players with whom the given player has had more than `num_convs` conversations.
+
+        :param player: The player whose conversation history will be checked.
+        :param num_convs: The threshold number of conversations.
+        :return: An integer count of players.
+        """
+        if player not in self.features:
+            raise ValueError(f"Player {player} not found in features.")
+
+        return sum(1 for stats in self.features[player].values() if stats[0] == num_convs)
 
 # ------------------ Game Environment / State ------------------
 
@@ -354,7 +374,7 @@ class SimpleNumberGuessGameState(BasicGameState):
         # Get the public state description for the current player.
         state_description = self.get_game_state(current_player)
         conversation_history = conversation_manager.get_conversation_history_for_player(current_player)
-        get_player_plan = conversation_manager.get_player_plan(current_player)
+        #get_player_plan = conversation_manager.get_player_plan(current_player)
 
         prompt = (
             "You are a helpful board game AI assistant for the number guessing minigame. "
@@ -368,11 +388,16 @@ class SimpleNumberGuessGameState(BasicGameState):
             f"{state_description}\n\n"
             "Chronological conversation History:\n"
             f"{conversation_history}\n\n"
-            "Current plans\n"
-            f"{conversation_history}\n\n"            
-            "Please output one complete possible action from the Available Actions Description list in JSON format. "
-            "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.\n"
+            #"Current plans\n"
+            #f"{get_player_plan}\n\n"
         )
+        
+        if multiple_answers is True:
+            prompt = prompt + "Please output one to two complete possible action from the Available Actions Description list in JSON format.\n"
+        else:
+            prompt =  prompt + "Please output one complete possible action from the Available Actions Description list in JSON format.\n"
+        prompt = prompt + "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.\n"
+
         return prompt
 
 
@@ -402,9 +427,9 @@ class SimpleNumberGuessGameState(BasicGameState):
                 self.update_features_from_json(speaker, action_state)
                 conv_manager.store_prompt_outcome(prompt_state, chat_completed_state)
 
-            prompt_state, chat_completed_state, action_state = complete_action_with_llm(speaker, self.generate_game_strategy_prompt(speaker, conv_manager.get_conversation_history_for_player(speaker)))
-            if action_state is not str and action_state.get("action") is None and action_state.get("error") is None:
-                conv_manager.store_player_plan(speaker, chat_completed_state)
+            #prompt_state, chat_completed_state, action_state = complete_action_with_llm(speaker, self.generate_game_strategy_prompt(speaker, conv_manager.get_conversation_history_for_player(speaker)))
+            #if action_state is not str and action_state.get("action") is None and action_state.get("error") is None:
+            #    conv_manager.store_player_plan(speaker, chat_completed_state)
 
         elif action_type == "Guess":
             guessed_number = action.get("Number")
@@ -704,15 +729,18 @@ def complete_action_with_llm(current_player, prompt):
     try:
         result = json.loads(llm_response)
     except Exception as e:
-        print("Error parsing LLM response: " + ' \nMessage:\n' + llm_response, e)
+        if print_output:
+            print("Error parsing LLM response: " + ' \nMessage:\n' + llm_response, e)
         result = {"error": "No Action", 'Speaker': current_player}
 
-    print("LLM Responds: " + current_player +"\n", result)
+    if print_output:
+        print("LLM Responds: " + current_player +"\n", result)
 
     # Take most plausible results
     if isinstance(result, list):
         result = random.choice(result)
-        print("Choosen respond: " + current_player +"\n", result)
+        if print_output:
+            print("Choosen respond: " + current_player +"\n", result)
 
     return prompt, llm_response, result
 
@@ -733,10 +761,8 @@ def complete_game_state_with_llm(game_state, current_player, conversation_manage
     conversation_history = conversation_manager.get_conversation_history_for_player(current_player)
     
     # Create a prompt.
-    prompt = game_state.generate_game_state_prompt(current_player, conversation_history)
-    
-    #print("LLM Prompt:\n", prompt)
-    
+    prompt = game_state.generate_game_state_prompt(current_player, conversation_history)    
+   
     # Prepare messages for the LLM.
     if server_based:
         role = "developer"
@@ -827,18 +853,31 @@ def simulation_policy(game_state, conversation_manager):
     # Apply the action. This function updates the game state and conversation manager.
     game_state_copy.apply_action(conversation_manager_copy, action)
     if game_state_copy.is_terminal() is not None:
-        terminal_state = True
-    
-    print("*** *** *** ***")
+        terminal_state = True    
+
+    if print_output:
+        print('*** *** *** ***')
 
     # Return the updated state and conversation manager
     return game_state_copy, conversation_manager_copy, terminal_state, action
 
 
-def reward_function(game_state, conversation_manager):
-    if str(game_state.guess) == str(game_state.secret_number):
-        return reward;
-    return -reward  # Reward
+def reward_function(node, new_node):
+    if new_node.is_terminal and str(new_node.state.guess) == str(new_node.state.secret_number):
+        return reward_terminal;
+
+    if new_node.is_terminal and str(new_node.state.guess) != str(new_node.state.secret_number):
+        return -reward_terminal;
+
+    speaker = new_node.action.get("Speaker")
+    num_convs = 1
+    conv_old = node.state.features.count_num_player_conversations(speaker, num_convs)
+    conv_new = new_node.state.features.count_num_player_conversations(speaker, num_convs)
+    
+    if conv_new > conv_old:
+        return reward_small
+
+    return -reward_node  # Reward
 
 
 class MCTSNode:
@@ -894,15 +933,16 @@ class MCTS:
 
         for _ in range(self.iterations):
             node = self.select(root)
-            node = self.expand(node)
-            if node is None:
+            new_node = self.expand(node)
+            if new_node is None or new_node.action.get("type") == new_node.state.get_no_action().get("type"):
                 continue
-            if node.is_terminal:
-                self.backpropagate(node, self.reward_function(node.state, node.conversation_manager))
-                continue  # Move up if terminal
 
-            reward = self.simulate(node.state, node.conversation_manager)
-            self.backpropagate(node, reward)
+            reward = self.reward_function(node, new_node)
+            self.backpropagate(new_node, reward)
+
+            #self.print_tree()
+            #best = root.best_leaf(exploration_weight=0.0)
+            #print(best.value)
 
         return root.best_leaf(exploration_weight=0.0)
 
@@ -947,11 +987,6 @@ class MCTS:
 
         return None
 
-    def simulate(self, state, conversation_manager):
-        if state.is_terminal():
-            return self.reward_function(state, conversation_manager)  # Get reward for terminal state
-        return -reward_node  # Continue simulation
-
     def backpropagate(self, node, reward):
         while node is not None:
             node.visits += 1
@@ -979,7 +1014,7 @@ class MCTS:
 
         indent = "  " * depth
         terminal_status = " (Terminal)" if node.is_terminal else ""
-        print(f"{indent}- Guessed Number: {node.state.secret_number}, Correct Number: {node.state.guess} Visits: {node.visits}, Value: {node.value:.2f}{terminal_status}")
+        print(f"{indent}- Guessed Number: {node.state.guess}, Correct Number: {node.state.secret_number} Visits: {node.visits}, Value: {node.value:.2f}{terminal_status}")
 
         for child in node.children:
             self.print_tree(child, depth + 1)
@@ -993,50 +1028,51 @@ player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 
 gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=2)
 
-num_iterations = 30
 num_correct_games = 0
 model = init_model()
 
+for i in range(num_games):
+    print('Start Game')
+    game_state = SimpleNumberGuessGameState(['A', 'B', 'C', 'D'])
+    game_state.add_next_player('A')
+    # Create a dummy ConversationManager and add a conversation.
+    conv_manager = ConversationManager()
 
+    # Create an MCTS instance
+    mcts = MCTS(simulation_policy, reward_function, iterations=num_iterations)
 
-game_state = SimpleNumberGuessGameState(['A', 'B', 'C', 'D'])
-game_state.add_next_player('A')
-# Create a dummy ConversationManager and add a conversation.
-conv_manager = ConversationManager()
+    # Run MCTS to get the best action/state
+    best_node = mcts.search(game_state, conv_manager)
 
-# Create an MCTS instance
-mcts = MCTS(simulation_policy, reward_function, iterations=num_iterations)
+    print(mcts.print_tree())
 
-# Run MCTS to get the best action/state
-best_node = mcts.search(game_state, conv_manager)
+    mcts.print_tree(best_node)
+    print('Secret number: ' + str(best_node.state.secret_number))
+    print('Guess: ' + str(best_node.state.guess))
+    print('Liar: ' + str(game_state.liar))
+    #conv_manager.get_all_conversations_for_player_print()
+    #conv_manager.print_all_conversations()
+    if game_state.guess is not None and game_state.secret_number is not None:
+        print("Result: " + str(int(game_state.guess) == int(game_state.secret_number)))
 
-print(mcts.print_tree())
+    if str(best_node.state.guess) == str(best_node.state.secret_number):
+        log.extend(best_node.conversation_manager.get_prompt_outcomes())
+        num_correct_games = num_correct_games + 1
 
-print('Secret number: ' + str(best_node.state.secret_number))
-print('Guess: ' + str(best_node.state.guess))
-print('Liar: ' + str(game_state.liar))
-#conv_manager.get_all_conversations_for_player_print()
-#conv_manager.print_all_conversations()
-if game_state.guess is not None and game_state.secret_number is not None:
-    print("Result: " + str(int(game_state.guess) == int(game_state.secret_number)))
+    file_name = 'training.csv'
+    if log and store_data:
+        best_node.conversation_manager.set_prompt_outcomes(log)
+        best_node.conversation_manager.export_prompt_outcome_log(file_name, True)
 
-if str(best_node.state.guess) == str(best_node.state.secret_number):
-    log.extend(best_node.conversation_manager.get_prompt_outcomes())
-    num_correct_games = num_correct_games + 1
+    if show_output:
+        dataset = load_from_disk(file_name)
+        print("Dataset loaded from:", file_name)
+        for record in dataset:
+            print("--- --- ---")
+            print(record["input"])
+            print("*** *** ***")
+            print(record["output"])
+            print("--- --- ---")
 
+print("Successfull games: " + str(num_correct_games) + " / Played games: " + str(num_games))
 
-
-file_name = 'training.csv'
-if log and store_data:
-    best_node.conversation_manager.set_prompt_outcomes(log)    
-    best_node.conversation_manager.export_prompt_outcome_log(file_name, True)
-
-if show_output:
-    dataset = load_from_disk(file_name)
-    print("Dataset loaded from:", file_name)
-    for record in dataset:
-        print("--- --- ---")
-        print(record["input"])
-        print("*** *** ***")
-        print(record["output"])
-        print("--- --- ---")
