@@ -31,8 +31,8 @@ reward_terminal = 16
 reward_small = 4
 reward_node = 0.01
 
-multiple_answers = True
-num_games = 5
+multiple_answers = store_data
+num_games = 20
 num_iterations = 50
 
 print_output = False
@@ -1059,10 +1059,10 @@ for i in range(num_games):
         log.extend(best_node.conversation_manager.get_prompt_outcomes())
         num_correct_games = num_correct_games + 1
 
-    file_name = 'training.csv'
-    if log and store_data:
-        best_node.conversation_manager.set_prompt_outcomes(log)
-        best_node.conversation_manager.export_prompt_outcome_log(file_name, True)
+        file_name = 'training.csv'
+        if log and store_data:
+            best_node.conversation_manager.set_prompt_outcomes(log)
+            best_node.conversation_manager.export_prompt_outcome_log(file_name, True)
 
     if show_output:
         dataset = load_from_disk(file_name)
