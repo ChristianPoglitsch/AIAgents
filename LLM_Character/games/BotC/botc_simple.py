@@ -22,18 +22,18 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 
 model = []
 
-server_based = False
-use_trained = False
-store_data = False
+server_based = True
+use_trained = True
+store_data = True
 show_output = False
 
 reward_terminal = 16
 reward_small = 4
-reward_node = 0.01
+reward_node = 0.25
 
-multiple_answers = store_data
-num_games = 20
-num_iterations = 50
+multiple_answers = True # store_data
+num_games = 30
+num_iterations = 40
 
 print_output = False
 
@@ -262,19 +262,7 @@ class BasicGameState:
         :param conversation_manager: The conversation manager to log messages.
         """
         # Call the LLM to complete the action for this respondent.
-        prompt, chat_completed, result_action = complete_action_with_llm(player, game_state.generate_prompt(player, conversation_manager))
-
-        # If result_action is not a list and is of type "Message"
-        if result_action.get("type") in ["Message"]:
-            speaker = result_action.get("Speaker")
-            audience = result_action.get("Audience")
-            if not isinstance(audience, list):
-                audience = [audience]
-            participants = [speaker] + audience
-            conversation_manager.add_message_to_conversation(participants, speaker, result_action)
-            conversation_manager.store_prompt_outcome(prompt, chat_completed)
-            
-        return result_action
+        return complete_action_with_llm(player, game_state.generate_prompt(player, conversation_manager))
 
     def apply_action(self, conv_manager, action):
         raise NotImplementedError("Subclasses must implement this method.")
@@ -422,14 +410,10 @@ class SimpleNumberGuessGameState(BasicGameState):
             #union_set = set(speaker) | set(audience)  # Union of both sets
 
             # Update game state for player
-            prompt_state, chat_completed_state, action_state = complete_action_with_llm(speaker, self.generate_game_state_prompt(speaker, conv_manager.get_conversation_history_for_player(speaker)))
+            prompt_state, action_state = complete_action_with_llm(speaker, self.generate_game_state_prompt(speaker, conv_manager.get_conversation_history_for_player(speaker)))
             if action_state is not str and action_state.get("action") is None and action_state.get("error") is None:
                 self.update_features_from_json(speaker, action_state)
-                conv_manager.store_prompt_outcome(prompt_state, chat_completed_state)
-
-            #prompt_state, chat_completed_state, action_state = complete_action_with_llm(speaker, self.generate_game_strategy_prompt(speaker, conv_manager.get_conversation_history_for_player(speaker)))
-            #if action_state is not str and action_state.get("action") is None and action_state.get("error") is None:
-            #    conv_manager.store_player_plan(speaker, chat_completed_state)
+                conv_manager.store_prompt_outcome(prompt_state, json.dumps(action_state))
 
         elif action_type == "Guess":
             guessed_number = action.get("Number")
@@ -551,23 +535,32 @@ class ConversationManager:
         result = []
         for participants_tuple, conv in self.conversations.items():
             if player_name in participants_tuple:
-                result.append(conv)
-        return result[-num_convs:]  # Return only the last `num_convs` conversations
+                result.append(conv.history[-num_convs:])
+        return result  # Return only the last `num_convs` conversations
 
-    def get_conversation_history_for_player(self, current_player, num_convs = 5) -> str:
+    def get_conversation_history_for_player(self, current_player, num_convs=5) -> str:
         """
         Retrieves and returns a formatted conversation history for the given player.
-    
-        :param conversation_manager: The ConversationManager instance that manages all conversations.
+
         :param current_player: The name of the player for whom to retrieve the conversation history.
-        :return: A string containing the conversation history, or a default message if none exist.
+        :param num_convs: The number of recent conversations to retrieve (default: 5).
+        :return: A formatted string containing the conversation history, or a default message if none exist.
         """
         convs = self.get_conversation_for_player(current_player, num_convs)
-        if convs:
-            conversation_history = "\n".join(conv.get_history_text() for conv in convs)
-        else:
-            conversation_history = "No conversation history."
-        return conversation_history
+
+        if not convs or not any(convs):  # Check if convs is empty or contains empty lists
+            return "No conversation history."
+
+        formatted_conversations = []
+    
+        for conversation in convs:
+            for entry in conversation:
+                sender = entry.get("sender", "Unknown")
+                message = entry.get("message", {})
+                formatted_message = str(message)  # Convert message dictionary to string if necessary
+                formatted_conversations.append(f"{sender}: {formatted_message}")
+
+        return "\n".join(formatted_conversations)
 
     def print_all_conversations(self):
         """
@@ -713,6 +706,9 @@ def complete_action_with_llm(current_player, prompt):
     :return: The LLM's JSON response as a dictionary.
     """ 
     
+    if print_output:
+        print(prompt)
+
     # Prepare messages for the LLM.
     if server_based:
         role = "developer"
@@ -742,7 +738,7 @@ def complete_action_with_llm(current_player, prompt):
         if print_output:
             print("Choosen respond: " + current_player +"\n", result)
 
-    return prompt, llm_response, result
+    return prompt, result
 
 
 def complete_game_state_with_llm(game_state, current_player, conversation_manager):
@@ -794,50 +790,7 @@ def complete_game_state_with_llm(game_state, current_player, conversation_manage
 
 # ------------------ MCTS with LLM Integration ------------------
 
-
-class StateChecker:
-    def __init__(self, tree):
-        self.tree = tree  # Dictionary: {state: MCTSNode}
-
-    def __contains__(self, item):
-        """Check if any node in the tree has the same action type and player conversation counts."""
-        new_state, _, new_action = item  # Extract state and action
-        new_action_type = new_action.get('type')  # Extract 'type' field
-        new_player_features = new_state.features  # Extract player features
-
-        for node in self.tree:
-            if self.compare_player_features(new_player_features, node.state.features):
-                return True
-        return False
-
-    def get_by_action_type_and_features(self, new_state, new_action):
-        """Find and return the MCTSNode with the given action type and matching player features."""
-        new_action_type = new_action.get('type')
-        new_player_features = new_state.features
-
-        for node in self.tree.values():
-            if node.action.get('type') == new_action_type:
-                if self.compare_player_features(new_player_features, node.state.features):
-                    return node  # Return matching MCTSNode
-        return None  # If not found
-
-    def compare_player_features(self, features1, features2):
-        """Compare two PlayerFeatures objects to check if the number of conversations matches for all players."""
-        if set(features1.features.keys()) != set(features2.features.keys()):  
-            return False  # Ensure both structures contain the same players
-
-        for player, interactions in features1.features.items():
-            if player not in features2.features:
-                return False
-            for other, stats in interactions.items():
-                if other not in features2.features[player]:
-                    return False
-                if stats[0] != features2.features[player][other][0]:  # Compare conversation count only
-                    return False
-        return True
-
-
-def simulation_policy(game_state, conversation_manager):
+def simulation_policy(node):
     """
     Uses ActionProcessor to simulate actions and generate the next game state and conversation state.
     
@@ -846,20 +799,32 @@ def simulation_policy(game_state, conversation_manager):
     :return: A new (game_state, conversation_manager) pair.
     """
     # Create deep copies to avoid modifying the original objects
+    game_state = node.state
+    conversation_manager = node.conversation_manager
+    terminal_state = False
+    prompt, result_action = game_state.create_action(game_state.get_player(), conversation_manager)
+    
     game_state_copy = copy.deepcopy(game_state)
     conversation_manager_copy = copy.deepcopy(conversation_manager)
-    terminal_state = False
-    action = game_state_copy.create_action(game_state_copy.get_player(), conversation_manager_copy)
-    # Apply the action. This function updates the game state and conversation manager.
-    game_state_copy.apply_action(conversation_manager_copy, action)
+    # If result_action is not a list and is of type "Message"
+    if result_action.get("type") in ["Message"]:
+        speaker = result_action.get("Speaker")
+        audience = result_action.get("Audience")
+        if not isinstance(audience, list):
+            audience = [audience]
+        participants = [speaker] + audience
+        conversation_manager_copy.add_message_to_conversation(participants, speaker, result_action)
+        conversation_manager_copy.store_prompt_outcome(prompt, json.dumps(result_action))
+   
+    game_state_copy.apply_action(conversation_manager_copy, result_action)
     if game_state_copy.is_terminal() is not None:
         terminal_state = True    
 
     if print_output:
         print('*** *** *** ***')
 
-    # Return the updated state and conversation manager
-    return game_state_copy, conversation_manager_copy, terminal_state, action
+    child_node = MCTSNode(game_state_copy, result_action, conversation_manager_copy, terminal_state, parent=node)
+    return child_node
 
 
 def reward_function(node, new_node):
@@ -881,7 +846,7 @@ def reward_function(node, new_node):
 
 
 class MCTSNode:
-    def __init__(self, state, conversation_manager, action, terminal_state=False, parent=None):
+    def __init__(self, state=None, action=None, conversation_manager=None, terminal_state=False, parent=None):
         self.state = state
         self.conversation_manager = conversation_manager
         self.parent = parent
@@ -890,9 +855,6 @@ class MCTSNode:
         self.value = 0
         self.is_terminal = terminal_state
         self.action = action  # Action that led to this node
-
-    #def is_fully_expanded(self):
-    #    return len(self.children) > 1
 
     def best_child(self, exploration_weight=1.0):
         if not self.children:
@@ -910,7 +872,7 @@ class MCTSNode:
                 + exploration_weight * ((2 * (self.parent.visits + 1) / (child.visits + 1e-6)) ** 0.5)  # Exploration term
             )
         )
-    
+
     def best_leaf(self, exploration_weight=1.0):
         if not self.children:
             return self  # If this is a leaf node, return itself
@@ -920,19 +882,40 @@ class MCTSNode:
     
         return best_node.best_leaf(exploration_weight)  # Recursively go down until a leaf node is found
 
+    def expand(self):
+        # For the purpose of the example, let's expand the node by adding some dummy children
+        # Assume that state changes with the action taken at this node.
+        if not self.is_terminal:
+            self.children = [
+                MCTSNode(state=f"{self.state} -> Action A", action="Action A", parent=self),
+                MCTSNode(state=f"{self.state} -> Action B", action="Action B", parent=self)
+            ]
+            #print(f"Expanding node at state: {self.state}")
+        else:
+            print(f"Node at state {self.state} is terminal, cannot expand.")
+
+    def simulate(self):
+        # A dummy simulation function
+        # Here, we just return a constant value to simulate an action outcome
+        return random.random()  # For simplicity, always return random value as the result of a simulation
+
+    def __str__(self):
+        # String representation for easy printing of the node's details
+        return f"State: {self.state}, Value: {self.value}, Visits: {self.visits}, Terminal: {self.is_terminal}"
+
 
 class MCTS:
     def __init__(self, simulation_policy, reward_function, iterations=100):
         self.simulation_policy = simulation_policy
         self.reward_function = reward_function
         self.iterations = iterations
-        self.tree = {}
+        self.root = None
 
     def search(self, initial_state, conversation_manager):
-        root = self.get_node(initial_state, conversation_manager, initial_state.get_no_action())
+        self.root = self.get_node(initial_state, conversation_manager, initial_state.get_no_action())
 
         for _ in range(self.iterations):
-            node = self.select(root)
+            node = self.select(self.root)
             new_node = self.expand(node)
             if new_node is None or new_node.action.get("type") == new_node.state.get_no_action().get("type"):
                 continue
@@ -944,7 +927,7 @@ class MCTS:
             #best = root.best_leaf(exploration_weight=0.0)
             #print(best.value)
 
-        return root.best_leaf(exploration_weight=0.0)
+        return self.root.best_leaf(exploration_weight=0.0)
 
     #def select(self, node):        
     #    while node.is_fully_expanded():
@@ -953,16 +936,10 @@ class MCTS:
 
     def select(self, node):
         """Balanced exploration (new nodes) and exploitation (best child)"""
-        
-        exploration_rate = 0.2
 
         if not node.is_terminal:
             if not node.children:
                 return node  # No children, return itself
-    
-            # New child for this node
-            if random.random() < exploration_rate:
-                return random.choice(list(self.tree.values()))
             
             # Otherwise, use UCT to select the best-explored child
             while(node.children):
@@ -976,16 +953,10 @@ class MCTS:
         if node.is_terminal:  # Stop expansion if game is over
             return node.parent if node.parent else node  # Move up if terminal  
 
-        new_state, new_conversation_manager, terminal_state, action = self.simulation_policy(node.state, node.conversation_manager)
-
-        checker = StateChecker(node.children)
-        if not node.children or (new_state, new_conversation_manager, action) not in checker:
-            child_node = MCTSNode(new_state, new_conversation_manager, action, terminal_state, parent=node)
-            node.children.append(child_node)
-            self.tree[new_state] = child_node
-            return child_node
-
-        return None
+        child_node = self.simulation_policy(node)
+        
+        node.children.append(child_node)
+        return child_node
 
     def backpropagate(self, node, reward):
         while node is not None:
@@ -994,10 +965,7 @@ class MCTS:
             node = node.parent
 
     def get_node(self, state, conversation_manager, action):
-        checker = StateChecker(self.tree)
-        if (state, conversation_manager, action) not in checker:
-            self.tree[state] = MCTSNode(state, conversation_manager, action)
-        return self.tree[state]
+        return MCTSNode(state, action, conversation_manager)
 
     def print_tree(self, node=None, depth=0):
         """
@@ -1007,19 +975,65 @@ class MCTS:
         :param depth: The current depth in the tree (for indentation).
         """
         if node is None:
-            if not self.tree:
+            if not self.root:
                 print("Tree is empty.")
                 return
-            node = next(iter(self.tree.values()))  # Get the root node
+            node = self.root  # Get the root node
 
         indent = "  " * depth
-        terminal_status = " (Terminal)" if node.is_terminal else ""
-        print(f"{indent}- Guessed Number: {node.state.guess}, Correct Number: {node.state.secret_number} Visits: {node.visits}, Value: {node.value:.2f}{terminal_status}")
+        if isinstance(node.state, str) or node.state is None:
+            print(f"{indent}-")
+        else:
+            terminal_status = " (Terminal)" if node.is_terminal else ""
+            print(f"{indent}- Guessed Number: {node.state.guess}, Correct Number: {node.state.secret_number} Visits: {node.visits}, Value: {node.value:.2f}{terminal_status}")
 
         for child in node.children:
             self.print_tree(child, depth + 1)
 
 # ------------------ Main ------------------
+
+# Initialize the root node
+# Create the root node for the conversation
+root = MCTSNode()
+mcts = MCTS(simulation_policy, reward_function, iterations=num_iterations)
+# Simulate expanding the tree
+print("Starting tree expansion...\n")
+
+# Expand the root node
+root.expand()
+
+# Display the root and its children after expansion
+print(f"Root node: {root}")
+for i, child in enumerate(root.children):
+    print(f"Child {i+1}: {child}")
+
+# Now, simulate the traversal and expansion process
+for step in range(50):
+    #print(f"\nStep {step + 1}:")
+    
+    # Select the best child based on the UCT formula
+    best_leaf = root.best_leaf(exploration_weight=1.0)
+    
+    if best_leaf:
+        #print(f"Selected leaf node: {best_leaf}")
+        
+        # Simulate an action on the best leaf node
+        simulation_result = best_leaf.simulate()
+        #print(f"Simulation result: {simulation_result}")
+        
+        # Update the best leaf node's value based on the simulation result
+        best_leaf.value += simulation_result
+        best_leaf.visits += 1  # Increment visits after simulating
+
+        #print(f"Updated leaf after simulation: {best_leaf}")
+
+        # Expand the selected leaf (if needed)
+        best_leaf.expand()
+    else:
+        print("No leaf to explore.")
+mcts.print_tree(root)
+
+
 
 log = []
 
