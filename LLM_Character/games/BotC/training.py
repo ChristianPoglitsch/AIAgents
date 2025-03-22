@@ -37,7 +37,7 @@ def train_mistral(model, tokenizer, instruct_tune_dataset) -> SFTTrainer:
         # manner.
         # num_train_epochs=5,
 
-        max_steps=250,  # comment out this line if you want to train in epochs - 100+ recommended
+        max_steps=200,  # comment out this line if you want to train in epochs - 100+ recommended
         save_strategy="epoch",
         # evaluation_strategy="epoch",
         evaluation_strategy="steps",
@@ -106,8 +106,16 @@ if __name__ == "__main__":
     from datasets import load_dataset
     from models import load_mistral_instr_model    
 
-    file_name = 'training.csv'
+    file_name = 'training'
     dataset = load_from_disk(file_name)
+
+    if True:
+        for record in dataset:
+            print("--- --- ---")
+            print(record["input"])
+            print("*** *** ***")
+            print(record["output"])
+            print("--- --- ---")
 
     dataset = dataset.map(format_prompts, batched=True)
 

@@ -23,3 +23,7 @@ class LLMComms(ABC):
     @abstractmethod
     def get_model_name():
         pass
+    
+    @abstractmethod
+    def set_temperature():
+        pass  

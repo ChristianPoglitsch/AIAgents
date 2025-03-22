@@ -69,6 +69,9 @@ class LocalComms(LLMComms):
         self._embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
         self._model_name = base_model_id
 
+    def set_temperature(self, temperature: float):
+        self.temperature = temperature
+
     def get_model_name(self) -> str:
         """Get model name/id
 

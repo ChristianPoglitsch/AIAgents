@@ -37,3 +37,6 @@ class LLM_API:
     
     def set_max_tokens(self, value: int):
         self._model.max_tokens = value
+        
+    def set_temperature(self, temperature: float):
+        self._model.set_temperature(temperature)

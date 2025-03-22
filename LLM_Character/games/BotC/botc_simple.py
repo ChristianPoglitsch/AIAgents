@@ -23,9 +23,9 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 
 model = []
 
-server_based = True
+server_based = False
 use_trained = True
-store_data = True
+store_data = False
 show_training_data = False
 
 reward_terminal = 16
@@ -33,8 +33,8 @@ reward_small = 4
 reward_node = 0.25
 
 num_child_node = 1 # 3
-num_games = 30
-num_iterations = 40
+num_games = 20 # 30
+num_iterations = 30 # 50
 
 print_output = True
 
@@ -618,6 +618,14 @@ class ConversationManager:
         """
         return self.prompt_outcome_log
 
+    def append_prompt_outcomes(self, other_instance):
+        """
+        Adds all stored (prompt, outcome) tuples from the current instance to another instance.
+        
+        :param other_instance: Another instance of PromptOutcomeStore where outcomes will be added.
+        """
+        self.prompt_outcome_log.extend(other_instance)
+
     def set_prompt_outcomes(self, log):
         """
         Stores the list of all stored (prompt, outcome) tuples.
@@ -1048,6 +1056,9 @@ mcts.print_tree(root)
 log = []
 start_time = time.time()  # Start timing
 
+folder_path = 'training'
+conversationManager = ConversationManager()
+
 # Define a dummy player_to_idx mapping for graph construction (for players A, B, C, D).
 player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 
@@ -1084,10 +1095,10 @@ for i in range(num_games):
         log.extend(best_node.conversation_manager.get_prompt_outcomes())
         num_correct_games = num_correct_games + 1
 
-        folder_path = 'training'
         if log and store_data:
-            best_node.conversation_manager.set_prompt_outcomes(log)
-            best_node.conversation_manager.export_prompt_outcome_log(folder_path, True)
+            conversationManager.append_prompt_outcomes(best_node.conversation_manager.get_prompt_outcomes())
+            #best_node.conversation_manager.set_prompt_outcomes(log)
+            #best_node.conversation_manager.export_prompt_outcome_log(folder_path, True)
 
     if show_training_data:
         dataset = load_from_disk(folder_path)
@@ -1101,7 +1112,9 @@ for i in range(num_games):
 
 print("Successfull games: " + str(num_correct_games) + " / Played games: " + str(num_games))
 
-end_time = time.perf_counter()
+end_time = time.time()
 elapsed_time = end_time - start_time
 
+if store_data and num_correct_games > 0:
+    conversationManager.export_prompt_outcome_log(folder_path, True)
 print(f"Execution time: {elapsed_time:.6f} seconds")

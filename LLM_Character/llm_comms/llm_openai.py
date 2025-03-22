@@ -99,6 +99,9 @@ class OpenAIComms(LLMComms):
             return None
         return self._requese_emb(keywords)
 
+    def set_temperature(self, temperature: float):
+        self.temperature = temperature
+
     def set_params(
         self,
         max_tokens: int,
