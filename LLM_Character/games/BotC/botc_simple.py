@@ -33,7 +33,7 @@ reward_node = 0.25
 
 multiple_answers = True # store_data
 num_games = 30
-num_iterations = 40
+num_iterations = 50
 
 print_output = False
 
@@ -732,12 +732,6 @@ def complete_action_with_llm(current_player, prompt):
     if print_output:
         print("LLM Responds: " + current_player +"\n", result)
 
-    # Take most plausible results
-    if isinstance(result, list):
-        result = random.choice(result)
-        if print_output:
-            print("Choosen respond: " + current_player +"\n", result)
-
     return prompt, result
 
 
@@ -804,27 +798,42 @@ def simulation_policy(node):
     terminal_state = False
     prompt, result_action = game_state.create_action(game_state.get_player(), conversation_manager)
     
-    game_state_copy = copy.deepcopy(game_state)
-    conversation_manager_copy = copy.deepcopy(conversation_manager)
-    # If result_action is not a list and is of type "Message"
-    if result_action.get("type") in ["Message"]:
-        speaker = result_action.get("Speaker")
-        audience = result_action.get("Audience")
-        if not isinstance(audience, list):
-            audience = [audience]
-        participants = [speaker] + audience
-        conversation_manager_copy.add_message_to_conversation(participants, speaker, result_action)
-        conversation_manager_copy.store_prompt_outcome(prompt, json.dumps(result_action))
-   
-    game_state_copy.apply_action(conversation_manager_copy, result_action)
-    if game_state_copy.is_terminal() is not None:
-        terminal_state = True    
+    # Ensure result_action is a list and take a random choice if multiple exist
+    if isinstance(result_action, list):
+        result_action = result_action # [random.choice(result_action)]
+    else:
+        result_action = [result_action]  # Wrap single element in a list
 
-    if print_output:
-        print('*** *** *** ***')
+    # Process each action in result_action
+    child_nodes = []
+    for action in result_action:
+        game_state_copy = copy.deepcopy(game_state)
+        conversation_manager_copy = copy.deepcopy(conversation_manager)
+        terminal_state = False  # Reset for each iteration
 
-    child_node = MCTSNode(game_state_copy, result_action, conversation_manager_copy, terminal_state, parent=node)
-    return child_node
+        # If action is of type "Message"
+        if action.get("type") == "Message":
+            speaker = action.get("Speaker")
+            audience = action.get("Audience")
+            if not isinstance(audience, list):
+                audience = [audience]  # Ensure audience is a list
+            participants = [speaker] + audience
+
+            conversation_manager_copy.add_message_to_conversation(participants, speaker, action)
+            conversation_manager_copy.store_prompt_outcome(prompt, json.dumps(action))
+
+        game_state_copy.apply_action(conversation_manager_copy, action)
+
+        if game_state_copy.is_terminal() is not None:
+            terminal_state = True  
+
+        if print_output:
+            print('*** *** *** *** *** *** ***')
+
+        child_node = MCTSNode(game_state_copy, action, conversation_manager_copy, terminal_state, parent=node)
+        child_nodes.append(child_node)  # Collect nodes in a list
+
+    return child_nodes  # Always return a list of nodes
 
 
 def reward_function(node, new_node):
@@ -916,17 +925,19 @@ class MCTS:
 
         for _ in range(self.iterations):
             node = self.select(self.root)
-            new_node = self.expand(node)
-            if new_node is None or new_node.action.get("type") == new_node.state.get_no_action().get("type"):
+            new_nodes = self.expand(node)
+
+            if not new_nodes or not isinstance(new_nodes, list):  # Check if the list is empty or None
                 continue
 
-            reward = self.reward_function(node, new_node)
-            self.backpropagate(new_node, reward)
+            for new_node in new_nodes:
+                if new_node is None or new_node.action.get("type") == new_node.state.get_no_action().get("type"):
+                    continue
+                reward = self.reward_function(node, new_node)
+                self.backpropagate(new_node, reward)
 
-            #self.print_tree()
-            #best = root.best_leaf(exploration_weight=0.0)
-            #print(best.value)
-
+            print('*** *** *** *** *** *** ***')
+            self.print_tree()
         return self.root.best_leaf(exploration_weight=0.0)
 
     #def select(self, node):        
@@ -955,7 +966,7 @@ class MCTS:
 
         child_node = self.simulation_policy(node)
         
-        node.children.append(child_node)
+        node.children.extend(child_node)
         return child_node
 
     def backpropagate(self, node, reward):
@@ -1047,6 +1058,7 @@ model = init_model()
 
 for i in range(num_games):
     print('Start Game')
+    print(str(i) + ' / ' + str(num_games))
     game_state = SimpleNumberGuessGameState(['A', 'B', 'C', 'D'])
     game_state.add_next_player('A')
     # Create a dummy ConversationManager and add a conversation.
