@@ -24,7 +24,7 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 model = []
 
 server_based = False
-use_trained = True
+use_trained = False
 store_data = False
 show_training_data = False
 
