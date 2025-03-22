@@ -3,6 +3,7 @@ import random
 import torch
 import copy
 import math
+import time
 
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
@@ -25,17 +26,17 @@ model = []
 server_based = True
 use_trained = True
 store_data = True
-show_output = False
+show_training_data = False
 
 reward_terminal = 16
 reward_small = 4
 reward_node = 0.25
 
-multiple_answers = True # store_data
+num_child_node = 1 # 3
 num_games = 30
-num_iterations = 50
+num_iterations = 40
 
-print_output = False
+print_output = True
 
 
 def init_model() -> LLM_API:
@@ -108,6 +109,7 @@ class PlayerFeatures:
             "You are an assistant tasked with updating a player's private features based on recent conversation history. "
             "The player's private feature state contains, for each other player, the number of conversations they've had "
             "and a string with privately generated information about that player.\n\n"
+            f"Current Player: {player}\n\n"
             "Recent Conversation History:\n"
             f"{conversation_history}\n\n"
             "Current Private Feature State:\n"
@@ -115,9 +117,9 @@ class PlayerFeatures:
         for other, stats in current_features.items():
             prompt += f"{other}: Conversations = {stats[0]}, Private Info = {stats[1]}\n"
         prompt += (
-            "\nBased on the conversation history, please update the private feature state for each other player "
+            "\nBased on the conversation history and the messages, please update the Private Info state for each other player "
             "and output the updated state in JSON format with keys for each player and values being an object "
-            "with 'conversations' and 'private_info' fields."
+            "with 'Conversations' and 'Private Info' fields."
             "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes."
         )
         return prompt
@@ -137,6 +139,7 @@ class PlayerFeatures:
             "You are an intelligent strategist analyzing a player's recent conversation history to generate a short-term and "
             "long-term game plan. The short-term plan should focus on immediate actions for the next few interactions, while "
             "the long-term plan should guide the player's overall strategy throughout the game.\n\n"
+            f"Current Player: {player}\n\n"
             "Recent Conversation History:\n"
             f"{conversation_history}\n\n"
             "Current Game Context:\n"
@@ -189,8 +192,8 @@ class PlayerFeatures:
             
         for other_player, data in json_data.items():
             # Optionally, add a new entry if other_player is not yet present.
-            conversations = data.get("conversations", 0)
-            private_info = data.get("private_info") if data.get("private_info") is not None else "None"
+            conversations = data.get("Conversations", 0)
+            private_info = data.get("Private Info") if data.get("Private Info") is not None else "None"
             self.features[player][other_player] = [conversations, private_info]
 
     def count_num_player_conversations(self, player, num_convs):
@@ -214,6 +217,10 @@ class BasicGameState:
         self.players = players
         self.next_players = []
         self.no_action = {'type': 'No Action', 'Speaker': None}
+        
+        # Initialize features for each player.
+        # Feature vector: [#asked, response for number]
+        self.features = PlayerFeatures(players)
 
     def get_no_action(self):
         return self.no_action
@@ -262,7 +269,7 @@ class BasicGameState:
         :param conversation_manager: The conversation manager to log messages.
         """
         # Call the LLM to complete the action for this respondent.
-        return complete_action_with_llm(player, game_state.generate_prompt(player, conversation_manager))
+        return complete_action_with_llm(player, self.generate_prompt(player, conversation_manager))
 
     def apply_action(self, conv_manager, action):
         raise NotImplementedError("Subclasses must implement this method.")
@@ -275,10 +282,6 @@ class SimpleNumberGuessGameState(BasicGameState):
         self.secret_number = random.randint(0, 100)
         # Randomly select one respondent (from B, C, D) to be the liar.
         self.liar = random.choice(['B', 'C', 'D'])
-        # Initialize features for each player.
-        # Feature vector: [#asked, response for number]
-        self.features = PlayerFeatures(players)
-
         # The guess is initialized to None.
         self.guess = None
 
@@ -378,12 +381,9 @@ class SimpleNumberGuessGameState(BasicGameState):
             f"{conversation_history}\n\n"
             #"Current plans\n"
             #f"{get_player_plan}\n\n"
-        )
-        
-        if multiple_answers is True:
-            prompt = prompt + "Please output one to two complete possible action from the Available Actions Description list in JSON format.\n"
-        else:
-            prompt =  prompt + "Please output one complete possible action from the Available Actions Description list in JSON format.\n"
+        )        
+
+        prompt = prompt + "Please output one complete possible action from the Available Actions Description list in JSON format.\n"
         prompt = prompt + "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.\n"
 
         return prompt
@@ -732,6 +732,7 @@ def complete_action_with_llm(current_player, prompt):
     if print_output:
         print("LLM Responds: " + current_player +"\n", result)
 
+    print('--- --- --- ---')
     return prompt, result
 
 
@@ -796,13 +797,15 @@ def simulation_policy(node):
     game_state = node.state
     conversation_manager = node.conversation_manager
     terminal_state = False
-    prompt, result_action = game_state.create_action(game_state.get_player(), conversation_manager)
-    
-    # Ensure result_action is a list and take a random choice if multiple exist
-    if isinstance(result_action, list):
-        result_action = result_action # [random.choice(result_action)]
-    else:
-        result_action = [result_action]  # Wrap single element in a list
+    result_action = []
+    prompt = ''
+
+    player = game_state.get_player()
+    for i in range(num_child_node):
+        model.set_temperature(1.2 - i * 0.2)
+        prompt, result = game_state.create_action(player, conversation_manager)
+        if result not in result_action:
+            result_action.append(result)
 
     # Process each action in result_action
     child_nodes = []
@@ -820,15 +823,12 @@ def simulation_policy(node):
             participants = [speaker] + audience
 
             conversation_manager_copy.add_message_to_conversation(participants, speaker, action)
-            conversation_manager_copy.store_prompt_outcome(prompt, json.dumps(action))
 
+        conversation_manager_copy.store_prompt_outcome(prompt, json.dumps(action))
         game_state_copy.apply_action(conversation_manager_copy, action)
 
         if game_state_copy.is_terminal() is not None:
-            terminal_state = True  
-
-        if print_output:
-            print('*** *** *** *** *** *** ***')
+            terminal_state = True
 
         child_node = MCTSNode(game_state_copy, action, conversation_manager_copy, terminal_state, parent=node)
         child_nodes.append(child_node)  # Collect nodes in a list
@@ -937,7 +937,6 @@ class MCTS:
                 self.backpropagate(new_node, reward)
 
             print('*** *** *** *** *** *** ***')
-            self.print_tree()
         return self.root.best_leaf(exploration_weight=0.0)
 
     #def select(self, node):        
@@ -964,10 +963,10 @@ class MCTS:
         if node.is_terminal:  # Stop expansion if game is over
             return node.parent if node.parent else node  # Move up if terminal  
 
-        child_node = self.simulation_policy(node)
+        child_nodes = self.simulation_policy(node)
         
-        node.children.extend(child_node)
-        return child_node
+        node.children.extend(child_nodes)
+        return child_nodes
 
     def backpropagate(self, node, reward):
         while node is not None:
@@ -1047,6 +1046,7 @@ mcts.print_tree(root)
 
 
 log = []
+start_time = time.time()  # Start timing
 
 # Define a dummy player_to_idx mapping for graph construction (for players A, B, C, D).
 player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
@@ -1072,7 +1072,6 @@ for i in range(num_games):
 
     print(mcts.print_tree())
 
-    mcts.print_tree(best_node)
     print('Secret number: ' + str(best_node.state.secret_number))
     print('Guess: ' + str(best_node.state.guess))
     print('Liar: ' + str(game_state.liar))
@@ -1085,14 +1084,14 @@ for i in range(num_games):
         log.extend(best_node.conversation_manager.get_prompt_outcomes())
         num_correct_games = num_correct_games + 1
 
-        file_name = 'training.csv'
+        folder_path = 'training'
         if log and store_data:
             best_node.conversation_manager.set_prompt_outcomes(log)
-            best_node.conversation_manager.export_prompt_outcome_log(file_name, True)
+            best_node.conversation_manager.export_prompt_outcome_log(folder_path, True)
 
-    if show_output:
-        dataset = load_from_disk(file_name)
-        print("Dataset loaded from:", file_name)
+    if show_training_data:
+        dataset = load_from_disk(folder_path)
+        print("Dataset loaded from:", folder_path)
         for record in dataset:
             print("--- --- ---")
             print(record["input"])
@@ -1102,3 +1101,7 @@ for i in range(num_games):
 
 print("Successfull games: " + str(num_correct_games) + " / Played games: " + str(num_games))
 
+end_time = time.perf_counter()
+elapsed_time = end_time - start_time
+
+print(f"Execution time: {elapsed_time:.6f} seconds")
