@@ -1,3 +1,4 @@
+from hmac import new
 import json
 import random
 import torch
@@ -24,7 +25,7 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 model = []
 
 server_based = False
-use_trained = False
+use_trained = True
 store_data = False
 show_training_data = False
 
@@ -124,46 +125,6 @@ class PlayerFeatures:
         )
         return prompt
 
-    def generate_game_strategy_prompt(self, player, conversation_history):
-        """
-        Generates an LLM prompt to create a short-term and long-term game strategy 
-        for a player based on recent conversation history.
-
-        :param player: The player for whom the strategy is being generated.
-        :param conversation_history: A string containing the last x conversation messages involving that player.
-        :return: A prompt string.
-        """
-        current_game_state = self.features.get(player, {})
-    
-        prompt = (
-            "You are an intelligent strategist analyzing a player's recent conversation history to generate a short-term and "
-            "long-term game plan. The short-term plan should focus on immediate actions for the next few interactions, while "
-            "the long-term plan should guide the player's overall strategy throughout the game.\n\n"
-            f"Current Player: {player}\n\n"
-            "Recent Conversation History:\n"
-            f"{conversation_history}\n\n"
-            "Current Game Context:\n"
-        )
-    
-        for other, stats in current_game_state.items():
-            prompt += f"{other}: Conversations = {stats[0]}, Game Info = {stats[1]}\n"
-    
-        prompt += (
-            "\nBased on the conversation history and current game context, generate:\n"
-            "1. A Short-Term Plan: Immediate actions and decisions for the next few interactions as text.\n"
-            "2. A Long-Term Plan: A strategic approach for progressing in the game over time as text.\n\n"
-            "Example:\n"
-            "{"
-            '"short_term_plan": "Convince Player to", '
-            '"long_term_plan": "Finally do"'
-            "}\n"
-            "Output the response in JSON format with 'short_term_plan' and 'long_term_plan' fields. "
-            "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes."
-        )
-    
-        return prompt
-
-
     def update_features_from_json(self, player, json_data):
         """
         Updates the feature vectors for the given player using data provided in json_data.
@@ -208,6 +169,19 @@ class PlayerFeatures:
             raise ValueError(f"Player {player} not found in features.")
 
         return sum(1 for stats in self.features[player].values() if stats[0] == num_convs)
+    
+    def updated_private_info(self, player):
+        """
+        Returns the number of players with whom the given player has had more than `num_convs` conversations.
+
+        :param player: The player whose conversation history will be checked.
+        :param num_convs: The threshold number of conversations.
+        :return: An integer count of players.
+        """
+        if player not in self.features:
+            raise ValueError(f"Player {player} not found in features.")
+
+        return sum(1 for stats in self.features[player].values() if stats[1] != 'None')
 
 # ------------------ Game Environment / State ------------------
 
@@ -258,6 +232,9 @@ class BasicGameState:
     
     def is_terminal(self):
         """Game ends when a guess is made."""
+        raise NotImplementedError("Subclasses must implement this method.")
+
+    def get_action_space_description(self, current_player):
         raise NotImplementedError("Subclasses must implement this method.")
 
     def create_action(self, player, conversation_manager):
@@ -349,9 +326,6 @@ class SimpleNumberGuessGameState(BasicGameState):
     def generate_game_state_prompt(self, current_player, conversation_history):
         return self.features.generate_private_info_update_prompt(current_player, conversation_history)
     
-    def generate_game_strategy_prompt(self, current_player, conversation_history):
-        return self.features.generate_game_strategy_prompt(current_player, conversation_history)
-
     def generate_prompt(self, current_player, conversation_manager):
         """
         Creates a prompt string for the LLM based on the current game state,
@@ -851,15 +825,24 @@ def reward_function(node, new_node):
     if new_node.is_terminal and str(new_node.state.guess) != str(new_node.state.secret_number):
         return -reward_terminal;
 
+    reward = 0
     speaker = new_node.action.get("Speaker")
     num_convs = 1
     conv_old = node.state.features.count_num_player_conversations(speaker, num_convs)
-    conv_new = new_node.state.features.count_num_player_conversations(speaker, num_convs)
+    conv_new = new_node.state.features.count_num_player_conversations(speaker, num_convs) 
     
     if conv_new > conv_old:
-        return reward_small
+        reward = reward + reward_small
 
-    return -reward_node  # Reward
+    conv_old = node.state.features.updated_private_info(speaker)
+    conv_new = new_node.state.features.updated_private_info(speaker)
+
+    if conv_new > conv_old:
+        reward = reward + reward_small
+
+    if reward <= 0:
+        reward = reward -reward_node  # Reward
+    return reward
 
 
 class MCTSNode:
