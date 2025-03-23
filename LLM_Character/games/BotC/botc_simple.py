@@ -25,7 +25,7 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 model = []
 
 server_based = False
-use_trained = True
+use_trained = False
 store_data = False
 show_training_data = False
 
@@ -62,6 +62,7 @@ def init_model_local() -> LLM_API:
     model_id = "mistralai/Mistral-7B-Instruct-v0.3"
     #model_id = "deepseek-ai/deepseek-llm-7b-chat"
     #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
+    model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
     model.max_tokens = 200
     model.init(model_id)
     wrapped_model = LLM_API(model)
