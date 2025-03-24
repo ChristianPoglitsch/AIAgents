@@ -33,7 +33,7 @@ reward_terminal = 16
 reward_small = 4
 reward_node = 0.25
 
-num_child_node = 3 # 3
+num_child_node = 1 # 3
 num_games = 20 # 30
 num_iterations = 30 # 50
 
@@ -780,7 +780,7 @@ def simulation_policy(node):
 
     player = game_state.get_player()
     for i in range(num_child_node):
-        model.set_temperature(1.2 - i * 0.2)
+        model.set_temperature(max(0.2, 1.2 - i * 0.2))
         prompt, result = game_state.create_action(player, conversation_manager)
         if result not in result_action:
             result_action.append(result)
