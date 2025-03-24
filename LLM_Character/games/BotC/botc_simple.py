@@ -33,7 +33,7 @@ reward_terminal = 16
 reward_small = 4
 reward_node = 0.25
 
-num_child_node = 1 # 3
+num_child_node = 3 # 3
 num_games = 20 # 30
 num_iterations = 30 # 50
 
@@ -44,10 +44,11 @@ def init_model() -> LLM_API:
     if server_based:
         return init_model_server()
     else:
-        if use_trained:
-            return init_model_local_trained()
-        else:
-            return init_model_local()
+        return init_model_local()
+        #if use_trained:
+        #    return init_model_local_trained()
+        #else:
+        #    return init_model_local()
 
 def init_model_server() -> LLM_API:
     model = OpenAIComms()
@@ -62,7 +63,8 @@ def init_model_local() -> LLM_API:
     model_id = "mistralai/Mistral-7B-Instruct-v0.3"
     #model_id = "deepseek-ai/deepseek-llm-7b-chat"
     #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
-    model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
+    if use_trained:
+        model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
     model.max_tokens = 200
     model.init(model_id)
     wrapped_model = LLM_API(model)
@@ -322,7 +324,7 @@ class SimpleNumberGuessGameState(BasicGameState):
             if player == self.liar:
                 secret_info += " (You are the liar!)"
         player_info = "Players: " + ", ".join(self.players)
-        return f"{secret_info}\n\n{player_info}" + "\n" + self.game_state_features_to_string(player)
+        return f"{secret_info}\n{player_info}" + "\n\n" + self.game_state_features_to_string(player)
 
     def generate_game_state_prompt(self, current_player, conversation_history):
         return self.features.generate_private_info_update_prompt(current_player, conversation_history)
