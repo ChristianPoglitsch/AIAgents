@@ -25,7 +25,7 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 model = []
 
 server_based = False
-use_trained = False
+use_trained = True
 store_data = False
 show_training_data = False
 
@@ -228,7 +228,7 @@ class BasicGameState:
         raise NotImplementedError("Subclasses must implement this method.")
 
     def generate_game_state_prompt(self, current_player, conversation_history):
-        raise NotImplementedError("Subclasses must implement this method.")
+        return self.features.generate_private_info_update_prompt(current_player, conversation_history)
 
     def generate_prompt(self, current_player, conversation_history):
         raise NotImplementedError("Subclasses must implement this method.")
@@ -253,6 +253,25 @@ class BasicGameState:
 
     def apply_action(self, conv_manager, action):
         raise NotImplementedError("Subclasses must implement this method.")
+    
+    def game_state_features_to_string(self, player):
+        """
+        Returns a human-readable string representation of the entire feature space for the specified player.
+        The feature space is a dictionary mapping every other player in the game to a feature vector,
+        where the feature vector is of the form [# conversations, private info string].
+
+        :param player: The player for whom to return the feature space.
+        :return: A formatted string representing the feature space for the specified player.
+        """
+        if player not in self.features.features:
+            return f"Player {player} not found in feature space."
+    
+        result_lines = [f"Feature space for player {player}:"]
+        for other_player, feature_vector in self.features.features[player].items():
+            line = (f"{other_player}: number of conversations = {feature_vector[0]}, "
+                    f"private info = {feature_vector[1]}")
+            result_lines.append(line)
+        return "\n".join(result_lines)
 
 
 class SimpleNumberGuessGameState(BasicGameState):
@@ -284,28 +303,6 @@ class SimpleNumberGuessGameState(BasicGameState):
         actions = str(actions).replace("'", '"')
         return actions
 
-    def update_features_from_json(self, player, json_data):
-        self.features.update_features_from_json(player, json_data)
-
-    def game_state_features_to_string(self, player):
-        """
-        Returns a human-readable string representation of the entire feature space for the specified player.
-        The feature space is a dictionary mapping every other player in the game to a feature vector,
-        where the feature vector is of the form [# conversations, private info string].
-
-        :param player: The player for whom to return the feature space.
-        :return: A formatted string representing the feature space for the specified player.
-        """
-        if player not in self.features.features:
-            return f"Player {player} not found in feature space."
-    
-        result_lines = [f"Feature space for player {player}:"]
-        for other_player, feature_vector in self.features.features[player].items():
-            line = (f"{other_player}: number of conversations = {feature_vector[0]}, "
-                    f"private info = {feature_vector[1]}")
-            result_lines.append(line)
-        return "\n".join(result_lines)
-
     def is_terminal(self):
         """Game ends when a guess is made."""
         return self.guess
@@ -325,9 +322,6 @@ class SimpleNumberGuessGameState(BasicGameState):
                 secret_info += " (You are the liar!)"
         player_info = "Players: " + ", ".join(self.players)
         return f"{secret_info}\n{player_info}" + "\n\n" + self.game_state_features_to_string(player)
-
-    def generate_game_state_prompt(self, current_player, conversation_history):
-        return self.features.generate_private_info_update_prompt(current_player, conversation_history)
     
     def generate_prompt(self, current_player, conversation_manager):
         """
@@ -389,7 +383,7 @@ class SimpleNumberGuessGameState(BasicGameState):
             # Update game state for player
             prompt_state, action_state = complete_action_with_llm(speaker, self.generate_game_state_prompt(speaker, conv_manager.get_conversation_history_for_player(speaker)))
             if action_state is not str and action_state.get("action") is None and action_state.get("error") is None:
-                self.update_features_from_json(speaker, action_state)
+                self.features.update_features_from_json(speaker, action_state)
                 conv_manager.store_prompt_outcome(prompt_state, json.dumps(action_state))
 
         elif action_type == "Guess":
@@ -401,7 +395,6 @@ class SimpleNumberGuessGameState(BasicGameState):
         
             # Log the guess in the conversation manager.
             conv_manager.add_message_to_conversation(speaker, speaker, f"My guess is {guessed_number}.")
-
 
 
 # ------------------ Graph Construction ------------------
