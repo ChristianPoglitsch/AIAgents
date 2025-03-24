@@ -25,7 +25,7 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 model = []
 
 server_based = False
-use_trained = True
+use_trained = False
 store_data = False
 show_training_data = False
 
@@ -34,8 +34,8 @@ reward_small = 4
 reward_node = 0.25
 
 num_child_node = 1 # 3
-num_games = 20 # 30
-num_iterations = 30 # 50
+num_games = 30 # 30
+num_iterations = 40 # 50
 
 print_output = True
 
@@ -116,15 +116,17 @@ class PlayerFeatures:
             f"Current Player: {player}\n\n"
             "Recent Conversation History:\n"
             f"{conversation_history}\n\n"
-            "Current Private Feature State:\n"
+            "Current Feature State for other player:\n"
         )
         for other, stats in current_features.items():
             prompt += f"{other}: Conversations = {stats[0]}, Private Info = {stats[1]}\n"
         prompt += (
-            "\nBased on the conversation history and the messages, please update the Private Info state for each other player "
-            "and output the updated state in JSON format with keys for each player and values being an object "
+            "\nBased on the conversation history and the messages, please update the Private Info (only text, as summary of the conversation history and the current Feature State) for each other player. Do not add the Current Player."
+            "First, think about the update the number of conversations, second about an update for Private info about other players. Third, reply the Feature State struct in JSON format."            
+            "Output the updated state in JSON format with keys for each player and values being an object "
             "with 'Conversations' and 'Private Info' fields."
-            "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes."
+            "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Only return the JSON."
+            
         )
         return prompt
 
@@ -356,6 +358,7 @@ class SimpleNumberGuessGameState(BasicGameState):
 
         prompt = prompt + "Please output one complete possible action from the Available Actions Description list in JSON format.\n"
         prompt = prompt + "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.\n"
+        prompt = prompt + "First, think about a possible answer, second reply the action.\n"
 
         return prompt
 
