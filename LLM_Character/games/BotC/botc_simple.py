@@ -25,7 +25,7 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 model = []
 
 server_based = False
-use_trained = False
+use_trained = True
 store_data = False
 show_training_data = False
 
@@ -34,7 +34,7 @@ reward_small = 4
 reward_node = 0.25
 
 num_child_node = 1 # 3
-num_games = 5 # 30
+num_games = 2 # 30
 num_iterations = 40 # 50
 
 print_output = True
@@ -65,6 +65,7 @@ def init_model_local() -> LLM_API:
     #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
     if use_trained:
         model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
+        #model_id = "trained/deepseek-llm-7b-chat_merged"
     model.max_tokens = 200
     model.init(model_id)
     wrapped_model = LLM_API(model)

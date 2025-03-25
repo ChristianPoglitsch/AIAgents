@@ -7,8 +7,13 @@ device_map = {"": 0}
 
 
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
+model_id = "deepseek-ai/deepseek-llm-7b-chat"
+
 adapters_id = "trained\\Mistral-7b-v3-finetune"
+adapters_id = "trained\\deepseek-llm-7b-chat"
+
 model_id_merged = "trained/Mistral-7B-Instruct-v0.3_merged"
+model_id_merged = "trained/deepseek-llm-7b-chat_merged"
 
 #quantization_config = BitsAndBytesConfig(load_in_4bit=True)
 #

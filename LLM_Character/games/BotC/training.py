@@ -37,7 +37,7 @@ def train_model(model, tokenizer, instruct_tune_dataset, save_model: str) -> SFT
         # manner.
         # num_train_epochs=5,
 
-        max_steps=500,  # comment out this line if you want to train in epochs - 100+ recommended
+        max_steps=500, # 500   # comment out this line if you want to train in epochs - 100+ recommended
         save_strategy="epoch",
         # evaluation_strategy="epoch",
         evaluation_strategy="steps",
@@ -118,6 +118,12 @@ if __name__ == "__main__":
 
     dataset = dataset.map(format_prompts, batched=True)
 
-    model, tokenizer = load_model("mistralai/Mistral-7B-Instruct-v0.3")
+    model_id = "mistralai/Mistral-7B-Instruct-v0.3"
+    model_id = "deepseek-ai/deepseek-llm-7b-chat"
+    #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
+    model, tokenizer = load_model(model_id)
+    
     save_model = "trained\\Mistral-7b-v3-finetune"
+    save_model = "trained\\deepseek-llm-7b-chat"
+    #save_model = "trained\\Teuken-7B-instruct-research-v0.4"   
     train_model(model, tokenizer, dataset, save_model)
