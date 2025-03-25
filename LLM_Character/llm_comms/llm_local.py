@@ -228,7 +228,7 @@ class LocalComms(LLMComms):
         )
 
         model.config.sliding_window = 4096
-        tokenizer = AutoTokenizer.from_pretrained(model_id)
+        tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
         # tokenizer.bos_token = "<bos>"
         # tokenizer.pad_token = "<pad>"
         tokenizer.cls_token = "<cls>"

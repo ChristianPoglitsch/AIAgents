@@ -77,3 +77,22 @@ def load_mistral_instr_model():
     tokenizer.padding_side = "right"
 
     return model, tokenizer
+
+def load_model(model_id: str):
+    nf4_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=torch.bfloat16,
+    )
+
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id, device_map="auto", quantization_config=nf4_config, use_cache=False
+    )
+
+    tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+
+    tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.padding_side = "right"
+
+    return model, tokenizer

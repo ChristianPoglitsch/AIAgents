@@ -34,7 +34,7 @@ reward_small = 4
 reward_node = 0.25
 
 num_child_node = 1 # 3
-num_games = 30 # 30
+num_games = 5 # 30
 num_iterations = 40 # 50
 
 print_output = True

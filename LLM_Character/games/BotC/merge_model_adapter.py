@@ -6,7 +6,6 @@ import torch
 device_map = {"": 0}
 
 
-# "mistralai/Mistral-7B-Instruct-v0.1
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 adapters_id = "trained\\Mistral-7b-v3-finetune"
 model_id_merged = "trained/Mistral-7B-Instruct-v0.3_merged"

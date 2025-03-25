@@ -6,7 +6,7 @@ from trl import SFTTrainer
 from datasets import load_dataset
 from datasets import load_from_disk
 
-def train_mistral(model, tokenizer, instruct_tune_dataset) -> SFTTrainer:
+def train_model(model, tokenizer, instruct_tune_dataset, save_model: str) -> SFTTrainer:
     """is trained with SFFT
 
     Args:
@@ -73,7 +73,7 @@ def train_mistral(model, tokenizer, instruct_tune_dataset) -> SFTTrainer:
     )
 
     trainer.train()
-    trainer.save_model("trained\\Mistral-7b-v3-finetune")
+    trainer.save_model(save_model)
     # model.eval()
 
     # save trained model?
@@ -103,8 +103,7 @@ def format_prompts(examples):
 if __name__ == "__main__":
     # fine tuning
 
-    from datasets import load_dataset
-    from models import load_mistral_instr_model    
+    from models import load_model    
 
     file_name = 'training'
     dataset = load_from_disk(file_name)
@@ -119,5 +118,6 @@ if __name__ == "__main__":
 
     dataset = dataset.map(format_prompts, batched=True)
 
-    model, tokenizer = load_mistral_instr_model()
-    train_mistral(model, tokenizer, dataset)
+    model, tokenizer = load_model("mistralai/Mistral-7B-Instruct-v0.3")
+    save_model = "trained\\Mistral-7b-v3-finetune"
+    train_model(model, tokenizer, dataset, save_model)
