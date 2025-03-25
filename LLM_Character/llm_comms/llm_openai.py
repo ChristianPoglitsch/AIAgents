@@ -175,6 +175,7 @@ class OpenAIComms(LLMComms):
                 model=self.model_name,
                 max_tokens=self.max_tokens,
                 n=self.n,
+                temperature=self.temperature
                 # FIXME: this could be very usefull for us, since we do use json object
                 # in which we want the reponse to be in, and the trust level, etc...
                 # response_format= ? "Must be one of `text` or `json_object`."

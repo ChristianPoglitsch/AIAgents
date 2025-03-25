@@ -263,7 +263,7 @@ class LocalComms(LLMComms):
 
         generation_config = GenerationConfig(
             do_sample=True,
-            temperature=0.2,  # 1.0
+            temperature=self.temperature,
             pad_token_id=tokenizer.eos_token_id,
             max_new_tokens=max_length,
         )
