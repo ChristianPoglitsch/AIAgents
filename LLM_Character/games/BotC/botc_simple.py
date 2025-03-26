@@ -25,7 +25,7 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 model = []
 
 server_based = False
-use_trained = True
+use_trained = False
 store_data = False
 show_training_data = False
 
@@ -35,7 +35,7 @@ reward_node = 0.25
 
 num_child_node = 1 # 3
 num_games = 2 # 30
-num_iterations = 40 # 50
+num_iterations = 16 # 50
 
 print_output = True
 
@@ -61,11 +61,12 @@ def init_model_server() -> LLM_API:
 def init_model_local() -> LLM_API:
     model = LocalComms()
     model_id = "mistralai/Mistral-7B-Instruct-v0.3"
-    #model_id = "deepseek-ai/deepseek-llm-7b-chat"
+    model_id = "deepseek-ai/deepseek-llm-7b-chat"
     #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
     if use_trained:
         model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
-        #model_id = "trained/deepseek-llm-7b-chat_merged"
+        model_id = "trained/deepseek-llm-7b-chat_merged"
+        #model_id = "trained\\Teuken-7B-instruct-research-v0.4_merged"
     model.max_tokens = 200
     model.init(model_id)
     wrapped_model = LLM_API(model)
@@ -359,7 +360,7 @@ class SimpleNumberGuessGameState(BasicGameState):
 
         prompt = prompt + "Please output one complete possible action from the Available Actions Description list in JSON format.\n"
         prompt = prompt + "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.\n"
-        prompt = prompt + "First, think about a possible answer, second reply the action.\n"
+        prompt = prompt + "First, consider a possible answer. Then, provide the corresponding action.\n"
 
         return prompt
 
@@ -784,7 +785,7 @@ def simulation_policy(node):
 
     player = game_state.get_player()
     for i in range(num_child_node):
-        model.set_temperature(max(0.2, 1.2 - i * 0.2))
+        model.set_temperature(min(1.2, 0.2 + i * 0.2))
         prompt, result = game_state.create_action(player, conversation_manager)
         if result not in result_action:
             result_action.append(result)

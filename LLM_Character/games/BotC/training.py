@@ -5,8 +5,10 @@ from trl import SFTTrainer
 
 from datasets import load_dataset
 from datasets import load_from_disk
+from LLM_Character.llm_comms.llm_openai import OpenAIComms
+from LLM_Character.llm_comms.llm_local import LocalComms
 
-def train_model(model, tokenizer, instruct_tune_dataset, save_model: str) -> SFTTrainer:
+def train_model(model, tokenizer, instruct_tune_dataset, target_modules, save_model: str) -> SFTTrainer:
     """is trained with SFFT
 
     Args:
@@ -23,7 +25,7 @@ def train_model(model, tokenizer, instruct_tune_dataset, save_model: str) -> SFT
         r=64,
         bias="none",
         task_type="CAUSAL_LM",
-        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj"],
+        target_modules=target_modules,
     )
 
     model = prepare_model_for_kbit_training(model)
@@ -81,7 +83,7 @@ def train_model(model, tokenizer, instruct_tune_dataset, save_model: str) -> SFT
 
     return trainer
 
-def format_prompts(examples):
+def format_prompts_mistral(examples):
     formatted_examples = {
         "prompt": [],
         "response": []
@@ -100,14 +102,55 @@ def format_prompts(examples):
     #return formatted_examples
     return {"text": [f"{p} {r}" for p, r in zip(formatted_examples["prompt"], formatted_examples["response"])]}
 
+def format_prompts_deepseek(examples):
+    formatted_examples = {
+        "prompt": [],
+        "response": []
+    }
+
+    for i in range(len(examples["input"])):
+        prompt = examples["input"][i]
+        response = examples["output"][i]
+        
+        # Format the prompt for DeepSeek-style training
+        formatted_prompt = f"User: {prompt}"
+        formatted_response = f"Assistant: {response}"
+
+        formatted_examples["prompt"].append(formatted_prompt)
+        formatted_examples["response"].append(formatted_response)
+
+    return {
+        "text": [f"{p} {r}" for p, r in zip(formatted_examples["prompt"], formatted_examples["response"])]
+    }
+
+def format_prompts_teuken(examples):
+    formatted_examples = {
+        "prompt": [],
+        "response": []
+    }
+
+    for i in range(len(examples["input"])):
+        prompt = examples["input"][i]
+        response = examples["output"][i]
+        
+        # Format the prompt for Teuken-7B style
+        formatted_prompt = f"<|user|> {prompt}"
+        formatted_response = f"<|assistant|> {response}"
+
+        formatted_examples["prompt"].append(formatted_prompt)
+        formatted_examples["response"].append(formatted_response)
+
+    return {
+        "text": [f"{p} {r}" for p, r in zip(formatted_examples["prompt"], formatted_examples["response"])]
+    }
+
 if __name__ == "__main__":
     # fine tuning
 
-    from models import load_model    
-
     file_name = 'training'
     dataset = load_from_disk(file_name)
-
+    dataset = dataset.map(format_prompts_teuken, batched=True)
+    
     if True:
         for record in dataset:
             print("--- --- ---")
@@ -116,14 +159,18 @@ if __name__ == "__main__":
             print(record["output"])
             print("--- --- ---")
 
-    dataset = dataset.map(format_prompts, batched=True)
+    target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj"]
+    target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
 
     model_id = "mistralai/Mistral-7B-Instruct-v0.3"
     model_id = "deepseek-ai/deepseek-llm-7b-chat"
-    #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
-    model, tokenizer = load_model(model_id)
+    model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
+    api = LocalComms()
+    api.init(model_id)
+    model = api._model
+    tokenizer = api._tokenizer
     
     save_model = "trained\\Mistral-7b-v3-finetune"
     save_model = "trained\\deepseek-llm-7b-chat"
-    #save_model = "trained\\Teuken-7B-instruct-research-v0.4"   
-    train_model(model, tokenizer, dataset, save_model)
+    save_model = "trained\\Teuken-7B-instruct-research-v0.4"   
+    train_model(model, tokenizer, dataset, target_modules, save_model)
