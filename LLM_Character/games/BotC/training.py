@@ -153,7 +153,7 @@ if __name__ == "__main__":
     # format_prompts_mistral
     # format_prompts_deepseek
     # format_prompts_teuken
-    dataset = dataset.map(format_prompts_teuken, batched=True)
+    dataset = dataset.map(format_prompts_mistral, batched=True)
     
     if True:
         for record in dataset:
@@ -164,18 +164,18 @@ if __name__ == "__main__":
             print("--- --- ---")
 
     target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj"]
-    target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
-    target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
+    #target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
+    #target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
 
     model_id = "mistralai/Mistral-7B-Instruct-v0.3"
-    model_id = "deepseek-ai/deepseek-llm-7b-chat"
-    model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
+    #model_id = "deepseek-ai/deepseek-llm-7b-chat"
+    #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
     api = LocalComms()
     api.init(model_id)
     model = api._model
     tokenizer = api._tokenizer
     
     save_model = "trained\\Mistral-7b-v3-finetune"
-    save_model = "trained\\deepseek-llm-7b-chat"
-    save_model = "trained\\Teuken-7B-instruct-research-v0.4"   
+    #save_model = "trained\\deepseek-llm-7b-chat"
+    #save_model = "trained\\Teuken-7B-instruct-research-v0.4"   
     train_model(model, tokenizer, dataset, target_modules, save_model)

@@ -35,10 +35,10 @@ reward_node = 0.25
 
 num_child_node = 1 # 3
 num_games = 5 # 35
-num_iterations = 25 # 55
+num_iterations = 16 # 50
 
 print_output = True
-max_token = 100
+max_token = 150
 
 
 def init_model() -> LLM_API:
@@ -62,8 +62,8 @@ def init_model_server() -> LLM_API:
 def init_model_local() -> LLM_API:
     model = LocalComms()
     model_id = "mistralai/Mistral-7B-Instruct-v0.3"
-    model_id = "deepseek-ai/deepseek-llm-7b-chat"
-    model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
+    #model_id = "deepseek-ai/deepseek-llm-7b-chat"
+    #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
     if use_trained:
         model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
         #model_id = "trained/deepseek-llm-7b-chat_merged"
@@ -812,7 +812,7 @@ def simulation_policy(node):
     prompt = ''
     
     for i in range(num_child_node):
-        model.set_temperature(min(0.2, 1.2 - i * 0.2))
+        model.set_temperature(min(0.2, 1.2 - i * 0.4))
         prompt, result = game_state.create_action(player, conversation_manager)
         if result not in result_action:
             result_action.append(result)
@@ -1111,12 +1111,12 @@ for i in range(num_games):
     if game_state.guess is not None and game_state.secret_number is not None:
         print("Result: " + str(int(game_state.guess) == int(game_state.secret_number)))
 
+    if str(best_node.state.guess) == str(best_node.state.secret_number) and best_node.value >= 100:
+        num_correct_high_reward_games = num_correct_high_reward_games + 1
+
     if str(best_node.state.guess) == str(best_node.state.secret_number):
         num_correct_games = num_correct_games + 1
-        
-    if str(best_node.state.guess) == str(best_node.state.secret_number) and best_node.value >= 100:
         log.extend(best_node.conversation_manager.get_prompt_outcomes())        
-        num_correct_high_reward_games = num_correct_high_reward_games + 1
 
         if log and store_data:
             conversationManager.append_prompt_outcomes(best_node.conversation_manager.get_prompt_outcomes())
