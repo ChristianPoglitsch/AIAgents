@@ -149,6 +149,10 @@ if __name__ == "__main__":
 
     file_name = 'training'
     dataset = load_from_disk(file_name)
+    
+    # format_prompts_mistral
+    # format_prompts_deepseek
+    # format_prompts_teuken
     dataset = dataset.map(format_prompts_teuken, batched=True)
     
     if True:
@@ -160,6 +164,7 @@ if __name__ == "__main__":
             print("--- --- ---")
 
     target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj"]
+    target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
     target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
 
     model_id = "mistralai/Mistral-7B-Instruct-v0.3"

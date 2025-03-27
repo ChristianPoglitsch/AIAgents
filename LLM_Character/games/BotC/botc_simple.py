@@ -25,7 +25,7 @@ from LLM_Character.messages_dataclass import AIMessage, AIMessages
 model = []
 
 server_based = False
-use_trained = False
+use_trained = True
 store_data = False
 show_training_data = False
 
@@ -34,8 +34,8 @@ reward_small = 4
 reward_node = 0.25
 
 num_child_node = 1 # 3
-num_games = 2 # 30
-num_iterations = 16 # 50
+num_games = 5 # 35
+num_iterations = 25 # 55
 
 print_output = True
 
@@ -62,10 +62,10 @@ def init_model_local() -> LLM_API:
     model = LocalComms()
     model_id = "mistralai/Mistral-7B-Instruct-v0.3"
     model_id = "deepseek-ai/deepseek-llm-7b-chat"
-    #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
+    model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
     if use_trained:
         model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
-        model_id = "trained/deepseek-llm-7b-chat_merged"
+        #model_id = "trained/deepseek-llm-7b-chat_merged"
         #model_id = "trained\\Teuken-7B-instruct-research-v0.4_merged"
     model.max_tokens = 200
     model.init(model_id)
@@ -120,14 +120,20 @@ class PlayerFeatures:
             f"{conversation_history}\n\n"
             "Current Feature State for other player:\n"
         )
+        #for other, stats in current_features.items():
+        #    prompt += f"{other}: Conversations = {stats[0]}, Private Info = {stats[1]}\n"
+        
+
+        data = {}
         for other, stats in current_features.items():
-            prompt += f"{other}: Conversations = {stats[0]}, Private Info = {stats[1]}\n"
+            data[other] = {"Conversations": stats[0], "Private Info": stats[1]}
+        json_string = json.dumps(data, indent=4)  # Convert dictionary to JSON string with indentation
+        prompt += json_string
         prompt += (
-            "\nBased on the conversation history and the messages, please update the Private Info (only text, as summary of the conversation history and the current Feature State) for each other player. Do not add the Current Player."
-            "First, think about the update the number of conversations, second about an update for Private info about other players. Third, reply the Feature State struct in JSON format."            
-            "Output the updated state in JSON format with keys for each player and values being an object "
-            "with 'Conversations' and 'Private Info' fields."
-            "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Only return the JSON."
+            "\n\nBased on the conversation history and the messages, please update the Private Info (only text, as summary of the conversation history and the current Feature State) for each other player. Do not add the Current Player.\n"
+            "First, think about the update the number of conversations, second think about an update for private info about other players.\n"            
+            "Return the updated Feature State in JSON format with keys for each player and values being an object "
+            "with 'number of conversations' and 'private info' fields. Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes."
             
         )
         return prompt
@@ -177,6 +183,19 @@ class PlayerFeatures:
 
         return sum(1 for stats in self.features[player].values() if stats[0] == num_convs)
     
+    def count_num_player_conversations_greater(self, player, num_convs):
+        """
+        Returns the number of players with whom the given player has had more than `num_convs` conversations.
+
+        :param player: The player whose conversation history will be checked.
+        :param num_convs: The threshold number of conversations.
+        :return: An integer count of players.
+        """
+        if player not in self.features:
+            raise ValueError(f"Player {player} not found in features.")
+
+        return sum(1 for stats in self.features[player].values() if stats[0] >= num_convs)
+
     def updated_private_info(self, player):
         """
         Returns the number of players with whom the given player has had more than `num_convs` conversations.
@@ -254,6 +273,20 @@ class BasicGameState:
         """
         # Call the LLM to complete the action for this respondent.
         return complete_action_with_llm(player, self.generate_prompt(player, conversation_manager))
+    
+    def plan_action(self, speaker, conv_manager):
+        """
+        Calls complete_action_with_llm for the given respondent and logs any completed action(s) of type "Message"
+        into the conversation manager.
+    
+        :param respondent: The respondent for which the action completion is requested.
+        :param conversation_manager: The conversation manager to log messages.
+        """
+        # Call the LLM to complete the action for this respondent.
+        prompt_state, action_state = complete_action_with_llm(speaker, self.generate_game_state_prompt(speaker, conv_manager.get_conversation_history_for_player(speaker)))
+        if action_state is not str and action_state.get("action") is None and action_state.get("error") is None:
+            self.features.update_features_from_json(speaker, action_state)
+            conv_manager.store_prompt_outcome(prompt_state, json.dumps(action_state))
 
     def apply_action(self, conv_manager, action):
         raise NotImplementedError("Subclasses must implement this method.")
@@ -358,14 +391,14 @@ class SimpleNumberGuessGameState(BasicGameState):
             #f"{get_player_plan}\n\n"
         )        
 
-        prompt = prompt + "Please output one complete possible action from the Available Actions Description list in JSON format.\n"
-        prompt = prompt + "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.\n"
         prompt = prompt + "First, consider a possible answer. Then, provide the corresponding action.\n"
+        prompt = prompt + "Please output one complete possible action from the Available Actions Description list in JSON format.\n"
+        prompt = prompt + "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.\n"        
 
         return prompt
 
 
-    def apply_action(self, conv_manager, action):
+    def apply_action(self, conversation_manager, action):
         """
         Updates the game state and conversation history based on the selected action.
         For both "Message" and "Guess" actions, calls complete_action_with_llm to generate a
@@ -383,13 +416,7 @@ class SimpleNumberGuessGameState(BasicGameState):
             audience = action.get("Audience")        
             # Ensure audience is handled as a list.
             self.add_next_player(audience)
-            #union_set = set(speaker) | set(audience)  # Union of both sets
-
-            # Update game state for player
-            prompt_state, action_state = complete_action_with_llm(speaker, self.generate_game_state_prompt(speaker, conv_manager.get_conversation_history_for_player(speaker)))
-            if action_state is not str and action_state.get("action") is None and action_state.get("error") is None:
-                self.features.update_features_from_json(speaker, action_state)
-                conv_manager.store_prompt_outcome(prompt_state, json.dumps(action_state))
+            self.plan_action(speaker, conversation_manager)
 
         elif action_type == "Guess":
             guessed_number = action.get("Number")
@@ -399,7 +426,7 @@ class SimpleNumberGuessGameState(BasicGameState):
             self.guess = guessed_number
         
             # Log the guess in the conversation manager.
-            conv_manager.add_message_to_conversation(speaker, speaker, f"My guess is {guessed_number}.")
+            conversation_manager.add_message_to_conversation(speaker, speaker, f"My guess is {guessed_number}.")
 
 
 # ------------------ Graph Construction ------------------
@@ -776,16 +803,15 @@ def simulation_policy(node):
     :param conversation_manager: The current conversation manager.
     :return: A new (game_state, conversation_manager) pair.
     """
-    # Create deep copies to avoid modifying the original objects
     game_state = node.state
-    conversation_manager = node.conversation_manager
+    conversation_manager = node.conversation_manager    
+    player = game_state.get_player()
     terminal_state = False
     result_action = []
     prompt = ''
-
-    player = game_state.get_player()
+    
     for i in range(num_child_node):
-        model.set_temperature(min(1.2, 0.2 + i * 0.2))
+        model.set_temperature(min(0.2, 1.2 - i * 0.2))
         prompt, result = game_state.create_action(player, conversation_manager)
         if result not in result_action:
             result_action.append(result)
@@ -793,6 +819,7 @@ def simulation_policy(node):
     # Process each action in result_action
     child_nodes = []
     for action in result_action:
+        # Create deep copies to avoid modifying the original objects
         game_state_copy = copy.deepcopy(game_state)
         conversation_manager_copy = copy.deepcopy(conversation_manager)
         terminal_state = False  # Reset for each iteration
@@ -820,17 +847,24 @@ def simulation_policy(node):
 
 
 def reward_function(node, new_node):
-    if new_node.is_terminal and str(new_node.state.guess) == str(new_node.state.secret_number):
-        return reward_terminal;
+    reward = 0
+    speaker = new_node.action.get("Speaker")
+    num_convs = 1
+    num_player_talked_to = 3
+    conv_old = node.state.features.count_num_player_conversations_greater(speaker, num_convs)
+    conv_new = new_node.state.features.count_num_player_conversations_greater(speaker, num_convs) 
+    
+    if new_node.is_terminal and str(new_node.state.guess) == str(new_node.state.secret_number) and conv_new >= num_player_talked_to:
+        return reward_terminal * 8;
+    elif new_node.is_terminal and str(new_node.state.guess) == str(new_node.state.secret_number):
+        return reward_terminal
 
     if new_node.is_terminal and str(new_node.state.guess) != str(new_node.state.secret_number):
         return -reward_terminal;
 
-    reward = 0
-    speaker = new_node.action.get("Speaker")
     num_convs = 1
     conv_old = node.state.features.count_num_player_conversations(speaker, num_convs)
-    conv_new = new_node.state.features.count_num_player_conversations(speaker, num_convs) 
+    conv_new = new_node.state.features.count_num_player_conversations(speaker, num_convs)
     
     if conv_new > conv_old:
         reward = reward + reward_small
@@ -1049,6 +1083,7 @@ player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 gnn_model = ActionPredictionGNN(input_dim=128, hidden_dim=16, output_dim=2)
 
 num_correct_games = 0
+num_correct_high_reward_games = 0
 model = init_model()
 
 for i in range(num_games):
@@ -1076,8 +1111,11 @@ for i in range(num_games):
         print("Result: " + str(int(game_state.guess) == int(game_state.secret_number)))
 
     if str(best_node.state.guess) == str(best_node.state.secret_number):
-        log.extend(best_node.conversation_manager.get_prompt_outcomes())
         num_correct_games = num_correct_games + 1
+        
+    if str(best_node.state.guess) == str(best_node.state.secret_number) and best_node.value >= 100:
+        log.extend(best_node.conversation_manager.get_prompt_outcomes())        
+        num_correct_high_reward_games = num_correct_high_reward_games + 1
 
         if log and store_data:
             conversationManager.append_prompt_outcomes(best_node.conversation_manager.get_prompt_outcomes())
@@ -1094,7 +1132,7 @@ for i in range(num_games):
             print(record["output"])
             print("--- --- ---")
 
-print("Successfull games: " + str(num_correct_games) + " / Played games: " + str(num_games))
+print("Successfull games: " + str(num_correct_games) + " / Successfull games (w high Reward): " + str(num_correct_high_reward_games) + " / Played games: " + str(num_games))
 
 end_time = time.time()
 elapsed_time = end_time - start_time

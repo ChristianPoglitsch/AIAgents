@@ -16,6 +16,10 @@ model_id = "deepseek-ai/deepseek-llm-7b-chat"
 model_id = "trained/deepseek-llm-7b-chat_merged"
 model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
 
+#model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
+#model_id = "trained/deepseek-llm-7b-chat_merged"
+#model_id = "trained\\Teuken-7B-instruct-research-v0.4_merged"
+
 #tokenizer = AutoTokenizer.from_pretrained(model_id)
 #model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.bfloat16, device_map="auto")
 #model.generation_config = GenerationConfig.from_pretrained(model_id)
