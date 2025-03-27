@@ -38,6 +38,7 @@ num_games = 5 # 35
 num_iterations = 25 # 55
 
 print_output = True
+max_token = 100
 
 
 def init_model() -> LLM_API:
@@ -53,7 +54,7 @@ def init_model() -> LLM_API:
 def init_model_server() -> LLM_API:
     model = OpenAIComms()
     model_id = "gpt-4o"
-    model.max_tokens = 200
+    model.max_tokens = max_token
     model.init(model_id)
     wrapped_model = LLM_API(model)
     return wrapped_model
@@ -67,7 +68,7 @@ def init_model_local() -> LLM_API:
         model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
         #model_id = "trained/deepseek-llm-7b-chat_merged"
         #model_id = "trained\\Teuken-7B-instruct-research-v0.4_merged"
-    model.max_tokens = 200
+    model.max_tokens = max_token
     model.init(model_id)
     wrapped_model = LLM_API(model)
     return wrapped_model
@@ -77,7 +78,7 @@ def init_model_local_trained() -> LLM_API:
     model_id = "mistralai/Mistral-7B-Instruct-v0.3"
     #model_id = "deepseek-ai/deepseek-llm-7b-chat"
     #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
-    model.max_tokens = 200
+    model.max_tokens = max_token
     model.init(model_id, "trained\\Mistral-7b-v3-finetune")
     wrapped_model = LLM_API(model)
     return wrapped_model
