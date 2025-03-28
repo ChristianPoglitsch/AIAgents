@@ -1,6 +1,6 @@
 import json
 import random
-
+import copy
 import os
 import shutil
 from datasets import Dataset
@@ -521,6 +521,7 @@ def complete_action_with_llm(current_player, prompt, model, print_output, server
     # Initialize the LLM.
     #model = get_model()
     llm_response = model.query_text(messages)
+    llm_response = llm_response.strip()
     
     try:
         result = json.loads(llm_response)
@@ -536,6 +537,56 @@ def complete_action_with_llm(current_player, prompt, model, print_output, server
     return prompt, result
 
 # ------------------ MCTS with LLM Integration ------------------
+
+def simulation_policy(node, model, print_output, server_based, num_child_node):
+    """
+    Uses ActionProcessor to simulate actions and generate the next game state and conversation state.
+    
+    :param game_state: The current game state.
+    :param conversation_manager: The current conversation manager.
+    :return: A new (game_state, conversation_manager) pair.
+    """
+    game_state = node.state
+    conversation_manager = node.conversation_manager    
+    player = game_state.get_player()
+    terminal_state = False
+    result_action = []
+    prompt = ''
+    
+    for i in range(num_child_node):
+        model.set_temperature(min(0.2, 1.2 - i * 0.4))
+        prompt, result = game_state.create_action(player, conversation_manager, model, print_output, server_based)
+        if result not in result_action:
+            result_action.append(result)
+
+    # Process each action in result_action
+    child_nodes = []
+    for action in result_action:
+        # Create deep copies to avoid modifying the original objects
+        game_state_copy = copy.deepcopy(game_state)
+        conversation_manager_copy = copy.deepcopy(conversation_manager)
+        terminal_state = False  # Reset for each iteration
+
+        # If action is of type "Message"
+        if action.get("type") == "Message":
+            speaker = action.get("Speaker")
+            audience = action.get("Audience")
+            if not isinstance(audience, list):
+                audience = [audience]  # Ensure audience is a list
+            participants = [speaker] + audience
+
+            conversation_manager_copy.add_message_to_conversation(participants, speaker, action)
+
+        conversation_manager_copy.store_prompt_outcome(prompt, json.dumps(action))
+        game_state_copy.apply_action(conversation_manager_copy, action, model, print_output, server_based)
+
+        if game_state_copy.is_terminal() is not None:
+            terminal_state = True
+
+        child_node = MCTSNode(game_state_copy, action, conversation_manager_copy, terminal_state, parent=node)
+        child_nodes.append(child_node)  # Collect nodes in a list
+
+    return child_nodes  # Always return a list of nodes
 
 class MCTSNode:
     def __init__(self, state=None, action=None, conversation_manager=None, terminal_state=False, parent=None):
@@ -597,11 +648,12 @@ class MCTSNode:
 
 
 class MCTS:
-    def __init__(self, simulation_policy, reward_function, iterations=100):
+    def __init__(self, simulation_policy, reward_function, num_child_node, iterations=100):
         self.simulation_policy = simulation_policy
         self.reward_function = reward_function
         self.iterations = iterations
         self.root = None
+        self.num_child_node = num_child_node
 
     def search(self, initial_state, conversation_manager, model, print_output, server_based):
         self.root = self.get_node(initial_state, conversation_manager, initial_state.get_no_action())
@@ -641,7 +693,7 @@ class MCTS:
         if node.is_terminal:  # Stop expansion if game is over
             return node.parent if node.parent else node  # Move up if terminal  
 
-        child_nodes = self.simulation_policy(node, model, print_output, server_based)
+        child_nodes = self.simulation_policy(node, model, print_output, server_based, self.num_child_node)
         
         node.children.extend(child_nodes)
         return child_nodes

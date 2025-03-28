@@ -11,6 +11,7 @@ from botc_base import MCTS
 from botc_base import ConversationManager
 from botc_base import MCTS
 from botc_base import init_model
+from botc_base import simulation_policy
 
 model = []
 
@@ -30,11 +31,13 @@ print_output = True
 max_token = 150
 
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
-model_id = "deepseek-ai/deepseek-llm-7b-chat"
+#model_id = "deepseek-ai/deepseek-llm-7b-chat"
 #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
-#model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
-model_id = "trained/deepseek-llm-7b-chat_merged"
+model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
+#model_id = "trained/deepseek-llm-7b-chat_merged"
 #model_id = "trained\\Teuken-7B-instruct-research-v0.4_merged"
+
+# --- --- game --- ---
 
 class SimpleNumberGuessGameState(BasicGameState):
     def __init__(self, players):
@@ -50,20 +53,19 @@ class SimpleNumberGuessGameState(BasicGameState):
         """
         Returns the action space description tailored to the current player.
         Only Player A has the 'Guess' action.
-    
-        :param current_player: The name of the current player.
-        :return: A list of dictionaries describing the available actions.
-        """
-        actions = [
-            {'type': 'Message', 'Speaker': None, 'Audience': None, 'Message:': None},
-            self.no_action
-        ]
-        if current_player == "A":
-            # Insert the Guess action at the beginning if the current player is A.
-            actions.insert(0, {'type': 'Guess', 'Speaker': None, 'Number': None})
 
-        actions = str(actions).replace("'", '"')
-        return actions
+        :param current_player: The name of the current player.
+        :return: A string describing the available actions, each on a new line.
+        """
+        actions = []
+
+        if current_player == "A":
+            actions.append('{"type": "Guess", "Speaker": null, "Number": null}')
+    
+        actions.append('{"type": "Message", "Speaker": null, "Audience": null, "Message": null}')
+        actions.append(str(self.no_action).replace("'", '"'))
+
+        return "\n".join(actions)
 
     def is_terminal(self):
         """Game ends when a guess is made."""
@@ -122,7 +124,6 @@ class SimpleNumberGuessGameState(BasicGameState):
 
         return prompt
 
-
     def apply_action(self, conversation_manager, action, model, print_output, server_based):
         """
         Updates the game state and conversation history based on the selected action.
@@ -155,57 +156,6 @@ class SimpleNumberGuessGameState(BasicGameState):
 
 
 # ------------------ MCTS with LLM Integration ------------------
-
-def simulation_policy(node, model, print_output, server_based):
-    """
-    Uses ActionProcessor to simulate actions and generate the next game state and conversation state.
-    
-    :param game_state: The current game state.
-    :param conversation_manager: The current conversation manager.
-    :return: A new (game_state, conversation_manager) pair.
-    """
-    game_state = node.state
-    conversation_manager = node.conversation_manager    
-    player = game_state.get_player()
-    terminal_state = False
-    result_action = []
-    prompt = ''
-    
-    for i in range(num_child_node):
-        model.set_temperature(min(0.2, 1.2 - i * 0.4))
-        prompt, result = game_state.create_action(player, conversation_manager, model, print_output, server_based)
-        if result not in result_action:
-            result_action.append(result)
-
-    # Process each action in result_action
-    child_nodes = []
-    for action in result_action:
-        # Create deep copies to avoid modifying the original objects
-        game_state_copy = copy.deepcopy(game_state)
-        conversation_manager_copy = copy.deepcopy(conversation_manager)
-        terminal_state = False  # Reset for each iteration
-
-        # If action is of type "Message"
-        if action.get("type") == "Message":
-            speaker = action.get("Speaker")
-            audience = action.get("Audience")
-            if not isinstance(audience, list):
-                audience = [audience]  # Ensure audience is a list
-            participants = [speaker] + audience
-
-            conversation_manager_copy.add_message_to_conversation(participants, speaker, action)
-
-        conversation_manager_copy.store_prompt_outcome(prompt, json.dumps(action))
-        game_state_copy.apply_action(conversation_manager_copy, action, model, print_output, server_based)
-
-        if game_state_copy.is_terminal() is not None:
-            terminal_state = True
-
-        child_node = MCTSNode(game_state_copy, action, conversation_manager_copy, terminal_state, parent=node)
-        child_nodes.append(child_node)  # Collect nodes in a list
-
-    return child_nodes  # Always return a list of nodes
-
 
 def reward_function(node, new_node):
     reward = 0
@@ -245,7 +195,7 @@ def reward_function(node, new_node):
 # Initialize the root node
 # Create the root node for the conversation
 root = MCTSNode()
-mcts = MCTS(simulation_policy, reward_function, iterations=num_iterations)
+mcts = MCTS(simulation_policy, reward_function, num_child_node, iterations=num_iterations)
 # Simulate expanding the tree
 print("Starting tree expansion...\n")
 
@@ -307,7 +257,7 @@ for i in range(num_games):
     conv_manager = ConversationManager()
 
     # Create an MCTS instance
-    mcts = MCTS(simulation_policy, reward_function, iterations=num_iterations)
+    mcts = MCTS(simulation_policy, reward_function, num_child_node, iterations=num_iterations)
 
     # Run MCTS to get the best action/state
     best_node = mcts.search(game_state, conv_manager, model, print_output, server_based)
