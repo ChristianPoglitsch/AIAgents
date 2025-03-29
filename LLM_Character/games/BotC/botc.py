@@ -41,43 +41,147 @@ model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
 # --- --- game --- ---
 
 class Role:
-    def __init__(self, name, team, alignment, ability):
+    def __init__(self, name, team, alignment, description, action):
         self.name = name
         self.team = team
-        self.ability = ability
         self.alignment = alignment
+        self.description = description
+        self.action = action
+ 
+    def get_first_night_info(self, alive_players, player_infos):
+        return None
+    
+    def get_action_space_description(self):
+        None
+    
+class Washerwoman(Role):
+    def __init__(self, name, team, alignment, description, action):
+        super().__init__(name, team, alignment, description, action)     
+
+    def get_first_night_info(self, alive_players, player_infos):
+        minion_players = [p for p, data in alive_players.items() if data['role'] and data['role'].team == "Town" and p != self.name]
+    
+        if minion_players:
+            # Select one Townsfolk player and get their role
+            chosen_town = random.choice(minion_players)
+            chosen_town_role = alive_players[chosen_town]['role'].name
         
+            # Get the list of players excluding the Washerwoman and the chosen Townsfolk
+            available_players = [p for p in alive_players if p != self.name and p != chosen_town]
+        
+            # Select another random player from the available players
+            random_player = random.choice(available_players)
+        
+            # Update the Washerwoman's information
+            player_info = f"You learn that {chosen_town} or {random_player} is a {chosen_town_role}"
+        else:
+            player_info = "No Townsfolk available to provide information."
+            
+        return player_info
+  
+class Investigator(Role):
+    def __init__(self, name, team, alignment, description, action):
+        super().__init__(name, team, alignment, description, action)     
+
+    def get_first_night_info(self, alive_players, player_infos):
+        # Get a list of all Townsfolk players
+        minion_players = [p for p, data in alive_players.items() if data['role'] and data['role'].team == "Minion" and p != self.name]
+    
+        if minion_players:
+            # Select one Townsfolk player and get their role
+            chosen_town = random.choice(minion_players)
+            chosen_town_role = alive_players[chosen_town]['role'].name
+        
+            # Get the list of players excluding the Washerwoman and the chosen Townsfolk
+            available_players = [p for p in alive_players if p != self.name and p != chosen_town]
+        
+            # Select another random player from the available players
+            random_player = random.choice(available_players)
+        
+            # Update the Washerwoman's information
+            player_info = f"You learn that {chosen_town} or {random_player} is a {chosen_town_role}"
+        else:
+            player_info = "No Townsfolk available to provide information."
+            
+        return player_info   
+
+
+class Empath(Role):
+    def __init__(self, name, team, alignment, description, action):
+        super().__init__(name, team, alignment, description, action)     
+
+    def get_first_night_info(self, alive_players, player_infos):
+
+        alive_neighbors = [neighbor for neighbor in player_infos['neighbors'] if alive_players[neighbor]['alive']]
+        evil_neighbors = [neighbor for neighbor in alive_neighbors if alive_players[neighbor]['role'].alignment == "Evil"]
+        player_info = f"You sense that {len(evil_neighbors)} of your alive neighbors are evil."
+            
+        return player_info 
+    
+class Poisoner(Role):
+    def __init__(self, name, team, alignment, description, action):
+        super().__init__(name, team, alignment, description, action)     
+
+    def get_first_night_info(self, alive_players, player_infos):
+        demon = next((p for p, data in alive_players.items() if data['role'] and data['role'].name == "Imp"), None)
+            
+        # Update the Minion's Information field with their demon
+        if demon:
+            player_info = f"The Demon is {demon}."
+        else:
+            player_info = "No Demon found."
+            
+        return player_info 
+    
+class Imp(Role):
+    def __init__(self, name, team, alignment, description, action):
+        super().__init__(name, team, alignment, description, action)     
+
+    def get_first_night_info(self, alive_players, player_infos):
+        minions = [p for p, data in alive_players.items() if data['role'] and data['role'].alignment == "Minion"]
+            
+        # Update the Imp's Information field with their minions
+        if minions:
+            player_info = f"Your minions are {', '.join(minions)}."
+        else:
+            player_info = "You have no minions."
+            
+        return player_info 
+
 roles = {
     # Townsfolk Roles
-    'Washerwoman': Role('Washerwoman', 'Town', 'Good', 'Learns that one of two players is a specific Townsfolk.'),
-    'Librarian': Role('Librarian', 'Town', 'Good', 'Learns that one of two players is a specific Outsider or that no Outsiders are in play.'),
-    'Investigator': Role('Investigator', 'Good', 'Town', 'Learns that one of two players is a specific Minion.'),
-    #'Chef': Role('Chef', 'Town','Good',  'Learns how many pairs of evil players are sitting next to each other.'),
-    #'Empath': Role('Empath', 'Town', 'Good', 'Learns how many of their two alive neighbors are evil.'),
-    #'Fortune Teller': Role('Fortune Teller', 'Town', 'Good', 'Each night, chooses two players. Learns if one is the Demon, but there is a Red Herring.'),
-    #'Undertaker': Role('Undertaker', 'Town', 'Good', 'Each night, learns which character died by execution that day.'),
-    #'Monk': Role('Monk', 'Town', 'Good', 'Each night, chooses a player (not themselves). That player is safe from the Demon that night.'),
-    #'Ravenkeeper': Role('Ravenkeeper', 'Town', 'Good', 'If killed at night, learns one players character.'),
-    #'Virgin': Role('Virgin', 'Town', 'Good', 'If nominated for the first time, and the nominator is a Townsfolk, they are executed immediately.'),
-    #'Slayer': Role('Slayer', 'Town', 'Good', 'Once per game, publicly chooses a player. If that player is the Demon, they die.'),
-    #'Soldier': Role('Soldier', 'Town', 'Good', 'Cannot die at night.'),
-    #'Mayor': Role('Mayor', 'Town', 'Good', 'If only three players live & no execution occurs, your team wins. Might not die at night.'),
+    'Washerwoman': Washerwoman('Washerwoman', 'Town', 'Good', 'Learns that one of two players is a specific Townsfolk.', None),
+    #'Librarian': Role('Librarian', 'Town', 'Good', 'Learns that one of two players is a specific Outsider or that no Outsiders are in play.', None),
+    'Investigator': Investigator('Investigator', 'Town', 'Good', 'Learns that one of two players is a specific Minion.', None),
+    #'Chef': Role('Chef', 'Town','Good',  'Learns how many pairs of evil players are sitting next to each other.', None),
+    'Empath': Empath('Empath', 'Town', 'Good', 'Learns how many of their two alive neighbors are evil.', None),
+    #'Fortune Teller': Role('Fortune Teller', 'Town', 'Good', 'Each night, chooses two players. Learns if one is the Demon, but there is a Red Herring.', None),
+    #'Undertaker': Role('Undertaker', 'Town', 'Good', 'Each night, learns which character died by execution that day.', None),
+    #'Monk': Role('Monk', 'Town', 'Good', 'Each night, chooses a player (not themselves). That player is safe from the Demon that night.', None),
+    #'Ravenkeeper': Role('Ravenkeeper', 'Town', 'Good', 'If killed at night, learns one players character.', None),
+    #'Virgin': Role('Virgin', 'Town', 'Good', 'If nominated for the first time, and the nominator is a Townsfolk, they are executed immediately.', None),
+    #'Slayer': Role('Slayer', 'Town', 'Good', 'Once per game, publicly chooses a player. If that player is the Demon, they die.', None),
+    #'Soldier': Role('Soldier', 'Town', 'Good', 'Cannot die at night.', None),
+    #'Mayor': Role('Mayor', 'Town', 'Good', 'If only three players live & no execution occurs, your team wins. Might not die at night.', None),
     
     # Outsider Roles
-    #'Butler': Role('Butler', 'Outsider', 'Good', 'Each night, chooses a player. Can only vote if that player votes first.'),
-    #'Drunk': Role('Drunk', 'Outsider', 'Good', 'You do not know you are the Drunk. You think you are a Townsfolk, but you are not.'),
-    #'Recluse': Role('Recluse', 'Outsider', 'Good', 'Might register as evil & as a Minion or Demon, even if dead.'),
-    #'Saint': Role('Saint', 'Outsider', 'Good', 'If executed, your team loses.'),
+    #'Butler': Role('Butler', 'Outsider', 'Good', 'Each night, chooses a player. Can only vote if that player votes first.', None),
+    #'Drunk': Role('Drunk', 'Outsider', 'Good', 'You do not know you are the Drunk. You think you are a Townsfolk, but you are not.', None),
+    #'Recluse': Role('Recluse', 'Outsider', 'Good', 'Might register as evil & as a Minion or Demon, even if dead.', None),
+    #'Saint': Role('Saint', 'Outsider', 'Good', 'If executed, your team loses.', None),
     
     # Minion Roles
-    'Poisoner': Role('Poisoner', 'Minion', 'Evil', 'Each night and in FirstNights, poison one player.'),
-    #'Baron': Role('Baron', 'Minion', 'Evil', 'Two extra Outsiders are in play.'),
-    #'Scarlet Woman': Role('Scarlet Woman', 'Minion', 'Evil', 'If there are five or more players alive and the Demon dies, you become the Demon.'),
-    #'Spy': Role('Spy', 'Minion', 'Evil', 'Might register as good. Sees the Grimoire each night.'),
+    'Poisoner': Poisoner('Poisoner', 'Minion', 'Evil', 'Each night, poison one player.', 'Poison'),
+    #'Baron': Role('Baron', 'Minion', 'Evil', 'Two extra Outsiders are in play.', None),
+    #'Scarlet Woman': Role('Scarlet Woman', 'Minion', 'Evil', 'If there are five or more players alive and the Demon dies, you become the Demon.', None),
+    #'Spy': Role('Spy', 'Minion', 'Evil', 'Might register as good. Sees the Grimoire each night.', None),
     
     # Demon Roles
-    'Imp': Role('Imp', 'Demon', 'Evil', 'Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp.')
+    'Imp': Imp('Imp', 'Demon', 'Evil', 'Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp.', None)
 }
+
+first_night_action = ["Poisoner"]
+night_action = ["Imp", "Poisoner"]
 
 def roles_to_string(roles):
     """
@@ -105,13 +209,16 @@ class BloodOnTheClocktowerState(BasicGameState):
         role_list = list(available_roles.values())  
         #random.shuffle(role_list)  # Shuffle to randomize role assignment
 
+        self.conv_count_day = 0
+        self.max_conv_count_per_day = 4
+
         n = len(players)
         for idx, player in enumerate(players):
             left_neighbor = players[(idx - 1) % n]
             right_neighbor = players[(idx + 1) % n]
 
             # Assign a role from the shuffled list, ensuring roles cycle if there are more players than roles
-            assigned_role = role_list[idx % len(role_list)]  
+            assigned_role = role_list[idx % len(role_list)]
 
             self.alive_players[player] = {
                 'role': assigned_role,
@@ -123,42 +230,53 @@ class BloodOnTheClocktowerState(BasicGameState):
                 'Information': None,
                 'neighbors': [left_neighbor, right_neighbor]
             }
-               
+            
+            if assigned_role.name in first_night_action:
+                self.add_next_player(player)
+                
+        # initial infos
+        self.first_night_info()
+
+        self.phase = 'Night' # Day, Nominate, Night
+        self.nominations = []
+        self.nominated = []
+        self.nomination_count = 0
+        self.day_count = 1
+        self.execution = None
+
+    def update_game_state(self):
+        if self.phase == 'Day':
+            self.conv_count_day = self.conv_count_day + 1
+        if self.phase == 'Day' and self.conv_count_day == 0:
+            self.night_info()
+
+        if self.phase == 'Night' and self.get_next_players_count() == 0:
+            self.phase = 'Day'
+        elif self.phase == 'Day' and self.conv_count_day < self.max_conv_count_per_day and self.phase != 'Nominate':
+            self.conv_count_day = 0
+            self.phase = 'Night'
+            
+
+    def first_night_info(self):
         # initial infos
         for player, player_info in self.alive_players.items():
             role = player_info.get('role')
+            
+            information = role.get_first_night_info(self.alive_players, player_info)
+            if information is not None:
+                player_info['Information'] = information
+                    
+    def night_info(self):
+        # night infos
+        for player, player_info in self.alive_players.items():
+            role = player_info.get('role')
             if role is not None and role.name == "Washerwoman":
-                # Update the player's Information field with FirstNight details.
-                player_info['Information'] = "FirstNight Info: You learn that one of two players is a specific Townsfolk."
-            elif role.team == "Imp":
-                # Find all minions in the game
-                minions = [p for p, data in self.alive_players.items() if data['role'] and data['role'].alignment == "Minion"]
-            
-                # Update the Imp's Information field with their minions
-                if minions:
-                    player_info['Information'] = f"FirstNight Info: Your minions are {', '.join(minions)}."
-                else:
-                    player_info['Information'] = "FirstNight Info: You have no minions."
-            elif role.team == "Minion":
-                # Find the Imp (the Demon)
-                demon = next((p for p, data in self.alive_players.items() if data['role'] and data['role'].name == "Imp"), None)
-            
-                # Update the Minion's Information field with their demon
-                if demon:
-                    player_info['Information'] = f"FirstNight Info: The Demon is {demon}."
-                else:
-                    player_info['Information'] = "FirstNight Info: No Demon found."
-
-        self.phase = 'FirstNight' # Day, Nomination, Night, FirstNight
-        self.nominations = []
-        self.nominated = []
-        self.nomination_count = -1
-        self.roles = {player: None for player in players}
-        self.private_knowledge = {player: None for player in players}
-        self.day_count = 1
-        self.effects = {}
-        self.execution = None
-
+                # Update the player's Information field with details.
+                player_info['Information'] = "You learn that one of two players is a specific Townsfolk."
+            elif role is not None and role.name == "Empath":
+                alive_neighbors = [neighbor for neighbor in player_info['neighbors'] if self.alive_players[neighbor]['alive']]
+                evil_neighbors = [neighbor for neighbor in alive_neighbors if self.alive_players[neighbor]['role'].alignment == "Evil"]
+                player_info['Information'] += f"You sense that {len(evil_neighbors)} of your alive neighbors are evil."
 
     def get_action_space_description(self, current_player):
         """
@@ -167,7 +285,6 @@ class BloodOnTheClocktowerState(BasicGameState):
           - All alive players can send a message.
           - During the Day phase, players may nominate or vote.
           - During the Night phase, players with a special ability (as defined by their role)
-            receive a NightAction option.
           - A NoAction option is always available.
       
         :param current_player: The name of the current player.
@@ -177,9 +294,12 @@ class BloodOnTheClocktowerState(BasicGameState):
         player_info = self.alive_players.get(current_player)
     
         if not player_info or not player_info['alive']:
-            return "No actions available (player is dead or not found)."
-   
+            return "No actions available (player is dead or not found)."   
     
+        action = player_info['role'].get_action_space_description()
+        if action is not None:
+            actions.extend(action)
+
         # Day phase actions
         if self.phase == "Day":
             # Always available action: Message
@@ -190,25 +310,16 @@ class BloodOnTheClocktowerState(BasicGameState):
             # Vote action is available in the day phase
             actions.append('{"type": "Vote", "Voter": null, "VoteTarget": null}')
     
-        # Night phase actions
-        #elif self.phase == "Night":
-            # If the player's role has a special ability, add a NightAction.
-                
-        #elif self.phase == "FirstNight":
-            # FirstNight phase actions: Special handling for Washerwoman.
-
- 
         role = player_info.get('role')
-        if role is not None and role.ability:
+        if role is not None and role.description:
             actions.append(
-                f'{{"type": "NightAction", "Target": " ", "Description": "{role.ability}"}}'
+                f'{{"type": "Action", "Description": "{role.description}", "Target": "None", "Effect": "Poison"}}'
             )
     
         # Always include a NoAction option.
         actions.append(str(self.no_action).replace("'", '"'))
     
         return "\n".join(actions)
-
 
     def is_terminal(self):
         """
@@ -232,35 +343,37 @@ class BloodOnTheClocktowerState(BasicGameState):
     def get_game_state(self, player):
         """
         Returns a human-readable public state description tailored for Blood on the Clocktower.
-    
+
         Public information includes:
           - The current game phase (Day or Night).
           - A list of players along with their status (alive or dead).
-      
+
         Private information for the requesting player includes:
           - Their own role and any associated private ability details.
-    
+          - If the player is the Empath, they receive information about how many of their alive neighbors are evil.
+
         Additional game state features are appended as defined in game_state_features_to_string().
         """
-        
-        role = self.alive_players[player]
+
         # Public game state information.
         phase_info = f"Current phase: {self.phase}"
         players_info = "Players: " + ", ".join(
             [f"{p} ({'Alive' if self.alive_players[p]['alive'] else 'Dead'})" for p in self.players]
         )
-    
+
         # Private info for the current player.
-        player_role = self.alive_players[player].get('role')
+        player_info = self.alive_players[player]
+        player_role = player_info.get('role')
+    
         if player_role:
-            private_info = f"Your role: {player_role.name} - {player_role.ability}"
+            private_info = f"Your role: {player_role.name} - {player_role.description}"
         else:
             private_info = "Your role has not been assigned."
-    
+
         # Append additional state features as needed.
         additional_info = self.game_state_features_to_string(player)
-    
-        return f"{phase_info}\n{players_info}\n{private_info}\n\n{additional_info}\n{self.alive_players[player]['Information']}"
+
+        return f"{phase_info}\n{players_info}\n{private_info}\n{player_info['Information']}\n\n{additional_info}"
 
     
     def generate_prompt(self, current_player, conversation_manager):
@@ -317,24 +430,20 @@ class BloodOnTheClocktowerState(BasicGameState):
             # Ensure audience is handled as a list.
             self.add_next_player(audience)
             self.plan_action(speaker, conversation_manager, model, print_output, server_based)
+            
+        elif action_type == "Action":
+            effect = action.get("Effect")
+            target = action.get("Target")
+            if effect is not None and target is not None:
+                None
+                
+        elif action_type == 'Nominate':
+            self.phase = 'Nominate'
 
-        elif action_type == "NightAction":
-                # Extract role, description, and optionally target or speaker information.
-                role = action.get("Role")
-                description = action.get("Description")
-                speaker = action.get("Speaker")
-        
-                # Process the night action based on the role's ability.
-                # This is a stub method; implement role-specific logic as needed.
-                self.perform_night_ability(speaker, action)
-        
-                # Log the night action in the conversation history.
-                conversation_manager.add_message_to_conversation(
-                    speaker, speaker, f"I performed my night action as {role}: {description}")
 
 
 def reward_function(node, new_node):
-    return 0
+    return -reward_node
 
 # --- --- main --- ---
 
@@ -355,7 +464,6 @@ for i in range(num_games):
     print('Start Game')
     print(str(i) + ' / ' + str(num_games))
     game_state = BloodOnTheClocktowerState(['A', 'B', 'C', 'D', 'E'], roles)
-    game_state.add_next_player('D')
     # Create a dummy ConversationManager and add a conversation.
     conv_manager = ConversationManager()
 

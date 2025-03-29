@@ -184,6 +184,15 @@ class BasicGameState:
     def get_no_action(self):
         return self.no_action
 
+    def get_next_players_count(self):
+        """
+        Returns the number of players in the next_players list.
+        """
+        return len(self.next_players)
+
+    def update_game_state(self):
+        None
+
     def randomly_select_player(self):
         """Randomly select one player from the list."""
         return random.choice(self.players)
@@ -580,7 +589,8 @@ def simulation_policy(node, model, print_output, server_based, num_child_node):
         conversation_manager_copy.store_prompt_outcome(prompt, json.dumps(action))
         game_state_copy.apply_action(conversation_manager_copy, action, model, print_output, server_based)
 
-        if game_state_copy.is_terminal() is not None:
+        game_state_copy.update_game_state()
+        if game_state_copy.is_terminal() is not None and game_state_copy.is_terminal() is True:
             terminal_state = True
 
         child_node = MCTSNode(game_state_copy, action, conversation_manager_copy, terminal_state, parent=node)
