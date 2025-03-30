@@ -29,7 +29,7 @@ num_games = 5 # 35
 num_iterations = 16 # 50
 
 print_output = True
-max_token = 150
+max_token = 250
 
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 #model_id = "deepseek-ai/deepseek-llm-7b-chat"
@@ -51,8 +51,8 @@ class Role:
     def get_first_night_info(self, alive_players, player_infos):
         return None
     
-    def get_action_space_description(self):
-        None
+    def get_action_space(self, phase):
+        return None
     
 class Washerwoman(Role):
     def __init__(self, name, team, alignment, description, action):
@@ -131,14 +131,19 @@ class Poisoner(Role):
         else:
             player_info = "No Demon found."
             
-        return player_info 
+        return player_info
+
+    def get_action_space(self, phase):
+        if phase == 'Night':
+            return str('{"type": "Action", "Description": "{self.description}", "Target": "None", "Effect": "Poison"}')
+        return None
     
 class Imp(Role):
     def __init__(self, name, team, alignment, description, action):
         super().__init__(name, team, alignment, description, action)     
 
     def get_first_night_info(self, alive_players, player_infos):
-        minions = [p for p, data in alive_players.items() if data['role'] and data['role'].alignment == "Minion"]
+        minions = [p for p, data in alive_players.items() if data['role'] and data['role'].team == "Minion"]
             
         # Update the Imp's Information field with their minions
         if minions:
@@ -252,7 +257,7 @@ class BloodOnTheClocktowerState(BasicGameState):
 
         if self.phase == 'Night' and self.get_next_players_count() == 0:
             self.phase = 'Day'
-        elif self.phase == 'Day' and self.conv_count_day < self.max_conv_count_per_day and self.phase != 'Nominate':
+        elif self.phase == 'Day' and self.conv_count_day >= self.max_conv_count_per_day and self.phase != 'Nominate':
             self.conv_count_day = 0
             self.phase = 'Night'
             
@@ -296,26 +301,22 @@ class BloodOnTheClocktowerState(BasicGameState):
         if not player_info or not player_info['alive']:
             return "No actions available (player is dead or not found)."   
     
-        action = player_info['role'].get_action_space_description()
+        role = player_info.get('role') 
+        action = role.get_action_space(self.phase)
         if action is not None:
-            actions.extend(action)
+            actions.append(action)
 
         # Day phase actions
         if self.phase == "Day":
             # Always available action: Message
-            actions.append('{"type": "Message", "Speaker": null, "Audience": null, "Message": null}')
+            actions.append('{"type": "Message", "Speaker": None, "Audience": None, "Message": None}')
             # Nominate action (if the player hasn't already nominated someone)
-            if not player_info.get('nominated', False):
-                actions.append('{"type": "Nominate", "Nominator": null, "Nominee": null}')
+            actions.append('{"type": "Nominate", "Nominator": None, "Nominee": None}')
             # Vote action is available in the day phase
-            actions.append('{"type": "Vote", "Voter": null, "VoteTarget": null}')
-    
-        role = player_info.get('role')
-        if role is not None and role.description:
-            actions.append(
-                f'{{"type": "Action", "Description": "{role.description}", "Target": "None", "Effect": "Poison"}}'
-            )
-    
+        elif self.phase == "Nominate":
+            actions.append('{"type": "Vote", "Voter": None, "VoteTarget": None}')
+   
+
         # Always include a NoAction option.
         actions.append(str(self.no_action).replace("'", '"'))
     
