@@ -204,6 +204,14 @@ class BasicGameState:
                 self.next_players.append(p)  # Add only valid players
         else:
             self.next_players.append(player)  # Add a single valid player
+            
+    def empty_next_players(self):
+        """Empties the next_players queue."""
+        self.next_players.clear()  # Clears the list of players
+        
+    def count_next_players(self):
+        """Returns the count of players in the next_players queue."""
+        return len(self.next_players)
 
     def get_player(self):
         """Get the first player in queue or randomly select if empty."""
@@ -735,7 +743,7 @@ class MCTS:
             print(f"{indent}-")
         else:
             terminal_status = " (Terminal)" if node.is_terminal else ""
-            print(f"{indent}- Guessed Number: {node.state.guess}, Correct Number: {node.state.secret_number} Visits: {node.visits}, Value: {node.value:.2f}{terminal_status}")
+            print(f"{indent}- Visits: {node.visits}, Value: {node.value:.2f}{terminal_status}")
 
         for child in node.children:
             self.print_tree(child, depth + 1)

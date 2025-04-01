@@ -26,7 +26,7 @@ reward_node = 0.25
 
 num_child_node = 1 # 3
 num_games = 5 # 35
-num_iterations = 16 # 50
+num_iterations = 50 # 50
 
 print_output = True
 max_token = 250
@@ -47,18 +47,29 @@ class Role:
         self.alignment = alignment
         self.description = description
         self.action = action
+        self.is_poisoned = False
  
-    def get_first_night_info(self, alive_players, player_infos):
+    def get_night_info(self, alive_players, player_infos, day_count = 0):
         return None
-    
+
     def get_action_space(self, phase):
-        return None
+        actions = []        
+        return actions
     
+    def apply_action(self, other_players):
+        None
+        
+    def set_poison(self, poison: bool) -> None:
+        self.is_poisoned = poison
+ 
+    def get_poison(self) -> bool:
+        return self.is_poisoned
+        
 class Washerwoman(Role):
     def __init__(self, name, team, alignment, description, action):
         super().__init__(name, team, alignment, description, action)     
 
-    def get_first_night_info(self, alive_players, player_infos):
+    def get_night_info(self, alive_players, player_infos, day_count = 0):
         minion_players = [p for p, data in alive_players.items() if data['role'] and data['role'].team == "Town" and p != self.name]
     
         if minion_players:
@@ -74,6 +85,18 @@ class Washerwoman(Role):
         
             # Update the Washerwoman's information
             player_info = f"You learn that {chosen_town} or {random_player} is a {chosen_town_role}"
+        elif self.is_poisoned:
+            chosen_town = random.choice(alive_players)
+            chosen_town_role = alive_players[chosen_town]['role'].name
+        
+            # Get the list of players excluding the Washerwoman and the chosen Townsfolk
+            available_players = [p for p in alive_players if p != self.name and p != alive_players]
+        
+            # Select another random player from the available players
+            random_player = random.choice(available_players)
+        
+            # Update the Washerwoman's information
+            player_info = f"You learn that {chosen_town} or {random_player} is a {chosen_town_role}"           
         else:
             player_info = "No Townsfolk available to provide information."
             
@@ -83,7 +106,7 @@ class Investigator(Role):
     def __init__(self, name, team, alignment, description, action):
         super().__init__(name, team, alignment, description, action)     
 
-    def get_first_night_info(self, alive_players, player_infos):
+    def get_night_info(self, alive_players, player_infos, day_count = 0):
         # Get a list of all Townsfolk players
         minion_players = [p for p, data in alive_players.items() if data['role'] and data['role'].team == "Minion" and p != self.name]
     
@@ -110,19 +133,28 @@ class Empath(Role):
     def __init__(self, name, team, alignment, description, action):
         super().__init__(name, team, alignment, description, action)     
 
-    def get_first_night_info(self, alive_players, player_infos):
+    def get_night_info(self, alive_players, player_infos, day_count = 0):
 
         alive_neighbors = [neighbor for neighbor in player_infos['neighbors'] if alive_players[neighbor]['alive']]
         evil_neighbors = [neighbor for neighbor in alive_neighbors if alive_players[neighbor]['role'].alignment == "Evil"]
         player_info = f"You sense that {len(evil_neighbors)} of your alive neighbors are evil."
             
-        return player_info 
-    
+        return player_info
+
+class Slayer(Role):
+    def __init__(self, name, team, alignment, description, action):
+        super().__init__(name, team, alignment, description, action)
+  
+class Ravekeeper(Role):
+    def __init__(self, name, team, alignment, description, action):
+        super().__init__(name, team, alignment, description, action)        
+
 class Poisoner(Role):
     def __init__(self, name, team, alignment, description, action):
-        super().__init__(name, team, alignment, description, action)     
+        super().__init__(name, team, alignment, description, action)
+        self.poisoned_player = None
 
-    def get_first_night_info(self, alive_players, player_infos):
+    def get_night_info(self, alive_players, player_infos, day_count = 0):
         demon = next((p for p, data in alive_players.items() if data['role'] and data['role'].name == "Imp"), None)
             
         # Update the Minion's Information field with their demon
@@ -134,15 +166,23 @@ class Poisoner(Role):
         return player_info
 
     def get_action_space(self, phase):
+        action_space = super().get_action_space(phase)
         if phase == 'Night':
-            return str('{"type": "Action", "Description": "{self.description}", "Target": "None", "Effect": "Poison"}')
-        return None
+            action_space.append(str('{"type": "Action", "Description": "{self.description}", "Speaker": None, "Target": "None", "Effect": "Poison"}'))
+        return action_space
+    
+    def apply_action(self, action, other_players):
+        if self.poisoned_player is not None:
+            other_players[self.poisoned_player]['role'].set_poison(False)
+        target = action.get("Target")
+        self.poisoned_player = target
+        other_players[self.poisoned_player]['role'].set_poison(True)
     
 class Imp(Role):
     def __init__(self, name, team, alignment, description, action):
         super().__init__(name, team, alignment, description, action)     
 
-    def get_first_night_info(self, alive_players, player_infos):
+    def get_night_info(self, alive_players, player_infos, day_count = 0):
         minions = [p for p, data in alive_players.items() if data['role'] and data['role'].team == "Minion"]
             
         # Update the Imp's Information field with their minions
@@ -163,9 +203,9 @@ roles = {
     #'Fortune Teller': Role('Fortune Teller', 'Town', 'Good', 'Each night, chooses two players. Learns if one is the Demon, but there is a Red Herring.', None),
     #'Undertaker': Role('Undertaker', 'Town', 'Good', 'Each night, learns which character died by execution that day.', None),
     #'Monk': Role('Monk', 'Town', 'Good', 'Each night, chooses a player (not themselves). That player is safe from the Demon that night.', None),
-    #'Ravenkeeper': Role('Ravenkeeper', 'Town', 'Good', 'If killed at night, learns one players character.', None),
+    'Ravenkeeper': Ravekeeper('Ravenkeeper', 'Town', 'Good', 'If killed at night, learns one players character.', None),
     #'Virgin': Role('Virgin', 'Town', 'Good', 'If nominated for the first time, and the nominator is a Townsfolk, they are executed immediately.', None),
-    #'Slayer': Role('Slayer', 'Town', 'Good', 'Once per game, publicly chooses a player. If that player is the Demon, they die.', None),
+    'Slayer': Slayer('Slayer', 'Town', 'Good', 'Once per game, publicly chooses a player. If that player is the Demon, they die.', None),
     #'Soldier': Role('Soldier', 'Town', 'Good', 'Cannot die at night.', None),
     #'Mayor': Role('Mayor', 'Town', 'Good', 'If only three players live & no execution occurs, your team wins. Might not die at night.', None),
     
@@ -185,8 +225,8 @@ roles = {
     'Imp': Imp('Imp', 'Demon', 'Evil', 'Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp.', None)
 }
 
-first_night_action = ["Poisoner"]
-night_action = ["Imp", "Poisoner"]
+first_night_order = ["Poisoner"]
+night_order = ["Imp", "Poisoner"]
 
 def roles_to_string(roles):
     """
@@ -209,23 +249,65 @@ class BloodOnTheClocktowerState(BasicGameState):
     def __init__(self, players, available_roles):
         super().__init__(players)
 
-        self.alive_players = {}
-
+        self.active_players = {}
         role_list = list(available_roles.values())  
-        #random.shuffle(role_list)  # Shuffle to randomize role assignment
+        self.nominated = ''
+        self.num_votes = 0
 
         self.conv_count_day = 0
         self.max_conv_count_per_day = 4
 
-        n = len(players)
+        self.assign_roles(players, role_list)
         for idx, player in enumerate(players):
-            left_neighbor = players[(idx - 1) % n]
-            right_neighbor = players[(idx + 1) % n]
+            neighbors = self.get_alive_neighbors(players, idx, self.active_players)
+            self.active_players[player]['neighbors'] = neighbors
 
-            # Assign a role from the shuffled list, ensuring roles cycle if there are more players than roles
-            assigned_role = role_list[idx % len(role_list)]
+        self.phase = 'Night' # Day, Nominate, Night
+        self.nominations = []
+        self.nominated = []
+        self.nomination_count = 0
+        self.nomination_count_max = 0
+        self.day_count = 0
+        self.execution = None
 
-            self.alive_players[player] = {
+
+    def assign_roles(self, players, role_list):
+        """
+        Assigns exactly three Townsfolk, one Minion, and one Imp from the role list.
+        Ensures correct role distribution while maintaining randomness.
+        """
+        # Step 1: Categorize roles
+        town_roles = [role for role in role_list if role.team == "Town"]
+        minion_roles = [role for role in role_list if role.team == "Minion"]
+        imp_roles = [role for role in role_list if role.team == "Demon"]
+
+        # Step 2: Ensure enough roles exist
+        if len(town_roles) < 3 or len(minion_roles) < 1 or len(imp_roles) < 1:
+            raise ValueError("Not enough roles available to meet selection criteria.")
+
+        # Step 3: Select roles
+        selected_roles = (
+            random.sample(town_roles, 3) +  # Pick 3 Townsfolk
+            random.sample(minion_roles, 1) +  # Pick 1 Minion
+            random.sample(imp_roles, 1)  # Pick 1 Imp
+        )
+
+        # Step 4: Shuffle the selected roles to randomize assignment
+        random.shuffle(selected_roles)
+
+        # Step 5: Assign roles to players
+        self.active_players = {}  # Reset player assignments
+        for idx, player in enumerate(players):
+            if idx < len(selected_roles):  # Ensure no out-of-index error
+                assigned_role = selected_roles[idx]
+            else:
+                assigned_role = random.choice(role_list)  # Fallback for extra players
+
+            # Step 6: Assign the role and initialize the player
+            left_neighbor = players[(idx - 1) % len(players)]
+            right_neighbor = players[(idx + 1) % len(players)]
+
+            self.active_players[player] = {
                 'role': assigned_role,
                 'alignment': assigned_role.alignment,  # Ensure alignment is stored
                 'alive': True,
@@ -236,51 +318,87 @@ class BloodOnTheClocktowerState(BasicGameState):
                 'neighbors': [left_neighbor, right_neighbor]
             }
             
-            if assigned_role.name in first_night_action:
+            if assigned_role.name in first_night_order:
                 self.add_next_player(player)
-                
-        # initial infos
-        self.first_night_info()
-
-        self.phase = 'Night' # Day, Nominate, Night
-        self.nominations = []
-        self.nominated = []
-        self.nomination_count = 0
-        self.day_count = 1
-        self.execution = None
 
     def update_game_state(self):
+        
+        # initial infos
+        if  self.day_count == 0 and self.count_next_players() == 0:
+            self.first_night_info()
+
         if self.phase == 'Day':
             self.conv_count_day = self.conv_count_day + 1
+        # Start night
         if self.phase == 'Day' and self.conv_count_day == 0:
             self.night_info()
 
         if self.phase == 'Night' and self.get_next_players_count() == 0:
             self.phase = 'Day'
-        elif self.phase == 'Day' and self.conv_count_day >= self.max_conv_count_per_day and self.phase != 'Nominate':
+        elif self.phase == 'Day' and self.conv_count_day >= self.max_conv_count_per_day and self.phase != 'Nomination':
             self.conv_count_day = 0
+            self.day_count = self.day_count + 1
             self.phase = 'Night'
             
+        if self.phase == 'Nomination':
+            count = self.count_next_players()
+            if count == 0:
+                self.phase = 'Night'
+            num_alive_players = len(self.active_players)
+            if self.num_votes > int(num_alive_players / 2):
+                self.active_players[self.nominated]['alive'] = False
+                self.nomination_count_max = self.num_votes
+            
+     
+    def get_alive_neighbors(self, players, idx, alive_players):
+        """
+        Returns the left and right alive neighbors of a player in a circular list.
+
+        :param players: List of all players.
+        :param idx: Index of the current player.
+        :param alive_players: Dictionary containing player statuses.
+        :return: A list of up to two alive neighbors in [left, right] order.
+        """
+        n = len(players)
+        left_idx, right_idx = (idx - 1) % n, (idx + 1) % n
+
+        # Find the first alive left neighbor
+        left_neighbor = None
+        for i in range(n):
+            candidate = players[(left_idx - i) % n]
+            if alive_players[candidate]['alive']:
+                left_neighbor = candidate
+                break
+
+        # Find the first alive right neighbor
+        right_neighbor = None
+        for i in range(n):
+            candidate = players[(right_idx + i) % n]
+            if alive_players[candidate]['alive']:
+                right_neighbor = candidate
+                break
+
+        return [left_neighbor, right_neighbor]
 
     def first_night_info(self):
         # initial infos
-        for player, player_info in self.alive_players.items():
+        for player, player_info in self.active_players.items():
             role = player_info.get('role')
             
-            information = role.get_first_night_info(self.alive_players, player_info)
+            information = role.get_night_info(self.active_players, player_info)
             if information is not None:
                 player_info['Information'] = information
                     
     def night_info(self):
         # night infos
-        for player, player_info in self.alive_players.items():
+        for player, player_info in self.active_players.items():
             role = player_info.get('role')
             if role is not None and role.name == "Washerwoman":
                 # Update the player's Information field with details.
                 player_info['Information'] = "You learn that one of two players is a specific Townsfolk."
             elif role is not None and role.name == "Empath":
-                alive_neighbors = [neighbor for neighbor in player_info['neighbors'] if self.alive_players[neighbor]['alive']]
-                evil_neighbors = [neighbor for neighbor in alive_neighbors if self.alive_players[neighbor]['role'].alignment == "Evil"]
+                alive_neighbors = [neighbor for neighbor in player_info['neighbors'] if self.active_players[neighbor]['alive']]
+                evil_neighbors = [neighbor for neighbor in alive_neighbors if self.active_players[neighbor]['role'].alignment == "Evil"]
                 player_info['Information'] += f"You sense that {len(evil_neighbors)} of your alive neighbors are evil."
 
     def get_action_space_description(self, current_player):
@@ -296,30 +414,32 @@ class BloodOnTheClocktowerState(BasicGameState):
         :return: A string describing the available actions, each on a new line.
         """
         actions = []
-        player_info = self.alive_players.get(current_player)
+        player_info = self.active_players.get(current_player)
     
         if not player_info or not player_info['alive']:
-            return "No actions available (player is dead or not found)."   
+            return "No actions available (player is dead or not found)."
     
-        role = player_info.get('role') 
+        role = player_info.get('role')
         action = role.get_action_space(self.phase)
         if action is not None:
-            actions.append(action)
-
+            actions.extend(action)
+            
         # Day phase actions
-        if self.phase == "Day":
+        if self.phase == "Day" and self.conv_count_day < self.max_conv_count_per_day:
             # Always available action: Message
             actions.append('{"type": "Message", "Speaker": None, "Audience": None, "Message": None}')
             # Nominate action (if the player hasn't already nominated someone)
             actions.append('{"type": "Nominate", "Nominator": None, "Nominee": None}')
             # Vote action is available in the day phase
+        elif self.phase == "Day":
+            actions.append('{"type": "Nominate", "Nominator": None, "Nominee": None}')
+            # Vote action is available in the day phase            
         elif self.phase == "Nominate":
             actions.append('{"type": "Vote", "Voter": None, "VoteTarget": None}')
-   
 
         # Always include a NoAction option.
         actions.append(str(self.no_action).replace("'", '"'))
-    
+        
         return "\n".join(actions)
 
     def is_terminal(self):
@@ -331,12 +451,12 @@ class BloodOnTheClocktowerState(BasicGameState):
         # Check if at least one living player has the Imp role.
         imp_alive = any(
             player_info['alive'] and player_info['role'].name == 'Imp'
-            for player_info in self.alive_players.values()
+            for player_info in self.active_players.values()
         )
     
         # Count the number of alive players.
         alive_count = sum(
-            1 for player_info in self.alive_players.values() if player_info['alive']
+            1 for player_info in self.active_players.values() if player_info['alive']
         )
     
         return (not imp_alive) or (alive_count <= 2)
@@ -359,11 +479,11 @@ class BloodOnTheClocktowerState(BasicGameState):
         # Public game state information.
         phase_info = f"Current phase: {self.phase}"
         players_info = "Players: " + ", ".join(
-            [f"{p} ({'Alive' if self.alive_players[p]['alive'] else 'Dead'})" for p in self.players]
+            [f"{p} ({'Alive' if self.active_players[p]['alive'] else 'Dead'})" for p in self.players]
         )
 
         # Private info for the current player.
-        player_info = self.alive_players[player]
+        player_info = self.active_players[player]
         player_role = player_info.get('role')
     
         if player_role:
@@ -374,7 +494,9 @@ class BloodOnTheClocktowerState(BasicGameState):
         # Append additional state features as needed.
         additional_info = self.game_state_features_to_string(player)
 
-        return f"{phase_info}\n{players_info}\n{private_info}\n{player_info['Information']}\n\n{additional_info}"
+        roles_info = "These roles are in the game: " + ", ".join(sorted(roles)) + " You can use the rules to bluff."
+
+        return f"{phase_info}\n{players_info}\n{roles_info}\n{private_info}\n{player_info['Information']}\n\n{additional_info}"
 
     
     def generate_prompt(self, current_player, conversation_manager):
@@ -435,11 +557,23 @@ class BloodOnTheClocktowerState(BasicGameState):
         elif action_type == "Action":
             effect = action.get("Effect")
             target = action.get("Target")
-            if effect is not None and target is not None:
-                None
+            speaker = action.get("Speaker")
+            if effect is not None and target is not None and speaker is not None:
+                self.active_players[speaker]['role'].apply_action(action, self.active_players)
                 
         elif action_type == 'Nominate':
-            self.phase = 'Nominate'
+            self.phase = 'Nomination'
+            self.nominated = action.get("Nominee")
+            self.empty_next_players()
+            # Add all alive players to next_players list
+            for player, player_info in self.active_players.items():
+                if player_info['alive']:
+                    self.add_next_player(player)            
+            
+        elif action_type == 'Vote':
+            if action.get("VoteTarget"):
+                self.num_votes = self.num_votes + 1
+
 
 
 
@@ -451,7 +585,7 @@ def reward_function(node, new_node):
 log = []
 start_time = time.time()  # Start timing
 
-folder_path = 'training'
+folder_path = 'training_botc'
 conversationManager = ConversationManager()
 
 # Define a dummy player_to_idx mapping for graph construction (for players A, B, C, D).
@@ -476,18 +610,14 @@ for i in range(num_games):
 
     print(mcts.print_tree())
 
-    print('Secret number: ' + str(best_node.state.secret_number))
-    print('Guess: ' + str(best_node.state.guess))
-    print('Liar: ' + str(game_state.liar))
-    #conv_manager.get_all_conversations_for_player_print()
-    #conv_manager.print_all_conversations()
-    if game_state.guess is not None and game_state.secret_number is not None:
+    print('Alive players: ' + str(best_node.state.alive_players))
+    if len(best_node.state.alive_players) > 2:
         print("Result: " + str(int(game_state.guess) == int(game_state.secret_number)))
 
-    if str(best_node.state.guess) == str(best_node.state.secret_number) and best_node.value >= 100:
+    if len(best_node.state.alive_players) > 2 and best_node.value >= 100:
         num_correct_high_reward_games = num_correct_high_reward_games + 1
 
-    if str(best_node.state.guess) == str(best_node.state.secret_number):
+    if len(best_node.state.alive_players) > 2:
         num_correct_games = num_correct_games + 1
         log.extend(best_node.conversation_manager.get_prompt_outcomes())        
 
