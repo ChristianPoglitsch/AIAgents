@@ -366,19 +366,19 @@ class ConversationManager:
             if act.get("type") in ["Message"]:
                 self.add_message_to_conversation(participants, speaker, act)
 
-    def get_conversation_for_player(self, player_name, num_convs = 4) -> Conversation:
+    def get_conversation_for_player(self, player_name, num_convs = 3) -> Conversation:
         result = []
         for participants_tuple, conv in self.conversations.items():
             if player_name in participants_tuple:
                 result.append(conv.history[-num_convs:])
         return result  # Return only the last `num_convs` conversations
 
-    def get_conversation_history_for_player(self, current_player, num_convs = 4) -> str:
+    def get_conversation_history_for_player(self, current_player, num_convs = 3) -> str:
         """
         Retrieves and returns a formatted conversation history for the given player.
 
         :param current_player: The name of the player for whom to retrieve the conversation history.
-        :param num_convs: The number of recent conversations to retrieve (default: 4).
+        :param num_convs: The number of recent conversations to retrieve (default: 3).
         :return: A formatted string containing the conversation history, or a default message if none exist.
         """
         convs = self.get_conversation_for_player(current_player, num_convs)
