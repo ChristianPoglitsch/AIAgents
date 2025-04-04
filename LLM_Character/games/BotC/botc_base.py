@@ -564,12 +564,13 @@ def simulation_policy(node, model, print_output, server_based, num_child_node):
     :return: A new (game_state, conversation_manager) pair.
     """
     game_state = node.state
+    game_state.update_game_state()
     conversation_manager = node.conversation_manager    
     player = game_state.get_player()
     terminal_state = False
     result_action = []
-    prompt = ''
-    
+    prompt = ''   
+
     for i in range(num_child_node):
         model.set_temperature(min(0.2, 1.2 - i * 0.4))
         prompt, result = game_state.create_action(player, conversation_manager, model, print_output, server_based)
@@ -596,8 +597,7 @@ def simulation_policy(node, model, print_output, server_based, num_child_node):
 
         conversation_manager_copy.store_prompt_outcome(prompt, json.dumps(action))
         game_state_copy.apply_action(conversation_manager_copy, action, model, print_output, server_based)
-
-        game_state_copy.update_game_state()
+        
         if game_state_copy.is_terminal() is not None and game_state_copy.is_terminal() is True:
             terminal_state = True
 
