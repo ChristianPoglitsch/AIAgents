@@ -366,14 +366,14 @@ class ConversationManager:
             if act.get("type") in ["Message"]:
                 self.add_message_to_conversation(participants, speaker, act)
 
-    def get_conversation_for_player(self, player_name, num_convs = 3) -> Conversation:
+    def get_conversation_for_player(self, player_name, num_convs = 2) -> Conversation:
         result = []
         for participants_tuple, conv in self.conversations.items():
             if player_name in participants_tuple:
                 result.append(conv.history[-num_convs:])
         return result  # Return only the last `num_convs` conversations
 
-    def get_conversation_history_for_player(self, current_player, num_convs = 3) -> str:
+    def get_conversation_history_for_player(self, current_player, num_convs = 2) -> str:
         """
         Retrieves and returns a formatted conversation history for the given player.
 
@@ -565,7 +565,7 @@ def simulation_policy(node, model, print_output, server_based, num_child_node):
     """
     game_state = node.state
     game_state.update_game_state()
-    conversation_manager = node.conversation_manager    
+    conversation_manager = node.conversation_manager
     player = game_state.get_player()
     terminal_state = False
     result_action = []

@@ -20,16 +20,17 @@ server_based = True
 store_data = False
 show_training_data = False
 
-reward_terminal = 16
+reward_terminal_good = 16
+reward_terminal_evil = 16
 reward_small = 4
 reward_node = 0.25
 
 num_child_node = 1 # 3
-num_games = 5 # 35
+num_games = 1 # 35
 num_iterations = 50 # 50
 
 print_output = True
-max_token = 250
+max_token = 400
 
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 #model_id = "deepseek-ai/deepseek-llm-7b-chat"
@@ -190,6 +191,18 @@ class Investigator(Role):
         
             # Update the Washerwoman's information
             player_info = f"You learn that {chosen_town} or {random_player} is a {chosen_town_role}"
+        elif self.is_poisoned:
+            chosen_town = random.choice(alive_players)
+            chosen_town_role = alive_players[chosen_town].get_role()
+        
+            # Get the list of players excluding the Washerwoman and the chosen Townsfolk
+            available_players = [p for p in alive_players if p != self.role and p != alive_players]
+        
+            # Select another random player from the available players
+            random_player = random.choice(available_players)
+        
+            # Update the Washerwoman's information
+            player_info = f"You learn that {chosen_town} or {random_player} is a {chosen_town_role}"           
         else:
             player_info = "No Townsfolk available to provide information."
             
@@ -205,7 +218,10 @@ class Empath(Role):
         alive_neighbors = [neighbor for neighbor in player_infos.get_neighbors() if alive_players[neighbor].get_alive()]
         evil_neighbors = [neighbor for neighbor in alive_neighbors if alive_players[neighbor].get_alignment() == "Evil"]
         player_info = f"You sense that {len(evil_neighbors)} of your alive neighbors are evil."
-            
+           
+        if self.is_poisoned:
+            evil_neighbors = random.randint(0, 2)
+            player_info = f"You sense that {evil_neighbors} of your alive neighbors are evil."
         return player_info
 
 class Slayer(Role):
@@ -228,6 +244,7 @@ class Poisoner(Role):
     def __init__(self, name, team, alignment, description, action):
         super().__init__(name, team, alignment, description, action)
         self.poisoned_player = None
+        self.poisoned = False
 
     def set_info(self, alive_players, player_infos, day_count = 0):
         demon = next((p for p, data in alive_players.items() if data.get_role() and data.get_role() == "Imp"), None)
@@ -252,10 +269,18 @@ class Poisoner(Role):
         target = action.get("Target")
         self.poisoned_player = target
         other_players[self.poisoned_player].set_poison(True)
+        self.poisoned = True
+        
+    def get_reward(self, action) -> int:
+        if self.poisoned:
+            self.poisoned = False
+            return reward_terminal_evil * 2
+        return super().get_reward(action)
     
 class Imp(Role):
     def __init__(self, name, team, alignment, description, action):
-        super().__init__(name, team, alignment, description, action)     
+        super().__init__(name, team, alignment, description, action)
+        self.killed_tonight = False
 
     def set_info(self, alive_players, player_infos, day_count = 0):
         minions = [p for p, data in alive_players.items() if data.get_role() and data.get_team() == "Minion"]
@@ -277,6 +302,13 @@ class Imp(Role):
     def apply_action(self, action, other_players):
         target = action.get("Target")
         other_players[target].set_alive(False)
+        self.killed_tonight = True
+        
+    def get_reward(self, action) -> int:
+        if self.killed_tonight:
+            self.killed_tonight = False
+            return reward_terminal_evil * 2
+        return super().get_reward(action)
 
 roles = {
     # Townsfolk Roles
@@ -311,7 +343,7 @@ roles = {
 }
 
 first_night_order = ["Poisoner", "Washerwoman", "Investigator", "Empath"]
-night_order = ["Imp", "Poisoner"]
+night_order = ["Poisoner", "Imp", "Empath", "Ravekeeper"]
 
 def roles_to_string(roles):
     """
@@ -373,14 +405,21 @@ class BloodOnTheClocktowerState(BasicGameState):
             raise ValueError("Not enough roles available to meet selection criteria.")
 
         # Step 3: Select roles
-        selected_roles = (
-            random.sample(town_roles, 3) +  # Pick 3 Townsfolk
-            random.sample(minion_roles, 1) +  # Pick 1 Minion
-            random.sample(imp_roles, 1)  # Pick 1 Imp
-        )
+        #selected_roles = (
+        #    random.sample(town_roles, 3) +  # Pick 3 Townsfolk
+        #    random.sample(minion_roles, 1) +  # Pick 1 Minion
+        #    random.sample(imp_roles, 1)  # Pick 1 Imp
+        #)
 
         # Step 4: Shuffle the selected roles to randomize assignment
-        random.shuffle(selected_roles)
+        #random.shuffle(selected_roles)
+
+        # Temp!
+        selected_roles = [town_roles[0]]
+        selected_roles.append(town_roles[1])
+        selected_roles.append(town_roles[2])
+        selected_roles.append(minion_roles[0])
+        selected_roles.append(imp_roles[0])
 
         # Step 5: Assign roles to players
         self.active_players = {}  # Reset player assignments
@@ -400,6 +439,9 @@ class BloodOnTheClocktowerState(BasicGameState):
 
     def update_game_state(self):
         
+        if self.is_terminal():
+            return
+
         # initial infos
         if  self.day_count == 0:
             self.night_info(first_night_order)
@@ -411,21 +453,23 @@ class BloodOnTheClocktowerState(BasicGameState):
         if self.phase == 'Night' and self.get_next_players_count() == 0:
             self.phase = 'Day'
             self.day_count = self.day_count + 1
-        elif self.phase == 'Day' and self.conv_count_day >= self.max_conv_count_per_day and self.phase != 'Nomination':
+        elif self.phase == 'Day' and self.conv_count_day >= self.max_conv_count_per_day and self.phase != 'Nominate':
             self.conv_count_day = 0
             self.day_count = self.day_count + 1
             self.phase = 'Night'
             self.empty_next_players()
             self.night_info(night_order)
             
-        if self.phase == 'Nomination':
-            count = self.count_next_players()
-            if count == 0:
-                self.phase = 'Night'
+        if self.phase == 'Nominate':
             num_alive_players = len(self.active_players)
             if self.num_votes > int(num_alive_players / 2):
                 self.active_players[self.nominated].set_alive(False)
                 self.nomination_count_max = self.num_votes
+            count = self.count_next_players()
+            if count == 0:
+                self.phase = 'Night'
+                self.empty_next_players()
+                self.night_info(night_order)
             
      
     def get_alive_neighbors(self, players, idx, alive_players):
@@ -496,9 +540,6 @@ class BloodOnTheClocktowerState(BasicGameState):
         actions = []
         player_info = self.active_players.get(current_player)
     
-        if not player_info or not player_info.get_alive():
-            return "No actions available (player is dead or not found)."
-    
         action = player_info.get_action_space(self.phase)
         if action is not None:
             actions.extend(action)
@@ -514,7 +555,7 @@ class BloodOnTheClocktowerState(BasicGameState):
             actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None}')
             # Vote action is available in the day phase            
         elif self.phase == "Nominate":
-            actions.append('{"type": "Vote", "Voter": None, "VoteTarget": None}')
+            actions.append('{"type": "Vote", "Speaker": None')
 
         # Always include a NoAction option.
         actions.append(str(self.no_action).replace("'", '"'))
@@ -557,6 +598,8 @@ class BloodOnTheClocktowerState(BasicGameState):
 
         # Public game state information.
         phase_info = f"Current phase: {self.phase}"
+        if self.phase == 'Nominate':
+            phase_info = phase_info + f"\nNominated is {self.nominated}"
         players_info = "Players: " + ", ".join(
             [f"{p} ({'Alive' if self.active_players[p].get_alive() else 'Dead'})" for p in self.players]
         )
@@ -567,7 +610,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         # Append additional state features as needed.
         additional_info = self.game_state_features_to_string(player)
 
-        roles_info = "These roles are in the game: " + ", ".join(sorted(roles)) + " You can use the rules to bluff."
+        roles_info = "These roles are in the game: " + ", ".join(sorted(roles)) + " .You can use the rules to bluff."
 
         return f"{phase_info}\n{players_info}\n{roles_info}\n{private_info}\n{player_info.get_information()}\n\n{additional_info}"
 
@@ -644,25 +687,23 @@ class BloodOnTheClocktowerState(BasicGameState):
             self.plan_action(speaker, conversation_manager, model, print_output, server_based)
             
         elif action_type == "Action":
-            effect = action.get("Effect")
             target = action.get("Target")
             speaker = action.get("Speaker")
-            if effect is not None and target is not None and speaker is not None:
+            if target is not None and speaker is not None:
                 self.active_players[speaker].apply_action(action, self.active_players)
                 
         elif action_type == 'Nominate':
             self.num_nominations = self.num_nominations + 1
-            self.phase = 'Nomination'
+            self.phase = 'Nominate'
             self.nominated = action.get("Nominee")
             self.empty_next_players()
             # Add all alive players to next_players list
             for player, player_info in self.active_players.items():
                 if player_info.get_alive():
-                    self.add_next_player(player)            
+                    self.add_next_player(player)
             
         elif action_type == 'Vote':
-            if action.get("VoteTarget"):
-                self.num_votes = self.num_votes + 1
+            self.num_votes = self.num_votes + 1
 
 
 
@@ -671,59 +712,69 @@ def reward_function(node, new_node):
 
 # --- --- main --- ---
 
-log = []
-start_time = time.time()  # Start timing
+def play_game():
+    log = []
+    start_time = time.time()  # Start timing
 
-folder_path = 'training_botc'
-conversationManager = ConversationManager()
+    folder_path = 'training_botc'
+    conversationManager = ConversationManager()
 
-# Define a dummy player_to_idx mapping for graph construction (for players A, B, C, D).
-player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
+    # Define a dummy player_to_idx mapping for graph construction (for players A, B, C, D).
+    player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 
-num_correct_games = 0
-num_correct_high_reward_games = 0
-model = init_model(model_id, server_based, max_token)
+    num_correct_games = 0
+    num_correct_high_reward_games = 0
+    model = init_model(model_id, server_based, max_token)
 
-for i in range(num_games):
-    print('Start Game')
-    print(str(i) + ' / ' + str(num_games))
-    game_state = BloodOnTheClocktowerState(['A', 'B', 'C', 'D', 'E'], roles)
-    # Create a dummy ConversationManager and add a conversation.
-    conv_manager = ConversationManager()
+    for i in range(num_games):
+        print('Start Game')
+        print(str(i) + ' / ' + str(num_games))
+        game_state = BloodOnTheClocktowerState(['A', 'B', 'C', 'D', 'E'], roles)
+        # Create a dummy ConversationManager and add a conversation.
+        conv_manager = ConversationManager()
 
-    # Create an MCTS instance
-    mcts = MCTS(simulation_policy, reward_function, num_child_node, iterations=num_iterations)
+        # Create an MCTS instance
+        mcts = MCTS(simulation_policy, reward_function, num_child_node, iterations=num_iterations)
 
-    # Run MCTS to get the best action/state
-    best_node = mcts.search(game_state, conv_manager, model, print_output, server_based)
+        # Run MCTS to get the best action/state
+        best_node = mcts.search(game_state, conv_manager, model, print_output, server_based)
 
-    print(mcts.print_tree())
+        print(mcts.print_tree())
 
-    print('Alive players: ' + str(best_node.state.get_player_info()))
-    print('Demons alive: ' + str(best_node.state.get_demons_alive()))
+        print('Alive players: ' + str(best_node.state.get_player_info()))
+        print('Demons alive: ' + str(best_node.state.get_demons_alive()))
     
-    #if len(best_node.state.alive_players) > 2:
-    #    num_correct_games = num_correct_games + 1
-    #    log.extend(best_node.conversation_manager.get_prompt_outcomes())        
-    #
-    #    if log and store_data:
-    #        conversationManager.append_prompt_outcomes(best_node.conversation_manager.get_prompt_outcomes())
+        #if len(best_node.state.alive_players) > 2:
+        #    num_correct_games = num_correct_games + 1
+        #    log.extend(best_node.conversation_manager.get_prompt_outcomes())        
+        #
+        #    if log and store_data:
+        #        conversationManager.append_prompt_outcomes(best_node.conversation_manager.get_prompt_outcomes())
 
-    if show_training_data:
-        dataset = load_from_disk(folder_path)
-        print("Dataset loaded from:", folder_path)
-        for record in dataset:
-            print("--- --- ---")
-            print(record["input"])
-            print("*** *** ***")
-            print(record["output"])
-            print("--- --- ---")
+        if show_training_data:
+            dataset = load_from_disk(folder_path)
+            print("Dataset loaded from:", folder_path)
+            for record in dataset:
+                print("--- --- ---")
+                print(record["input"])
+                print("*** *** ***")
+                print(record["output"])
+                print("--- --- ---")
 
-print("Successfull games: " + str(num_correct_games) + " / Successfull games (w high Reward): " + str(num_correct_high_reward_games) + " / Played games: " + str(num_games))
+    print("Successfull games: " + str(num_correct_games) + " / Successfull games (w high Reward): " + str(num_correct_high_reward_games) + " / Played games: " + str(num_games))
 
-end_time = time.time()
-elapsed_time = end_time - start_time
+    end_time = time.time()
+    elapsed_time = end_time - start_time
 
-if store_data and num_correct_games > 0:
-    conversationManager.export_prompt_outcome_log(folder_path, True)
-print(f"Execution time: {elapsed_time:.6f} seconds")
+    if store_data and num_correct_games > 0:
+        conversationManager.export_prompt_outcome_log(folder_path, True)
+    print(f"Execution time: {elapsed_time:.6f} seconds")
+    
+
+def main():
+    play_game()
+
+if __name__ == "__main__":
+    main()
+
+
