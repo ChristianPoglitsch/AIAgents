@@ -1,12 +1,9 @@
-import json
 import random
-import copy
 import time
 
 from datasets import load_from_disk
 
 from botc_base import BasicGameState
-from botc_base import MCTSNode
 from botc_base import MCTS
 from botc_base import ConversationManager
 from botc_base import MCTS
@@ -17,16 +14,16 @@ from botc_base import simulation_policy
 model = []
 
 server_based = True
-store_data = False
+store_data = True
 show_training_data = False
 
-reward_terminal_good = 16
+reward_terminal_good = 32
 reward_terminal_evil = 16
 reward_small = 4
 reward_node = 0.25
 
-num_child_node = 1 # 3
-num_games = 1 # 35
+num_child_node = 2 # 3
+num_games = 5 # 35
 num_iterations = 50 # 50
 
 print_output = True
@@ -71,7 +68,10 @@ class Role:
     def get_poison(self) -> bool:
         return self.is_poisoned
     
-    def get_reward(self, action) -> int:
+    def get_reward(self, state) -> int:
+        if self.alignment == 'Good' and state.execution:
+            state.active_players[state.execution].alignment == 'Evil'
+            return reward_terminal_good
         return -reward_node
   
     def get_alignment(self) -> str:
@@ -91,6 +91,9 @@ class Role:
         
     def get_neighbors(self):
         return self.neighbors
+    
+    def target_kill_night(self):
+        return True
 
     # Getter and Setter for 'alive'
     def get_alive(self):
@@ -227,6 +230,9 @@ class Empath(Role):
 class Slayer(Role):
     def __init__(self, name, team, alignment, description, action):
         super().__init__(name, team, alignment, description, action)
+        
+    def target_kill_night(self):
+        return False
   
 class Ravekeeper(Role):
     def __init__(self, name, team, alignment, description, action):
@@ -271,7 +277,8 @@ class Poisoner(Role):
         other_players[self.poisoned_player].set_poison(True)
         self.poisoned = True
         
-    def get_reward(self, action) -> int:
+    def get_reward(self, state) -> int:
+        action = state.active_player_action
         if self.poisoned:
             self.poisoned = False
             return reward_terminal_evil * 2
@@ -301,7 +308,8 @@ class Imp(Role):
     
     def apply_action(self, action, other_players):
         target = action.get("Target")
-        other_players[target].set_alive(False)
+        if other_players[target].target_kill_night():
+            other_players[target].set_alive(False)
         self.killed_tonight = True
         
     def get_reward(self, action) -> int:
@@ -372,13 +380,13 @@ class BloodOnTheClocktowerState(BasicGameState):
         self.num_votes = 0
 
         self.conv_count_day = 0
-        self.max_conv_count_per_day = 6
+        self.max_conv_count_per_day = 8
 
         self.assign_roles(players, role_list)
 
         self.phase = 'Night' # Day, Nominate, Night
-        self.nominations = []
-        self.nominated = []
+        self.nominations = None
+        self.nominated = None
         self.nomination_count = 0
         self.nomination_count_max = 0
         self.num_nominations = 0
@@ -442,7 +450,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         if self.is_terminal():
             return
 
-        # initial infos
+        # initial infos 
         if  self.day_count == 0:
             self.night_info(first_night_order)
             self.day_count = self.day_count + 1
@@ -453,6 +461,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         if self.phase == 'Night' and self.get_next_players_count() == 0:
             self.phase = 'Day'
             self.day_count = self.day_count + 1
+            self.execution = None
         elif self.phase == 'Day' and self.conv_count_day >= self.max_conv_count_per_day and self.phase != 'Nominate':
             self.conv_count_day = 0
             self.day_count = self.day_count + 1
@@ -460,13 +469,14 @@ class BloodOnTheClocktowerState(BasicGameState):
             self.empty_next_players()
             self.night_info(night_order)
             
-        if self.phase == 'Nominate':
-            num_alive_players = len(self.active_players)
-            if self.num_votes > int(num_alive_players / 2):
-                self.active_players[self.nominated].set_alive(False)
-                self.nomination_count_max = self.num_votes
+        if self.phase == 'Nominate':            
             count = self.count_next_players()
             if count == 0:
+                num_alive_players = len(self.active_players)
+                if self.num_votes > int(num_alive_players / 2):
+                    self.active_players[self.nominated].set_alive(False)
+                    self.nomination_count_max = self.num_votes
+                    self.execution = self.nominated
                 self.phase = 'Night'
                 self.empty_next_players()
                 self.night_info(night_order)
@@ -510,7 +520,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         """
         # Filter and sort players based on order
         sorted_players = sorted(
-            [player for player in self.active_players if self.active_players[player].role in order],
+            [player for player in self.active_players if self.active_players[player].role in order and self.active_players[player].alive == True],
             key=lambda p: order.index(self.active_players[p].role)
         )
 
@@ -555,7 +565,7 @@ class BloodOnTheClocktowerState(BasicGameState):
             actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None}')
             # Vote action is available in the day phase            
         elif self.phase == "Nominate":
-            actions.append('{"type": "Vote", "Speaker": None')
+            actions.append('{"type": "Vote", "Speaker": None}')
 
         # Always include a NoAction option.
         actions.append(str(self.no_action).replace("'", '"'))
@@ -580,6 +590,26 @@ class BloodOnTheClocktowerState(BasicGameState):
         )
     
         return (not imp_alive) or (alive_count <= 2)
+
+    def good_win(self):
+        imp_alive = any(
+            player_info.get_alive() and player_info.get_role() == 'Imp'
+            for player_info in self.active_players.values()
+        )        
+        return (not imp_alive)
+
+    def evil_win(self):
+        imp_alive = any(
+            player_info.get_alive() and player_info.get_role() == 'Imp'
+            for player_info in self.active_players.values()
+        )
+    
+        # Count the number of alive players.
+        alive_count = sum(
+            1 for player_info in self.active_players.values() if player_info.get_alive()
+        )
+    
+        return (imp_alive) or (alive_count <= 2)
 
     def get_game_state(self, player):
         """
@@ -607,6 +637,10 @@ class BloodOnTheClocktowerState(BasicGameState):
         # Private info for the current player.
         player_info = self.active_players[player]
         private_info = f"Your role: {player_info.get_role()} - {player_info.get_description()}"
+        if player_info.alignment == 'Good':
+            private_info = private_info + ' Try to nominate and vote for players who might be evil.\n'
+        elif player_info.alignment == 'Evil':
+            private_info = private_info + ' Try to nominate and vote for players who might be good.\n'
         # Append additional state features as needed.
         additional_info = self.game_state_features_to_string(player)
 
@@ -675,6 +709,9 @@ class BloodOnTheClocktowerState(BasicGameState):
         action_type = action.get("type")
         speaker = action.get("Speaker")
         
+        if speaker == None:
+            return False
+
         self.active_player = self.active_players[speaker]
         self.active_player_action = action
 
@@ -704,16 +741,17 @@ class BloodOnTheClocktowerState(BasicGameState):
             
         elif action_type == 'Vote':
             self.num_votes = self.num_votes + 1
+            
+        return True
 
 
 
 def reward_function(node, new_node):
-    return new_node.state.active_player.get_reward(new_node.state.active_player_action)
+    return new_node.state.active_player.get_reward(new_node.state)
 
 # --- --- main --- ---
 
 def play_game():
-    log = []
     start_time = time.time()  # Start timing
 
     folder_path = 'training_botc'
@@ -723,8 +761,10 @@ def play_game():
     player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 
     num_correct_games = 0
-    num_correct_high_reward_games = 0
     model = init_model(model_id, server_based, max_token)
+
+    good_wins = 0
+    evil_wins = 0
 
     for i in range(num_games):
         print('Start Game')
@@ -742,8 +782,13 @@ def play_game():
         print(mcts.print_tree())
 
         print('Alive players: ' + str(best_node.state.get_player_info()))
-        print('Demons alive: ' + str(best_node.state.get_demons_alive()))
+        print('Good win: ' + str(best_node.state.good_win()))
+        print('Evil win: ' + str(best_node.state.evil_win()))
     
+        if best_node.state.good_win():
+            good_wins = good_wins + 1
+        if best_node.state.evil_win():
+            evil_wins = evil_wins + 1           
         #if len(best_node.state.alive_players) > 2:
         #    num_correct_games = num_correct_games + 1
         #    log.extend(best_node.conversation_manager.get_prompt_outcomes())        
@@ -751,6 +796,11 @@ def play_game():
         #    if log and store_data:
         #        conversationManager.append_prompt_outcomes(best_node.conversation_manager.get_prompt_outcomes())
 
+        if store_data:
+            conversationManager.append_prompt_outcomes(best_node.conversation_manager.get_prompt_outcomes())
+
+        num_correct_games = num_correct_games + 1
+        
         if show_training_data:
             dataset = load_from_disk(folder_path)
             print("Dataset loaded from:", folder_path)
@@ -761,7 +811,7 @@ def play_game():
                 print(record["output"])
                 print("--- --- ---")
 
-    print("Successfull games: " + str(num_correct_games) + " / Successfull games (w high Reward): " + str(num_correct_high_reward_games) + " / Played games: " + str(num_games))
+    print("Good wins: " + str(good_wins) + " / Evil wins: " + str(evil_wins))
 
     end_time = time.time()
     elapsed_time = end_time - start_time

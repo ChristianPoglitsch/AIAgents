@@ -13,8 +13,8 @@ from LLM_Character.communication.incoming_messages import (
     UserData,
 )
 from LLM_Character.llm_comms.llm_api import LLM_API
-from LLM_Character.persona.persona import Persona
-from LLM_Character.persona.user import User
+from LLM_Character.depreciated.persona.persona import Persona
+from LLM_Character.depreciated.persona.user import User
 from LLM_Character.util import BASE_DIR, LOGGER_NAME, copyanything
 
 FS_STORAGE = BASE_DIR + "/LLM_Character/storage"

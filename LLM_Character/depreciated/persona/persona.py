@@ -11,27 +11,27 @@ from LLM_Character.communication.incoming_messages import (
     PersonaScratchData,
 )
 from LLM_Character.llm_comms.llm_api import LLM_API
-from LLM_Character.persona.cognitive_modules.converse import chatting
-from LLM_Character.persona.cognitive_modules.interact import interact
-from LLM_Character.persona.cognitive_modules.perceive import perceive
-from LLM_Character.persona.cognitive_modules.plan import plan
-from LLM_Character.persona.cognitive_modules.reflect import reflect
-from LLM_Character.persona.cognitive_modules.retrieve import (
+from LLM_Character.depreciated.persona.cognitive_modules.converse import chatting
+from LLM_Character.depreciated.persona.cognitive_modules.interact import interact
+from LLM_Character.depreciated.persona.cognitive_modules.perceive import perceive
+from LLM_Character.depreciated.persona.cognitive_modules.plan import plan
+from LLM_Character.depreciated.persona.cognitive_modules.reflect import reflect
+from LLM_Character.depreciated.persona.cognitive_modules.retrieve import (
     EventContext,
     retrieve_contextual_events,
 )
-from LLM_Character.persona.memory_structures.associative_memory.\
+from LLM_Character.depreciated.persona.memory_structures.associative_memory.\
     associative_memory import (
         AssociativeMemory,
     )
-from LLM_Character.persona.memory_structures.associative_memory.concept_node import (
+from LLM_Character.depreciated.persona.memory_structures.associative_memory.concept_node import (
     ConceptNode,
 )
-from LLM_Character.persona.memory_structures.scratch.persona_scratch import (
+from LLM_Character.depreciated.persona.memory_structures.scratch.persona_scratch import (
     PersonaScratch,
 )
-from LLM_Character.persona.memory_structures.scratch.user_scratch import UserScratch
-from LLM_Character.persona.memory_structures.spatial_memory import MemoryTree
+from LLM_Character.depreciated.persona.memory_structures.scratch.user_scratch import UserScratch
+from LLM_Character.depreciated.persona.memory_structures.spatial_memory import MemoryTree
 
 
 class Persona:

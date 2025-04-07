@@ -1,10 +1,10 @@
 import datetime
 
 from LLM_Character.llm_comms.llm_api import LLM_API
-from LLM_Character.persona.memory_structures.scratch.persona_scratch import (
+from LLM_Character.depreciated.persona.memory_structures.scratch.persona_scratch import (
     PersonaScratch,
 )
-from LLM_Character.persona.prompt_modules.prompt import generate_prompt
+from LLM_Character.depreciated.persona.prompt_modules.prompt import generate_prompt
 from LLM_Character.util import BASE_DIR
 
 COUNTER_LIMIT = 5

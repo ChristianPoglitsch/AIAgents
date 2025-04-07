@@ -3,7 +3,7 @@ import json
 import os
 from typing import Union
 
-from LLM_Character.persona.memory_structures.associative_memory.concept_node import (
+from LLM_Character.depreciated.persona.memory_structures.associative_memory.concept_node import (
     ConceptNode,
 )
 

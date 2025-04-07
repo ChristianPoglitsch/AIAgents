@@ -3,21 +3,21 @@ from typing import Tuple
 
 from LLM_Character.llm_comms.llm_api import LLM_API
 from LLM_Character.messages_dataclass import AIMessage, AIMessages
-from LLM_Character.persona.cognitive_modules.conversing.ending import _end_conversation
-from LLM_Character.persona.cognitive_modules.conversing.reacting import (
+from LLM_Character.depreciated.persona.cognitive_modules.conversing.ending import _end_conversation
+from LLM_Character.depreciated.persona.cognitive_modules.conversing.reacting import (
     _generate_response,
 )
-from LLM_Character.persona.memory_structures.associative_memory.associative_memory import (  # noqa: E501
+from LLM_Character.depreciated.persona.memory_structures.associative_memory.associative_memory import (  # noqa: E501
     AssociativeMemory,
 )
-from LLM_Character.persona.memory_structures.scratch.persona_scratch import (
+from LLM_Character.depreciated.persona.memory_structures.scratch.persona_scratch import (
     PersonaScratch,
 )
-from LLM_Character.persona.memory_structures.scratch.user_scratch import UserScratch
-from LLM_Character.persona.prompt_modules.converse_prompts.poignancy_chat import (
+from LLM_Character.depreciated.persona.memory_structures.scratch.user_scratch import UserScratch
+from LLM_Character.depreciated.persona.prompt_modules.converse_prompts.poignancy_chat import (
     run_prompt_poignancy_chat,
 )
-from LLM_Character.persona.prompt_modules.converse_prompts.poignancy_event import (
+from LLM_Character.depreciated.persona.prompt_modules.converse_prompts.poignancy_event import (
     run_prompt_poignancy_event,
 )
 from LLM_Character.util import LOGGER_NAME

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Dict
 
 from LLM_Character.llm_comms.llm_api import LLM_API
-from LLM_Character.persona.cognitive_modules.retrieving.util import (
+from LLM_Character.depreciated.persona.cognitive_modules.retrieving.util import (
     extract_importance,
     extract_recency,
     extract_relevance,
@@ -10,11 +10,11 @@ from LLM_Character.persona.cognitive_modules.retrieving.util import (
     retrieve_recent_sorted_nodes,
     top_highest_x_values,
 )
-from LLM_Character.persona.memory_structures.associative_memory.associative_memory import (  # noqa: E501
+from LLM_Character.depreciated.persona.memory_structures.associative_memory.associative_memory import (  # noqa: E501
     AssociativeMemory,
     ConceptNode,
 )
-from LLM_Character.persona.memory_structures.scratch.persona_scratch import (
+from LLM_Character.depreciated.persona.memory_structures.scratch.persona_scratch import (
     PersonaScratch,
 )
 

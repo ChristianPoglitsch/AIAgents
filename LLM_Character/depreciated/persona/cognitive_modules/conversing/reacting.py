@@ -2,19 +2,19 @@ from typing import Union
 
 from LLM_Character.llm_comms.llm_api import LLM_API
 from LLM_Character.messages_dataclass import AIMessage
-from LLM_Character.persona.cognitive_modules.retrieve import retrieve_focal_points
-from LLM_Character.persona.memory_structures.associative_memory.associative_memory import (
+from LLM_Character.depreciated.persona.cognitive_modules.retrieve import retrieve_focal_points
+from LLM_Character.depreciated.persona.memory_structures.associative_memory.associative_memory import (
     AssociativeMemory,
     ConceptNode,
 )
-from LLM_Character.persona.memory_structures.scratch.persona_scratch import (
+from LLM_Character.depreciated.persona.memory_structures.scratch.persona_scratch import (
     PersonaScratch,
 )
-from LLM_Character.persona.memory_structures.scratch.user_scratch import UserScratch
-from LLM_Character.persona.prompt_modules.converse_prompts.generate_iterative_chat import (
+from LLM_Character.depreciated.persona.memory_structures.scratch.user_scratch import UserScratch
+from LLM_Character.depreciated.persona.prompt_modules.converse_prompts.generate_iterative_chat import (
     run_prompt_iterative_chat,
 )
-from LLM_Character.persona.prompt_modules.converse_prompts.summarize_relationship import (
+from LLM_Character.depreciated.persona.prompt_modules.converse_prompts.summarize_relationship import (
     run_prompt_summarize_relationship,
 )
 

@@ -1,14 +1,14 @@
 import datetime
 
 from LLM_Character.llm_comms.llm_api import LLM_API
-from LLM_Character.persona.memory_structures.scratch.persona_scratch import (
+from LLM_Character.depreciated.persona.memory_structures.scratch.persona_scratch import (
     PersonaScratch,
 )
-from LLM_Character.persona.memory_structures.scratch.user_scratch import UserScratch
-from LLM_Character.persona.prompt_modules.converse_prompts.decomp_schedule import (
+from LLM_Character.depreciated.persona.memory_structures.scratch.user_scratch import UserScratch
+from LLM_Character.depreciated.persona.prompt_modules.converse_prompts.decomp_schedule import (
     run_prompt_decomp_schedule,
 )
-from LLM_Character.persona.prompt_modules.converse_prompts.summarize_conversation import (
+from LLM_Character.depreciated.persona.prompt_modules.converse_prompts.summarize_conversation import (
     run_prompt_summarize_conversation,
 )
 

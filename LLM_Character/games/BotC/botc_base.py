@@ -11,6 +11,8 @@ from LLM_Character.llm_comms.llm_local import LocalComms
 from LLM_Character.llm_comms.llm_openai import OpenAIComms
 from LLM_Character.messages_dataclass import AIMessage, AIMessages
 
+num_conv_history = 1
+
 # ------------------ LLM Integration Stub ------------------
 
 def init_model(model_id : str, server_based: str, max_token : int) -> LLM_API:
@@ -366,14 +368,14 @@ class ConversationManager:
             if act.get("type") in ["Message"]:
                 self.add_message_to_conversation(participants, speaker, act)
 
-    def get_conversation_for_player(self, player_name, num_convs = 2) -> Conversation:
+    def get_conversation_for_player(self, player_name, num_convs = num_conv_history) -> Conversation:
         result = []
         for participants_tuple, conv in self.conversations.items():
             if player_name in participants_tuple:
                 result.append(conv.history[-num_convs:])
         return result  # Return only the last `num_convs` conversations
 
-    def get_conversation_history_for_player(self, current_player, num_convs = 2) -> str:
+    def get_conversation_history_for_player(self, current_player, num_convs = num_conv_history) -> str:
         """
         Retrieves and returns a formatted conversation history for the given player.
 
@@ -596,7 +598,8 @@ def simulation_policy(node, model, print_output, server_based, num_child_node):
             conversation_manager_copy.add_message_to_conversation(participants, speaker, action)
 
         conversation_manager_copy.store_prompt_outcome(prompt, json.dumps(action))
-        game_state_copy.apply_action(conversation_manager_copy, action, model, print_output, server_based)
+        if not game_state_copy.apply_action(conversation_manager_copy, action, model, print_output, server_based):
+            continue
         
         if game_state_copy.is_terminal() is not None and game_state_copy.is_terminal() is True:
             terminal_state = True

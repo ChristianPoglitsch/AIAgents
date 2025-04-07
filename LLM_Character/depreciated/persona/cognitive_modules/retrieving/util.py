@@ -1,11 +1,11 @@
 from sentence_transformers import util
 
 from LLM_Character.llm_comms.llm_api import LLM_API
-from LLM_Character.persona.memory_structures.associative_memory.associative_memory import (  # noqa: E501
+from LLM_Character.depreciated.persona.memory_structures.associative_memory.associative_memory import (  # noqa: E501
     AssociativeMemory,
     ConceptNode,
 )
-from LLM_Character.persona.memory_structures.scratch.persona_scratch import (
+from LLM_Character.depreciated.persona.memory_structures.scratch.persona_scratch import (
     PersonaScratch,
 )
 
