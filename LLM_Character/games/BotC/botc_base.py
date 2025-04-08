@@ -241,7 +241,7 @@ class BasicGameState:
     def get_action_space_description(self, current_player):
         raise NotImplementedError("Subclasses must implement this method.")
 
-    def create_action(self, player, conversation_manager, model, print_output, server_based):
+    def create_action(self, player, conversation_manager, model, print_output, server_based, previous_results = None):
         """
         Calls complete_action_with_llm for the given respondent and logs any completed action(s) of type "Message"
         into the conversation manager.
@@ -250,7 +250,10 @@ class BasicGameState:
         :param conversation_manager: The conversation manager to log messages.
         """
         # Call the LLM to complete the action for this respondent.
-        return complete_action_with_llm(player, self.generate_prompt(player, conversation_manager), model, print_output, server_based)
+        prompt = self.generate_prompt(player, conversation_manager)
+        if previous_results is not None:
+            prompt = prompt + "\n Do not use this actions as result: " + previous_results
+        return complete_action_with_llm(player, prompt, model, print_output, server_based)
     
     def plan_action(self, speaker, conv_manager, model, print_output, server_based):
         """
@@ -551,8 +554,8 @@ def complete_action_with_llm(current_player, prompt, model, print_output, server
 
     if print_output:
         print("LLM Responds: " + current_player +"\n", result)
-
-    print('--- --- --- ---')
+    if print_output:
+        print('--- --- --- ---')
     return prompt, result
 
 # ------------------ MCTS with LLM Integration ------------------
@@ -572,12 +575,17 @@ def simulation_policy(node, model, print_output, server_based, num_child_node):
     terminal_state = False
     result_action = []
     prompt = ''   
+    previous_results = None
 
     for i in range(num_child_node):
         model.set_temperature(min(0.2, 1.2 - i * 0.4))
-        prompt, result = game_state.create_action(player, conversation_manager, model, print_output, server_based)
+        prompt, result = game_state.create_action(player, conversation_manager, model, print_output, server_based, previous_results)
         if result not in result_action:
             result_action.append(result)
+            if previous_results is None:
+                previous_results = str(result) + "\n"
+            else: 
+                previous_results = previous_results + str(result) + "\n"
 
     # Process each action in result_action
     child_nodes = []
@@ -620,21 +628,17 @@ class MCTSNode:
         self.is_terminal = terminal_state
         self.action = action  # Action that led to this node
 
-    def best_child(self, exploration_weight=1.0):
+    def best_child(self, exploration_weight=1.0, exploitation_weight=1.0):
         if not self.children:
             return None  # Return None if there are no children to select from
 
         if self.parent is None:
             # If there is no parent, use only the exploitation term (greedy selection)
             return max(self.children, key=lambda child: child.value / (child.visits + 1e-6))
-
-        # Compute UCT (Upper Confidence Bound for Trees) formula when the parent exists
+    
         return max(
             self.children,
-            key=lambda child: (
-                child.value / (child.visits + 1e-6)  # Exploitation term
-                + exploration_weight * ((2 * (self.parent.visits + 1) / (child.visits + 1e-6)) ** 0.5)  # Exploration term
-            )
+            key=lambda child: (exploitation_weight * (child.value / (child.visits + 1e-6)) + exploration_weight * ((2 * (self.parent.visits + 1) / (child.visits + 1e-6)) ** 0.5))
         )
 
     def best_leaf(self, exploration_weight=1.0):
@@ -646,35 +650,19 @@ class MCTSNode:
     
         return best_node.best_leaf(exploration_weight)  # Recursively go down until a leaf node is found
 
-    def expand(self):
-        # For the purpose of the example, let's expand the node by adding some dummy children
-        # Assume that state changes with the action taken at this node.
-        if not self.is_terminal:
-            self.children = [
-                MCTSNode(state=f"{self.state} -> Action A", action="Action A", parent=self),
-                MCTSNode(state=f"{self.state} -> Action B", action="Action B", parent=self)
-            ]
-            #print(f"Expanding node at state: {self.state}")
-        else:
-            print(f"Node at state {self.state} is terminal, cannot expand.")
-
-    def simulate(self):
-        # A dummy simulation function
-        # Here, we just return a constant value to simulate an action outcome
-        return random.random()  # For simplicity, always return random value as the result of a simulation
-
     def __str__(self):
         # String representation for easy printing of the node's details
         return f"State: {self.state}, Value: {self.value}, Visits: {self.visits}, Terminal: {self.is_terminal}"
 
 
 class MCTS:
-    def __init__(self, simulation_policy, reward_function, num_child_node, iterations=100):
+    def __init__(self, simulation_policy, reward_function, num_child_node, iterations=100, exploration_weight=1.0):
         self.simulation_policy = simulation_policy
         self.reward_function = reward_function
         self.iterations = iterations
         self.root = None
         self.num_child_node = num_child_node
+        self.exploration_weight = exploration_weight
 
     def search(self, initial_state, conversation_manager, model, print_output, server_based):
         self.root = self.get_node(initial_state, conversation_manager, initial_state.get_no_action())
@@ -703,8 +691,7 @@ class MCTS:
                 return node  # No children, return itself
             
             # Otherwise, use UCT to select the best-explored child
-            while(node.children):
-                node = node.best_child()
+            node = node.best_leaf(exploration_weight=self.exploration_weight)
 
         return node  # Return terminal node
 
@@ -750,3 +737,6 @@ class MCTS:
 
         for child in node.children:
             self.print_tree(child, depth + 1)
+            
+    def get_root(self):
+        return self.root

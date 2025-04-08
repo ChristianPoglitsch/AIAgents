@@ -192,49 +192,6 @@ def reward_function(node, new_node):
 
 # ------------------ Main ------------------
 
-# Initialize the root node
-# Create the root node for the conversation
-root = MCTSNode()
-mcts = MCTS(simulation_policy, reward_function, num_child_node, iterations=num_iterations)
-# Simulate expanding the tree
-print("Starting tree expansion...\n")
-
-# Expand the root node
-root.expand()
-
-# Display the root and its children after expansion
-print(f"Root node: {root}")
-for i, child in enumerate(root.children):
-    print(f"Child {i+1}: {child}")
-
-# Now, simulate the traversal and expansion process
-for step in range(50):
-    #print(f"\nStep {step + 1}:")
-    
-    # Select the best child based on the UCT formula
-    best_leaf = root.best_leaf(exploration_weight=1.0)
-    
-    if best_leaf:
-        #print(f"Selected leaf node: {best_leaf}")
-        
-        # Simulate an action on the best leaf node
-        simulation_result = best_leaf.simulate()
-        #print(f"Simulation result: {simulation_result}")
-        
-        # Update the best leaf node's value based on the simulation result
-        best_leaf.value += simulation_result
-        best_leaf.visits += 1  # Increment visits after simulating
-
-        #print(f"Updated leaf after simulation: {best_leaf}")
-
-        # Expand the selected leaf (if needed)
-        best_leaf.expand()
-    else:
-        print("No leaf to explore.")
-mcts.print_tree(root)
-
-
-
 log = []
 start_time = time.time()  # Start timing
 

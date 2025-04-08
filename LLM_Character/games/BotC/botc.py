@@ -1,4 +1,4 @@
-import random
+﻿import random
 import time
 
 from datasets import load_from_disk
@@ -13,18 +13,18 @@ from botc_base import simulation_policy
 
 model = []
 
-server_based = True
-store_data = True
+server_based = False
+store_data = False
 show_training_data = False
 
-reward_terminal_good = 32
-reward_terminal_evil = 16
+reward_terminal_good = 64
+reward_terminal_evil = 64
 reward_small = 4
 reward_node = 0.25
 
-num_child_node = 2 # 3
-num_games = 5 # 35
-num_iterations = 50 # 50
+num_child_node = 1 # 3
+num_games = 1 # 35
+num_iterations = 60 # 50
 
 print_output = True
 max_token = 400
@@ -68,11 +68,23 @@ class Role:
     def get_poison(self) -> bool:
         return self.is_poisoned
     
-    def get_reward(self, state) -> int:
+    def get_reward(self, node) -> int:
+        state = node.state
+        reward = -reward_node
+        speaker = node.action.get("Speaker")
+
+        if speaker is not None:
+            num_conversations = sum(
+                state.features.features[speaker][partner][0] 
+                for partner in state.features.features[speaker]
+            )
+            reward += num_conversations  # Optional: add to reward
+
         if self.alignment == 'Good' and state.execution:
-            state.active_players[state.execution].alignment == 'Evil'
-            return reward_terminal_good
-        return -reward_node
+            if state.active_players[state.execution].alignment == 'Evil':
+                reward += reward_terminal_good
+
+        return reward
   
     def get_alignment(self) -> str:
         return self.alignment  
@@ -250,7 +262,7 @@ class Poisoner(Role):
     def __init__(self, name, team, alignment, description, action):
         super().__init__(name, team, alignment, description, action)
         self.poisoned_player = None
-        self.poisoned = False
+        self.poisoned_tonight = False
 
     def set_info(self, alive_players, player_infos, day_count = 0):
         demon = next((p for p, data in alive_players.items() if data.get_role() and data.get_role() == "Imp"), None)
@@ -275,14 +287,15 @@ class Poisoner(Role):
         target = action.get("Target")
         self.poisoned_player = target
         other_players[self.poisoned_player].set_poison(True)
-        self.poisoned = True
+        self.poisoned_tonight = True
         
-    def get_reward(self, state) -> int:
+    def get_reward(self, node) -> int:
+        state = node.state
         action = state.active_player_action
-        if self.poisoned:
-            self.poisoned = False
-            return reward_terminal_evil * 2
-        return super().get_reward(action)
+        if self.poisoned_tonight:
+            self.poisoned_tonight = False
+            return reward_terminal_evil
+        return super().get_reward(node)
     
 class Imp(Role):
     def __init__(self, name, team, alignment, description, action):
@@ -312,11 +325,11 @@ class Imp(Role):
             other_players[target].set_alive(False)
         self.killed_tonight = True
         
-    def get_reward(self, action) -> int:
+    def get_reward(self, node) -> int:
         if self.killed_tonight:
             self.killed_tonight = False
-            return reward_terminal_evil * 2
-        return super().get_reward(action)
+            return reward_terminal_evil
+        return super().get_reward(node)
 
 roles = {
     # Townsfolk Roles
@@ -380,7 +393,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         self.num_votes = 0
 
         self.conv_count_day = 0
-        self.max_conv_count_per_day = 8
+        self.max_conv_count_per_day = 5
 
         self.assign_roles(players, role_list)
 
@@ -609,7 +622,7 @@ class BloodOnTheClocktowerState(BasicGameState):
             1 for player_info in self.active_players.values() if player_info.get_alive()
         )
     
-        return (imp_alive) or (alive_count <= 2)
+        return (imp_alive) and (alive_count <= 2)
 
     def get_game_state(self, player):
         """
@@ -747,7 +760,20 @@ class BloodOnTheClocktowerState(BasicGameState):
 
 
 def reward_function(node, new_node):
-    return new_node.state.active_player.get_reward(new_node.state)
+    return new_node.state.active_player.get_reward(new_node)
+
+
+def add_convs(node, conv_manager):
+    # Add current node's outcomes
+    conv_manager.append_prompt_outcomes(node.conversation_manager.get_prompt_outcomes())
+
+    # Base case: No children -> return
+    if not node.children:
+        return
+
+    # Recurse for each child
+    for child in node.children:
+        add_convs(child, conv_manager)
 
 # --- --- main --- ---
 
@@ -797,7 +823,9 @@ def play_game():
         #        conversationManager.append_prompt_outcomes(best_node.conversation_manager.get_prompt_outcomes())
 
         if store_data:
-            conversationManager.append_prompt_outcomes(best_node.conversation_manager.get_prompt_outcomes())
+            #conversationManager.append_prompt_outcomes(best_node.conversation_manager.get_prompt_outcomes())
+            add_convs(mcts.get_root(), conversationManager)
+            conversationManager.prompt_outcome_log = list(dict.fromkeys(conversationManager.prompt_outcome_log))
 
         num_correct_games = num_correct_games + 1
         
@@ -816,8 +844,8 @@ def play_game():
     end_time = time.time()
     elapsed_time = end_time - start_time
 
-    if store_data and num_correct_games > 0:
-        conversationManager.export_prompt_outcome_log(folder_path, True)
+    if store_data:
+        conversationManager.export_prompt_outcome_log(folder_path, False)
     print(f"Execution time: {elapsed_time:.6f} seconds")
     
 
