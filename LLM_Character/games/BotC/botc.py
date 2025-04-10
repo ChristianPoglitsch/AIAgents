@@ -13,19 +13,20 @@ from botc_base import simulation_policy
 
 model = []
 
-server_based = False
+server_based = True
 store_data = False
 show_training_data = False
 
-reward_terminal_good = 64
-reward_terminal_evil = 64
-reward_small = 4
-reward_node = 0.25
+reward_terminal_good    = 0.33
+reward_terminal_evil    = 0.33
+reward_good_action      = 0.33
+reward_node = 0.0
 
 num_child_node = 1 # 3
 num_games = 1 # 35
-num_iterations = 60 # 50
+num_iterations = 150 # 50
 
+print_input = False
 print_output = True
 max_token = 400
 
@@ -50,7 +51,9 @@ class Role:
         self.nominated = False
         self.is_nominated = False
         self.Information = None
-        self.neighbors = None      
+        self.neighbors = None
+        self.player_info = None
+        self.num_conversations = 0
  
     def set_info(self, alive_players, player_infos, day_count = 0):
         return None
@@ -58,6 +61,9 @@ class Role:
     def get_action_space(self, phase):
         actions = []        
         return actions
+    
+    def has_action(self, phase):
+        return False
     
     def apply_action(self, other_players, game_state = None):
         None
@@ -70,7 +76,7 @@ class Role:
     
     def get_reward(self, node) -> int:
         state = node.state
-        reward = -reward_node
+        reward = reward_node
         speaker = node.action.get("Speaker")
 
         if speaker is not None:
@@ -78,7 +84,9 @@ class Role:
                 state.features.features[speaker][partner][0] 
                 for partner in state.features.features[speaker]
             )
-            reward += num_conversations  # Optional: add to reward
+            if num_conversations > self.num_conversations:
+                reward += num_conversations / len(node.state.active_players)
+                self.num_conversations = num_conversations
 
         if self.alignment == 'Good' and state.execution:
             if state.active_players[state.execution].alignment == 'Evil':
@@ -150,7 +158,7 @@ class Role:
 
 class Washerwoman(Role):
     def __init__(self, name, team, alignment, description, action):
-        super().__init__(name, team, alignment, description, action)     
+        super().__init__(name, team, alignment, description, action)
 
     def set_info(self, alive_players, player_infos, day_count = 0):
         minion_players = [p for p, data in alive_players.items() if data.get_role() and data.get_team() == "Town" and p != self.role]
@@ -167,7 +175,7 @@ class Washerwoman(Role):
             random_player = random.choice(available_players)
         
             # Update the Washerwoman's information
-            player_info = f"You learn that {chosen_town} or {random_player} is a {chosen_town_role}"
+            self.player_info = f"You learn that {chosen_town} or {random_player} is a {chosen_town_role}"
         elif self.is_poisoned:
             chosen_town = random.choice(alive_players)
             chosen_town_role = alive_players[chosen_town].get_role()
@@ -179,15 +187,15 @@ class Washerwoman(Role):
             random_player = random.choice(available_players)
         
             # Update the Washerwoman's information
-            player_info = f"You learn that {chosen_town} or {random_player} is a {chosen_town_role}"           
+            self.player_info = f"You learn that {chosen_town} or {random_player} is a {chosen_town_role}"           
         else:
-            player_info = "No Townsfolk available to provide information."
+            player_info = None
             
-        return player_info
+        return self.player_info
   
 class Investigator(Role):
     def __init__(self, name, team, alignment, description, action):
-        super().__init__(name, team, alignment, description, action)     
+        super().__init__(name, team, alignment, description, action)
 
     def set_info(self, alive_players, player_infos, day_count = 0):
         # Get a list of all Townsfolk players
@@ -205,7 +213,7 @@ class Investigator(Role):
             random_player = random.choice(available_players)
         
             # Update the Washerwoman's information
-            player_info = f"You learn that {chosen_town} or {random_player} is a {chosen_town_role}"
+            self.player_info = f"You learn that {chosen_town} or {random_player} is a {chosen_town_role}"
         elif self.is_poisoned:
             chosen_town = random.choice(alive_players)
             chosen_town_role = alive_players[chosen_town].get_role()
@@ -217,27 +225,27 @@ class Investigator(Role):
             random_player = random.choice(available_players)
         
             # Update the Washerwoman's information
-            player_info = f"You learn that {chosen_town} or {random_player} is a {chosen_town_role}"           
+            self.player_info = f"You learn that {chosen_town} or {random_player} is a {chosen_town_role}"           
         else:
-            player_info = "No Townsfolk available to provide information."
+            self.player_info = None
             
-        return player_info   
+        return self.player_info   
 
 
 class Empath(Role):
     def __init__(self, name, team, alignment, description, action):
-        super().__init__(name, team, alignment, description, action)     
+        super().__init__(name, team, alignment, description, action)
 
     def set_info(self, alive_players, player_infos, day_count = 0):
 
         alive_neighbors = [neighbor for neighbor in player_infos.get_neighbors() if alive_players[neighbor].get_alive()]
         evil_neighbors = [neighbor for neighbor in alive_neighbors if alive_players[neighbor].get_alignment() == "Evil"]
-        player_info = f"You sense that {len(evil_neighbors)} of your alive neighbors are evil."
+        self.player_info = f"You sense that {len(evil_neighbors)} of your alive neighbors are evil."
            
         if self.is_poisoned:
             evil_neighbors = random.randint(0, 2)
-            player_info = f"You sense that {evil_neighbors} of your alive neighbors are evil."
-        return player_info
+            self.player_info = f"You sense that {evil_neighbors} of your alive neighbors are evil."
+        return self.player_info
 
 class Slayer(Role):
     def __init__(self, name, team, alignment, description, action):
@@ -246,13 +254,46 @@ class Slayer(Role):
     def target_kill_night(self):
         return False
   
-class Ravekeeper(Role):
+class Ravenkeeper(Role):
     def __init__(self, name, team, alignment, description, action):
-        super().__init__(name, team, alignment, description, action)        
+        super().__init__(name, team, alignment, description, action)
+        self.target_tonight = False
+        
+    def target_kill_night(self):
+        if self.alive is True:
+            self.target_tonight = True
+        return True
+        
+    def has_action(self, phase):
+        if phase == 'Night':
+            return True
+        return False
 
+    def get_action_space(self, phase):
+        action_space = super().get_action_space(phase)
+        if phase == 'Night' and self.target_tonight is True:
+            action_space.append(str(f'{{"type": "Action", "Description": "Select a player (target) to get the role of this player.", "Speaker": None, "Target": "None"}}'))
+        return action_space
+    
+    def apply_action(self, action, other_players):
+        if self.target_tonight is True:
+            target = action.get("Target")
+            self.player_info = "Role of player " + target + " is " + other_players[target].role
+            self.target_tonight = False
+            return self.player_info
+
+    def get_reward(self, node) -> int:
+        reward = 0
+        if self.player_info is not None:
+            reward = reward + reward_good_action
+        return reward + super().get_reward(node)
+    
 class Soldier(Role):
     def __init__(self, name, team, alignment, description, action):
-        super().__init__(name, team, alignment, description, action)  
+        super().__init__(name, team, alignment, description, action)
+        
+    def target_kill_night(self):
+        return False
 
 class FortuneTeller(Role):
     def __init__(self, name, team, alignment, description, action):
@@ -275,6 +316,11 @@ class Poisoner(Role):
             
         return player_info
 
+    def has_action(self, phase):
+        if phase == 'Night':
+            return True
+        return False
+
     def get_action_space(self, phase):
         action_space = super().get_action_space(phase)
         if phase == 'Night':
@@ -290,17 +336,21 @@ class Poisoner(Role):
         self.poisoned_tonight = True
         
     def get_reward(self, node) -> int:
-        state = node.state
-        action = state.active_player_action
+        reward = 0
         if self.poisoned_tonight:
             self.poisoned_tonight = False
-            return reward_terminal_evil
-        return super().get_reward(node)
+            reward = reward + reward_terminal_evil
+        return reward + super().get_reward(node)
     
 class Imp(Role):
     def __init__(self, name, team, alignment, description, action):
         super().__init__(name, team, alignment, description, action)
         self.killed_tonight = False
+
+    def has_action(self, phase):
+        if phase == 'Night':
+            return True
+        return False
 
     def set_info(self, alive_players, player_infos, day_count = 0):
         minions = [p for p, data in alive_players.items() if data.get_role() and data.get_team() == "Minion"]
@@ -326,10 +376,11 @@ class Imp(Role):
         self.killed_tonight = True
         
     def get_reward(self, node) -> int:
+        reward = 0
         if self.killed_tonight:
             self.killed_tonight = False
-            return reward_terminal_evil
-        return super().get_reward(node)
+            reward = reward + reward_terminal_evil
+        return reward + super().get_reward(node)
 
 roles = {
     # Townsfolk Roles
@@ -341,7 +392,7 @@ roles = {
     ##'Fortune Teller': FortuneTeller('Fortune Teller', 'Town', 'Good', 'Each night, chooses two players. Learns if one is the Demon, but there is a Red Herring.', None),
     #'Undertaker': Role('Undertaker', 'Town', 'Good', 'Each night, learns which character died by execution that day.', None),
     #'Monk': Role('Monk', 'Town', 'Good', 'Each night, chooses a player (not themselves). That player is safe from the Demon that night.', None),
-    'Ravenkeeper': Ravekeeper('Ravenkeeper', 'Town', 'Good', 'If killed at night, learns one players character.', None),
+    'Ravenkeeper': Ravenkeeper('Ravenkeeper', 'Town', 'Good', 'If killed at night, learns one players character.', None),
     #'Virgin': Role('Virgin', 'Town', 'Good', 'If nominated for the first time, and the nominator is a Townsfolk, they are executed immediately.', None),
     'Slayer': Slayer('Slayer', 'Town', 'Good', 'Once per game, publicly chooses a player. If that player is the Demon, they die.', None),
     ##'Soldier': Soldier('Soldier', 'Town', 'Good', 'Cannot die at night.', None),
@@ -364,7 +415,7 @@ roles = {
 }
 
 first_night_order = ["Poisoner", "Washerwoman", "Investigator", "Empath"]
-night_order = ["Poisoner", "Imp", "Empath", "Ravekeeper"]
+night_order = ["Poisoner", "Imp", "Empath", "Ravenkeeper"]
 
 def roles_to_string(roles):
     """
@@ -425,22 +476,25 @@ class BloodOnTheClocktowerState(BasicGameState):
         if len(town_roles) < 3 or len(minion_roles) < 1 or len(imp_roles) < 1:
             raise ValueError("Not enough roles available to meet selection criteria.")
 
-        # Step 3: Select roles
-        #selected_roles = (
-        #    random.sample(town_roles, 3) +  # Pick 3 Townsfolk
-        #    random.sample(minion_roles, 1) +  # Pick 1 Minion
-        #    random.sample(imp_roles, 1)  # Pick 1 Imp
-        #)
+        randomize_roles = True
 
-        # Step 4: Shuffle the selected roles to randomize assignment
-        #random.shuffle(selected_roles)
+        if randomize_roles:
+            # Step 3: Select roles
+            selected_roles = (
+                random.sample(town_roles, 3) +  # Pick 3 Townsfolk
+                random.sample(minion_roles, 1) +  # Pick 1 Minion
+                random.sample(imp_roles, 1)  # Pick 1 Imp
+            )
 
-        # Temp!
-        selected_roles = [town_roles[0]]
-        selected_roles.append(town_roles[1])
-        selected_roles.append(town_roles[2])
-        selected_roles.append(minion_roles[0])
-        selected_roles.append(imp_roles[0])
+            # Step 4: Shuffle the selected roles to randomize assignment
+            random.shuffle(selected_roles)
+        else:
+            # Step 3b: Fix order
+            selected_roles = [town_roles[0]]
+            selected_roles.append(town_roles[3]) # 1
+            selected_roles.append(town_roles[4]) # 2
+            selected_roles.append(minion_roles[0])
+            selected_roles.append(imp_roles[0])
 
         # Step 5: Assign roles to players
         self.active_players = {}  # Reset player assignments
@@ -482,7 +536,7 @@ class BloodOnTheClocktowerState(BasicGameState):
             self.empty_next_players()
             self.night_info(night_order)
             
-        if self.phase == 'Nominate':            
+        if self.phase == 'Nominate':
             count = self.count_next_players()
             if count == 0:
                 num_alive_players = len(self.active_players)
@@ -545,7 +599,7 @@ class BloodOnTheClocktowerState(BasicGameState):
             if information is not None:
                 player_info.set_information(information)
                 
-            if len(player_info.get_action_space(self.phase)) > 0:
+            if player_info.has_action(self.phase):
                 self.add_next_player(player)
 
     def get_action_space_description(self, current_player):
@@ -564,7 +618,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         player_info = self.active_players.get(current_player)
     
         action = player_info.get_action_space(self.phase)
-        if action is not None:
+        if action is not None and len(action) > 0:
             actions.extend(action)
             
         # Day phase actions
@@ -623,6 +677,13 @@ class BloodOnTheClocktowerState(BasicGameState):
         )
     
         return (imp_alive) and (alive_count <= 2)
+
+    def terminal_message(self):
+        if self.good_win():
+            return 'Good Win'
+        if self.evil_win():
+            return 'Evil Win'
+
 
     def get_game_state(self, player):
         """
@@ -758,7 +819,6 @@ class BloodOnTheClocktowerState(BasicGameState):
         return True
 
 
-
 def reward_function(node, new_node):
     return new_node.state.active_player.get_reward(new_node)
 
@@ -805,16 +865,21 @@ def play_game():
         # Run MCTS to get the best action/state
         best_node = mcts.search(game_state, conv_manager, model, print_output, server_based)
 
+        nodes = mcts.get_all_terminal_nodes(mcts.get_root_node())
+
         print(mcts.print_tree())
 
         print('Alive players: ' + str(best_node.state.get_player_info()))
         print('Good win: ' + str(best_node.state.good_win()))
         print('Evil win: ' + str(best_node.state.evil_win()))
     
+        for player in best_node.state.active_players:
+            print(best_node.state.active_players[player])
+
         if best_node.state.good_win():
             good_wins = good_wins + 1
         if best_node.state.evil_win():
-            evil_wins = evil_wins + 1           
+            evil_wins = evil_wins + 1
         #if len(best_node.state.alive_players) > 2:
         #    num_correct_games = num_correct_games + 1
         #    log.extend(best_node.conversation_manager.get_prompt_outcomes())        
@@ -823,8 +888,9 @@ def play_game():
         #        conversationManager.append_prompt_outcomes(best_node.conversation_manager.get_prompt_outcomes())
 
         if store_data:
-            #conversationManager.append_prompt_outcomes(best_node.conversation_manager.get_prompt_outcomes())
-            add_convs(mcts.get_root(), conversationManager)
+            #add_convs(mcts.get_root(), conversationManager)
+            for node in nodes:
+                conversationManager.append_prompt_outcomes(node.conversation_manager.get_prompt_outcomes())
             conversationManager.prompt_outcome_log = list(dict.fromkeys(conversationManager.prompt_outcome_log))
 
         num_correct_games = num_correct_games + 1

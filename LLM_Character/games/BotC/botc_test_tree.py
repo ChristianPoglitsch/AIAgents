@@ -8,11 +8,13 @@ from botc_base import simulation_policy
 from botc_base import BasicGameState
 
 num_games = 1
-num_iterations = 3
+num_iterations = 64
 num_child_node = 2
 
 def reward_function(node, new_node):
-    return 1.0
+    multiply = new_node.action.get('Action')
+    get_reward = float(multiply)
+    return get_reward
 
 class Simple(BasicGameState):
     def __init__(self, players):
@@ -21,7 +23,7 @@ class Simple(BasicGameState):
 def simulation_policy(node, model, print_output, server_based, num_child_node):
     child_nodes = []
     for i in range(num_child_node):
-        action = {"Action": f"Action {i}"}
+        action = {"Action": f"{i}"}
         child_nodes.append(MCTSNode(state=Simple(''), action=action, parent=node))
     return child_nodes
 
@@ -35,7 +37,7 @@ for i in range(num_games):
     simple = Simple('')
     
     # Create an MCTS instance
-    mcts = MCTS(simulation_policy, reward_function, num_child_node, iterations=num_iterations, exploration_weight=1.0)
+    mcts = MCTS(simulation_policy, reward_function, num_child_node, iterations=num_iterations, exploration_weight=1.41)
 
     # Run MCTS to get the best action/state
     best_node = mcts.search(simple, conv_manager, None, None, None)

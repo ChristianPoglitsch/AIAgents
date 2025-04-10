@@ -1,7 +1,8 @@
-import json
+﻿import json
 import random
 import copy
 import os
+import math
 import shutil
 from datasets import Dataset
 from datasets import load_from_disk, concatenate_datasets
@@ -12,6 +13,7 @@ from LLM_Character.llm_comms.llm_openai import OpenAIComms
 from LLM_Character.messages_dataclass import AIMessage, AIMessages
 
 num_conv_history = 1
+print_input = False
 
 # ------------------ LLM Integration Stub ------------------
 
@@ -237,6 +239,9 @@ class BasicGameState:
     def is_terminal(self):
         """Game ends when a guess is made."""
         raise NotImplementedError("Subclasses must implement this method.")
+    
+    def terminal_message(self):
+        return ''
 
     def get_action_space_description(self, current_player):
         raise NotImplementedError("Subclasses must implement this method.")
@@ -528,7 +533,7 @@ def complete_action_with_llm(current_player, prompt, model, print_output, server
     :return: The LLM's JSON response as a dictionary.
     """ 
     
-    if print_output:
+    if print_input:
         print(prompt)
 
     # Prepare messages for the LLM.
@@ -554,7 +559,6 @@ def complete_action_with_llm(current_player, prompt, model, print_output, server
 
     if print_output:
         print("LLM Responds: " + current_player +"\n", result)
-    if print_output:
         print('--- --- --- ---')
     return prompt, result
 
@@ -574,7 +578,7 @@ def simulation_policy(node, model, print_output, server_based, num_child_node):
     player = game_state.get_player()
     terminal_state = False
     result_action = []
-    prompt = ''   
+    prompt = ''
     previous_results = None
 
     for i in range(num_child_node):
@@ -628,20 +632,23 @@ class MCTSNode:
         self.is_terminal = terminal_state
         self.action = action  # Action that led to this node
 
-    def best_child(self, exploration_weight=1.0, exploitation_weight=1.0):
+    def best_child(self, exploration_constant=1.41):
         if not self.children:
-            return None  # Return None if there are no children to select from
+            return None  # No children to choose from
 
         if self.parent is None:
-            # If there is no parent, use only the exploitation term (greedy selection)
+            # No parent → pure exploitation (greedy)
             return max(self.children, key=lambda child: child.value / (child.visits + 1e-6))
-    
+
         return max(
             self.children,
-            key=lambda child: (exploitation_weight * (child.value / (child.visits + 1e-6)) + exploration_weight * ((2 * (self.parent.visits + 1) / (child.visits + 1e-6)) ** 0.5))
+            key=lambda child: (
+                (child.value / (child.visits + 1e-6)) +
+                exploration_constant * ((math.log(self.parent.visits + 1) / (child.visits + 1e-6)) ** 0.5)
+            )
         )
 
-    def best_leaf(self, exploration_weight=1.0):
+    def best_leaf(self, exploration_weight=1.41):
         if not self.children:
             return self  # If this is a leaf node, return itself
 
@@ -656,7 +663,7 @@ class MCTSNode:
 
 
 class MCTS:
-    def __init__(self, simulation_policy, reward_function, num_child_node, iterations=100, exploration_weight=1.0):
+    def __init__(self, simulation_policy, reward_function, num_child_node, iterations=100, exploration_weight=1.41):
         self.simulation_policy = simulation_policy
         self.reward_function = reward_function
         self.iterations = iterations
@@ -681,7 +688,7 @@ class MCTS:
                 self.backpropagate(new_node, reward)
 
             print('*** *** *** *** *** *** ***')
-        return self.root.best_leaf(exploration_weight=0.0)
+        return self.root.best_leaf()
 
     def select(self, node):
         """Balanced exploration (new nodes) and exploitation (best child)"""
@@ -694,6 +701,21 @@ class MCTS:
             node = node.best_leaf(exploration_weight=self.exploration_weight)
 
         return node  # Return terminal node
+
+    def get_root_node(self):
+        return self.root
+
+    def get_all_terminal_nodes(self, node):
+        """Return a list of all terminal nodes reachable from the given node."""
+        terminal_nodes = []
+        
+        if node.is_terminal:
+            terminal_nodes.append(node)
+        else:
+            for child in node.children:
+                terminal_nodes.extend(self.get_all_terminal_nodes(child))
+
+        return terminal_nodes
 
     def expand(self, node, model, print_output, server_based):
         if node is None:
@@ -732,7 +754,7 @@ class MCTS:
         if isinstance(node.state, str) or node.state is None:
             print(f"{indent}-")
         else:
-            terminal_status = " (Terminal)" if node.is_terminal else ""
+            terminal_status = " (Terminal) " + node.state.terminal_message() if node.is_terminal else ""
             print(f"{indent}- Visits: {node.visits}, Value: {node.value:.2f}{terminal_status}")
 
         for child in node.children:
