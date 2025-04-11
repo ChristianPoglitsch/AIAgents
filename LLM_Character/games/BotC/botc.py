@@ -1,5 +1,6 @@
 ﻿import random
 import time
+import pickle
 
 from datasets import load_from_disk
 
@@ -14,7 +15,7 @@ from botc_base import simulation_policy
 model = []
 
 server_based = True
-store_data = False
+store_data = True
 show_training_data = False
 
 reward_terminal_good    = 0.33
@@ -22,9 +23,9 @@ reward_terminal_evil    = 0.33
 reward_good_action      = 0.33
 reward_node = 0.0
 
-num_child_node = 1 # 3
-num_games = 1 # 35
-num_iterations = 150 # 50
+num_child_node = 2 # 2
+num_games = 6 # 1
+num_iterations = 400 # 300
 
 print_input = False
 print_output = True
@@ -247,7 +248,7 @@ class Empath(Role):
             self.player_info = f"You sense that {evil_neighbors} of your alive neighbors are evil."
         return self.player_info
 
-class Slayer(Role):
+class Soldier(Role):
     def __init__(self, name, team, alignment, description, action):
         super().__init__(name, team, alignment, description, action)
         
@@ -392,10 +393,10 @@ roles = {
     ##'Fortune Teller': FortuneTeller('Fortune Teller', 'Town', 'Good', 'Each night, chooses two players. Learns if one is the Demon, but there is a Red Herring.', None),
     #'Undertaker': Role('Undertaker', 'Town', 'Good', 'Each night, learns which character died by execution that day.', None),
     #'Monk': Role('Monk', 'Town', 'Good', 'Each night, chooses a player (not themselves). That player is safe from the Demon that night.', None),
-    'Ravenkeeper': Ravenkeeper('Ravenkeeper', 'Town', 'Good', 'If killed at night, learns one players character.', None),
+    'Ravenkeeper': Ravenkeeper('Ravenkeeper', 'Town', 'Good', 'If killed at night, select one player and learn the role of this player.', None),
     #'Virgin': Role('Virgin', 'Town', 'Good', 'If nominated for the first time, and the nominator is a Townsfolk, they are executed immediately.', None),
-    'Slayer': Slayer('Slayer', 'Town', 'Good', 'Once per game, publicly chooses a player. If that player is the Demon, they die.', None),
-    ##'Soldier': Soldier('Soldier', 'Town', 'Good', 'Cannot die at night.', None),
+    #'Slayer': Slayer('Slayer', 'Town', 'Good', 'Once per game, publicly chooses a player. If that player is the Demon, they die.', None),
+    'Soldier': Soldier('Soldier', 'Town', 'Good', 'Cannot die at night.', None),
     #'Mayor': Role('Mayor', 'Town', 'Good', 'If only three players live & no execution occurs, your team wins. Might not die at night.', None),
     
     # Outsider Roles
@@ -852,6 +853,8 @@ def play_game():
     good_wins = 0
     evil_wins = 0
 
+    mcts_all_nodes = []
+
     for i in range(num_games):
         print('Start Game')
         print(str(i) + ' / ' + str(num_games))
@@ -861,6 +864,7 @@ def play_game():
 
         # Create an MCTS instance
         mcts = MCTS(simulation_policy, reward_function, num_child_node, iterations=num_iterations)
+        mcts_all_nodes.append(mcts)
 
         # Run MCTS to get the best action/state
         best_node = mcts.search(game_state, conv_manager, model, print_output, server_based)
@@ -914,6 +918,8 @@ def play_game():
         conversationManager.export_prompt_outcome_log(folder_path, False)
     print(f"Execution time: {elapsed_time:.6f} seconds")
     
+    with open('mcts_tree.pkl', 'wb') as f:
+        pickle.dump(mcts_all_nodes, f)
 
 def main():
     play_game()

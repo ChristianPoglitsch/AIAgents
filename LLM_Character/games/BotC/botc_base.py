@@ -581,7 +581,8 @@ def simulation_policy(node, model, print_output, server_based, num_child_node):
     prompt = ''
     previous_results = None
 
-    for i in range(num_child_node):
+    num_max_nodes = int(max(1, (random.random() * num_child_node + 1)))
+    for i in range(num_max_nodes):
         model.set_temperature(min(0.2, 1.2 - i * 0.4))
         prompt, result = game_state.create_action(player, conversation_manager, model, print_output, server_based, previous_results)
         if result not in result_action:
