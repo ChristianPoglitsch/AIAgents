@@ -23,9 +23,9 @@ reward_terminal_evil    = 0.33
 reward_good_action      = 0.33
 reward_node = 0.0
 
-num_child_node = 2 # 2
+num_child_node = 3 # 2
 num_games = 6 # 1
-num_iterations = 400 # 300
+num_iterations = 600 # 300
 
 print_input = False
 print_output = True
@@ -880,10 +880,6 @@ def play_game():
         for player in best_node.state.active_players:
             print(best_node.state.active_players[player])
 
-        if best_node.state.good_win():
-            good_wins = good_wins + 1
-        if best_node.state.evil_win():
-            evil_wins = evil_wins + 1
         #if len(best_node.state.alive_players) > 2:
         #    num_correct_games = num_correct_games + 1
         #    log.extend(best_node.conversation_manager.get_prompt_outcomes())        
@@ -894,6 +890,10 @@ def play_game():
         if store_data:
             #add_convs(mcts.get_root(), conversationManager)
             for node in nodes:
+                if node.state.good_win():
+                    good_wins = good_wins + 1
+                if node.state.evil_win():
+                    evil_wins = evil_wins + 1
                 conversationManager.append_prompt_outcomes(node.conversation_manager.get_prompt_outcomes())
             conversationManager.prompt_outcome_log = list(dict.fromkeys(conversationManager.prompt_outcome_log))
 

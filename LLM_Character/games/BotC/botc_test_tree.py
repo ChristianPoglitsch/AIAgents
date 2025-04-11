@@ -8,7 +8,7 @@ from botc_base import simulation_policy
 from botc_base import BasicGameState
 
 num_games = 1
-num_iterations = 200
+num_iterations = 600
 num_child_node = 3
 
 def reward_function(node, new_node):
