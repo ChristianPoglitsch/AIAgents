@@ -24,7 +24,7 @@ reward_good_action      = 0.33
 reward_node = 0.0
 
 num_child_node = 3 # 2
-num_games = 8 # 1
+num_games = 5 # 1
 num_iterations = 700 # 300
 
 print_input = False
@@ -333,8 +333,9 @@ class Poisoner(Role):
             other_players[self.poisoned_player].set_poison(False)
         target = action.get("Target")
         self.poisoned_player = target
-        other_players[self.poisoned_player].set_poison(True)
-        self.poisoned_tonight = True
+        if self.poisoned_player in other_players:
+            other_players[self.poisoned_player].set_poison(True)
+            self.poisoned_tonight = True
         
     def get_reward(self, node) -> int:
         reward = 0
@@ -372,8 +373,15 @@ class Imp(Role):
     
     def apply_action(self, action, other_players):
         target = action.get("Target")
+        speaker = action.get("Speaker")
         if other_players[target].target_kill_night():
             other_players[target].set_alive(False)
+        if target == speaker:
+            available_players = [p for p, data in other_players.items() if data.get_role() and data.get_team() == "Minion" and p != self.role]
+            if available_players is not None:
+                new_demon = random.choice(available_players)
+                other_players[new_demon] = Imp('Imp', 'Demon', 'Evil', 'Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp.', None)
+            
         self.killed_tonight = True
         
     def get_reward(self, node) -> int:
@@ -477,7 +485,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         if len(town_roles) < 3 or len(minion_roles) < 1 or len(imp_roles) < 1:
             raise ValueError("Not enough roles available to meet selection criteria.")
 
-        randomize_roles = True
+        randomize_roles = False
 
         if randomize_roles:
             # Step 3: Select roles
@@ -856,7 +864,7 @@ def play_game():
     mcts_all_nodes = []
     
     # Load from file
-    with open('mcts_tree_.pkl', 'rb') as f:
+    with open('mcts_tree.pkl', 'rb') as f:
         mcts_all_nodes = pickle.load(f)
         
     for mcts in mcts_all_nodes:
@@ -905,8 +913,9 @@ def play_game():
         #    if log and store_data:
         #        conversationManager.append_prompt_outcomes(best_node.conversation_manager.get_prompt_outcomes())
 
-        with open('mcts_tree.pkl', 'wb') as f:
-            pickle.dump(mcts_all_nodes, f)
+        if store_data:
+            with open('mcts_tree.pkl', 'wb') as f:
+                pickle.dump(mcts_all_nodes, f)
 
         if store_data:
             #add_convs(mcts.get_root(), conversationManager)
@@ -934,11 +943,12 @@ def play_game():
     end_time = time.time()
     elapsed_time = end_time - start_time
 
-    with open('mcts_tree.pkl', 'wb') as f:
-        pickle.dump(mcts_all_nodes, f)
-
     if store_data:
-        conversationManager.export_prompt_outcome_log(folder_path, False)
+        with open('mcts_tree.pkl', 'wb') as f:
+            pickle.dump(mcts_all_nodes, f)
+
+    #if store_data:
+    #    conversationManager.export_prompt_outcome_log(folder_path, False)
     print(f"Execution time: {elapsed_time:.6f} seconds")
 
 def main():

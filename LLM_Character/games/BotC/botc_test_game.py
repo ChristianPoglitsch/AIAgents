@@ -28,6 +28,7 @@ action = {'type': 'Action', 'Description': 'Each night, poison one player.', 'Sp
 game_state.apply_action(conv_manager, action, None, False, False)
 game_state_ravenkeeper = copy.deepcopy(game_state)
 game_state_soldier = copy.deepcopy(game_state)
+game_state_imp = copy.deepcopy(game_state)
 
 # first day
 
@@ -78,7 +79,7 @@ game_state.update_game_state()
 
 # Evil win
 game_state_evil = copy.deepcopy(game_state)
-game_state.add_next_player("A")
+game_state_evil.add_next_player("A")
 next_player = game_state_evil.get_player()
 action = {"type": "Nominate", "Speaker": next_player, "Nominee": "D"}
 game_state_evil.apply_action(conv_manager, action, None, False, False)
@@ -183,7 +184,7 @@ game_state_ravenkeeper.apply_action(conv_manager, action, None, False, False)
 # first day
 
 # nomination
-game_state.update_game_state()
+game_state_soldier.update_game_state()
 game_state_soldier.add_next_player("A")
 next_player = game_state_soldier.get_player()
 action = {"type": "Nominate", "Speaker": next_player, "Nominee": "B"}
@@ -217,3 +218,49 @@ next_player = game_state_soldier.get_player()
 action = {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'E', 'Target': 'C'}
 game_state_soldier.apply_action(conv_manager, action, None, False, False)
 game_state_soldier.update_game_state()
+
+
+
+# imp
+
+# first day
+
+# nomination
+game_state_imp.update_game_state()
+game_state_imp.add_next_player("A")
+next_player = game_state_imp.get_player()
+action = {"type": "Nominate", "Speaker": next_player, "Nominee": "B"}
+game_state_imp.apply_action(conv_manager, action, None, False, False)
+
+# vote
+next_player = game_state_imp.get_player()
+action = {"type": "No Action", "Speaker": next_player}
+game_state_imp.apply_action(conv_manager, action, None, False, False)
+game_state_imp.update_game_state()
+next_player = game_state_imp.get_player()
+action = {"type": "Vote", "Speaker": next_player, "Target": "B"}
+game_state_imp.apply_action(conv_manager, action, None, False, False)
+game_state_imp.update_game_state()
+next_player = game_state_imp.get_player()
+action = {"type": "Vote", "Speaker": next_player, "Target": "B"}
+game_state_imp.apply_action(conv_manager, action, None, False, False)
+game_state_imp.update_game_state()
+next_player = game_state_imp.get_player()
+action = {"type": "Vote", "Speaker": next_player, "Target": "B"}
+game_state_imp.apply_action(conv_manager, action, None, False, False)
+game_state_imp.update_game_state()
+next_player = game_state_imp.get_player()
+action = {"type": "Vote", "Speaker": next_player, "Target": "B"}
+game_state_imp.apply_action(conv_manager, action, None, False, False)
+game_state_imp.update_game_state()
+
+# night actions
+next_player = game_state_imp.get_player()
+
+action = {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'E', 'Target': 'E'}
+game_state_imp.apply_action(conv_manager, action, None, False, False)
+game_state_imp.update_game_state()
+
+action = {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'D', 'Target': 'C'}
+game_state_imp.apply_action(conv_manager, action, None, False, False)
+game_state_imp.update_game_state()
