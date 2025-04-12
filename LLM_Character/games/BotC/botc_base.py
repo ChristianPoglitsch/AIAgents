@@ -499,8 +499,9 @@ class ConversationManager:
         :param append: If True, load the existing dataset from file_path and append new data.        
         """
         inputs, outputs = [], []
+        prompt_outcome_log = list(dict.fromkeys(self.prompt_outcome_log))
 
-        for i, o in self.prompt_outcome_log:
+        for i, o in prompt_outcome_log:
             inputs.append(i.strip())
             outputs.append(o.strip())
 
@@ -583,7 +584,9 @@ def simulation_policy(node, model, print_output, server_based, num_child_node):
 
     num_max_nodes = int(max(1, (random.random() * num_child_node + 1)))
     for i in range(num_max_nodes):
-        model.set_temperature(min(0.2, 1.2 - i * 0.4))
+        if not player in game_state.active_players:
+            continue
+        model.set_temperature(max(0.8, 1.2 - i * 0.1))
         prompt, result = game_state.create_action(player, conversation_manager, model, print_output, server_based, previous_results)
         if result not in result_action:
             result_action.append(result)

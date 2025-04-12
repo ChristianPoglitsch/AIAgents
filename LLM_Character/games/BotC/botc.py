@@ -24,8 +24,8 @@ reward_good_action      = 0.33
 reward_node = 0.0
 
 num_child_node = 3 # 2
-num_games = 6 # 1
-num_iterations = 600 # 300
+num_games = 8 # 1
+num_iterations = 700 # 300
 
 print_input = False
 print_output = True
@@ -784,7 +784,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         action_type = action.get("type")
         speaker = action.get("Speaker")
         
-        if speaker == None:
+        if speaker == None or speaker not in self.active_players:
             return False
 
         self.active_player = self.active_players[speaker]
@@ -854,6 +854,24 @@ def play_game():
     evil_wins = 0
 
     mcts_all_nodes = []
+    
+    # Load from file
+    with open('mcts_tree_.pkl', 'rb') as f:
+        mcts_all_nodes = pickle.load(f)
+        
+    for mcts in mcts_all_nodes:
+        mcts.print_tree()
+
+        nodes = mcts.get_all_terminal_nodes(mcts.get_root_node())
+
+        for node in nodes:
+            if node.state.good_win():
+                good_wins = good_wins + 1
+            if node.state.evil_win():
+                evil_wins = evil_wins + 1
+            conversationManager.append_prompt_outcomes(node.conversation_manager.get_prompt_outcomes())
+    print("Good wins: " + str(good_wins) + " / Evil wins: " + str(evil_wins))
+
 
     for i in range(num_games):
         print('Start Game')
@@ -887,6 +905,9 @@ def play_game():
         #    if log and store_data:
         #        conversationManager.append_prompt_outcomes(best_node.conversation_manager.get_prompt_outcomes())
 
+        with open('mcts_tree.pkl', 'wb') as f:
+            pickle.dump(mcts_all_nodes, f)
+
         if store_data:
             #add_convs(mcts.get_root(), conversationManager)
             for node in nodes:
@@ -894,8 +915,7 @@ def play_game():
                     good_wins = good_wins + 1
                 if node.state.evil_win():
                     evil_wins = evil_wins + 1
-                conversationManager.append_prompt_outcomes(node.conversation_manager.get_prompt_outcomes())
-            conversationManager.prompt_outcome_log = list(dict.fromkeys(conversationManager.prompt_outcome_log))
+                conversationManager.append_prompt_outcomes(node.conversation_manager.get_prompt_outcomes())            
 
         num_correct_games = num_correct_games + 1
         
@@ -914,12 +934,12 @@ def play_game():
     end_time = time.time()
     elapsed_time = end_time - start_time
 
+    with open('mcts_tree.pkl', 'wb') as f:
+        pickle.dump(mcts_all_nodes, f)
+
     if store_data:
         conversationManager.export_prompt_outcome_log(folder_path, False)
     print(f"Execution time: {elapsed_time:.6f} seconds")
-    
-    with open('mcts_tree.pkl', 'wb') as f:
-        pickle.dump(mcts_all_nodes, f)
 
 def main():
     play_game()
