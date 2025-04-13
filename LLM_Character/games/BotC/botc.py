@@ -24,7 +24,7 @@ reward_good_action      = 0.33
 reward_node = 0.0
 
 num_child_node = 3 # 2
-num_games = 5 # 1
+num_games = 2 # 1
 num_iterations = 700 # 300
 
 print_input = False
