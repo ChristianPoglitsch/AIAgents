@@ -565,7 +565,7 @@ def complete_action_with_llm(current_player, prompt, model, print_output, server
 
 # ------------------ MCTS with LLM Integration ------------------
 
-def simulation_policy(node, model, print_output, server_based, num_child_node):
+def simulation_policy(node, models, print_output, server_based, num_child_node):
     """
     Uses ActionProcessor to simulate actions and generate the next game state and conversation state.
     
@@ -582,6 +582,7 @@ def simulation_policy(node, model, print_output, server_based, num_child_node):
     prompt = ''
     previous_results = None
 
+    model = models[0]
     num_max_nodes = int(max(1, (random.random() * num_child_node + 1)))
     for i in range(num_max_nodes):
         if not player in game_state.active_players:
