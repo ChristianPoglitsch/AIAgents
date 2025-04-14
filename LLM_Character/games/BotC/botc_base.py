@@ -12,7 +12,7 @@ from LLM_Character.llm_comms.llm_local import LocalComms
 from LLM_Character.llm_comms.llm_openai import OpenAIComms
 from LLM_Character.messages_dataclass import AIMessage, AIMessages
 
-num_conv_history = 1
+num_conv_history_reasoning = 2
 print_input = False
 
 # ------------------ LLM Integration Stub ------------------
@@ -255,10 +255,12 @@ class BasicGameState:
         :param conversation_manager: The conversation manager to log messages.
         """
         # Call the LLM to complete the action for this respondent.
+        prompt_template = self.generate_prompt(player, conversation_manager)
         prompt = self.generate_prompt(player, conversation_manager)
         if previous_results is not None:
             prompt = prompt + "\n Do not use this actions as result: " + previous_results
-        return complete_action_with_llm(player, prompt, model, print_output, server_based)
+        _, result, errors = complete_action_with_llm(player, prompt, model, print_output, server_based)
+        return prompt_template, result, errors
     
     def plan_action(self, speaker, conv_manager, model, print_output, server_based):
         """
@@ -269,10 +271,11 @@ class BasicGameState:
         :param conversation_manager: The conversation manager to log messages.
         """
         # Call the LLM to complete the action for this respondent.
-        prompt_state, action_state = complete_action_with_llm(speaker, self.generate_game_state_prompt(speaker, conv_manager.get_conversation_history_for_player(speaker)), model, print_output, server_based)
+        prompt_state, action_state, error = complete_action_with_llm(speaker, self.generate_game_state_prompt(speaker, conv_manager.get_conversation_history_for_player(speaker, num_conv_history_reasoning)), model, print_output, server_based)
         if action_state is not str and action_state.get("action") is None and action_state.get("error") is None:
             self.features.update_features_from_json(speaker, action_state)
             conv_manager.store_prompt_outcome(prompt_state, json.dumps(action_state))
+        return error
 
     def apply_action(self, conv_manager, action):
         raise NotImplementedError("Subclasses must implement this method.")
@@ -376,14 +379,14 @@ class ConversationManager:
             if act.get("type") in ["Message"]:
                 self.add_message_to_conversation(participants, speaker, act)
 
-    def get_conversation_for_player(self, player_name, num_convs = num_conv_history) -> Conversation:
+    def get_conversation_for_player(self, player_name, num_convs = 1) -> Conversation:
         result = []
         for participants_tuple, conv in self.conversations.items():
             if player_name in participants_tuple:
                 result.append(conv.history[-num_convs:])
         return result  # Return only the last `num_convs` conversations
 
-    def get_conversation_history_for_player(self, current_player, num_convs = num_conv_history) -> str:
+    def get_conversation_history_for_player(self, current_player, num_convs = 1) -> str:
         """
         Retrieves and returns a formatted conversation history for the given player.
 
@@ -405,7 +408,7 @@ class ConversationManager:
                 formatted_message = str(message)  # Convert message dictionary to string if necessary
                 formatted_conversations.append(f"{sender}: {formatted_message}")
 
-        return "\n".join(formatted_conversations)
+        return "\n".join(formatted_conversations[-num_convs:])
 
     def print_all_conversations(self):
         """
@@ -537,6 +540,7 @@ def complete_action_with_llm(current_player, prompt, model, print_output, server
     if print_input:
         print(prompt)
 
+    errors = 0
     # Prepare messages for the LLM.
     if server_based:
         role = "developer"
@@ -554,14 +558,17 @@ def complete_action_with_llm(current_player, prompt, model, print_output, server
     try:
         result = json.loads(llm_response)
     except Exception as e:
+        errors = errors + 1
         if print_output:
+            print('- ___ - ___ -')
             print("Error parsing LLM response: " + ' \nMessage:\n' + llm_response, e)
+            print('- ___ - ___ -')
         result = {"error": "No Action", 'Speaker': current_player}
 
     if print_output:
         print("LLM Responds: " + current_player +"\n", result)
         print('--- --- --- ---')
-    return prompt, result
+    return prompt, result, errors
 
 # ------------------ MCTS with LLM Integration ------------------
 
@@ -581,14 +588,23 @@ def simulation_policy(node, models, print_output, server_based, num_child_node):
     result_action = []
     prompt = ''
     previous_results = None
-
-    model = models[0]
+    llm_erros = 0
+    
+    if len(models) > 1:
+        if game_state.active_players[player].alignment == 'Good':
+            model = models[0]
+        else:
+            model = models[1]
+    else:
+        model = models[0]
+    
     num_max_nodes = int(max(1, (random.random() * num_child_node + 1)))
     for i in range(num_max_nodes):
         if not player in game_state.active_players:
             continue
-        model.set_temperature(max(0.8, 1.2 - i * 0.1))
-        prompt, result = game_state.create_action(player, conversation_manager, model, print_output, server_based, previous_results)
+        model.set_temperature(0.8) # (max(0.8, 1.2 - i * 0.1))
+        prompt, result, erros = game_state.create_action(player, conversation_manager, model, print_output, server_based, previous_results)
+        llm_erros = llm_erros + erros
         if result not in result_action:
             result_action.append(result)
             if previous_results is None:
@@ -615,7 +631,9 @@ def simulation_policy(node, models, print_output, server_based, num_child_node):
             conversation_manager_copy.add_message_to_conversation(participants, speaker, action)
 
         conversation_manager_copy.store_prompt_outcome(prompt, json.dumps(action))
-        if not game_state_copy.apply_action(conversation_manager_copy, action, model, print_output, server_based):
+        success, errors = game_state_copy.apply_action(conversation_manager_copy, action, model, print_output, server_based)
+        llm_erros = llm_erros + errors
+        if not success:
             continue
         
         if game_state_copy.is_terminal() is not None and game_state_copy.is_terminal() is True:
@@ -624,7 +642,7 @@ def simulation_policy(node, models, print_output, server_based, num_child_node):
         child_node = MCTSNode(game_state_copy, action, conversation_manager_copy, terminal_state, parent=node)
         child_nodes.append(child_node)  # Collect nodes in a list
 
-    return child_nodes  # Always return a list of nodes
+    return child_nodes, llm_erros  # Always return a list of nodes
 
 class MCTSNode:
     def __init__(self, state=None, action=None, conversation_manager=None, terminal_state=False, parent=None):
@@ -675,6 +693,7 @@ class MCTS:
         self.root = None
         self.num_child_node = num_child_node
         self.exploration_weight = exploration_weight
+        self.errors = 0
 
     def search(self, initial_state, conversation_manager, model, print_output, server_based):
         self.root = self.get_node(initial_state, conversation_manager, initial_state.get_no_action())
@@ -728,8 +747,8 @@ class MCTS:
         if node.is_terminal:  # Stop expansion if game is over
             return node.parent if node.parent else node  # Move up if terminal  
 
-        child_nodes = self.simulation_policy(node, model, print_output, server_based, self.num_child_node)
-        
+        child_nodes, errors = self.simulation_policy(node, model, print_output, server_based, self.num_child_node)
+        self.errors = self.errors + errors
         node.children.extend(child_nodes)
         return child_nodes
 

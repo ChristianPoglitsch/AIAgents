@@ -23,13 +23,14 @@ reward_terminal_evil    = 0.33
 reward_good_action      = 0.33
 reward_node = 0.0
 
-num_child_node = 3 # 2
-num_games = 3 # 1
-num_iterations = 700 # 300
+num_child_node = 3 # 3
+num_games = 25 # 25
+num_iterations = 800 # 800
 
 print_input = False
 print_output = True
 max_token = 400
+num_conv_history_action = 3
 
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 #model_id = "deepseek-ai/deepseek-llm-7b-chat"
@@ -277,9 +278,13 @@ class Ravenkeeper(Role):
         return action_space
     
     def apply_action(self, action, other_players):
+        target = action.get("Target")
+        role_other_player = other_players[target].role
+        if self.is_poisoned:
+            random_role = random.choice(list(roles.values()))
+            role_other_player = random_role.role
         if self.target_tonight is True:
-            target = action.get("Target")
-            self.player_info = "Role of player " + target + " is " + other_players[target].role
+            self.player_info = "Role of player " + target + " is " + role_other_player
             self.target_tonight = False
             return self.player_info
 
@@ -294,11 +299,38 @@ class Soldier(Role):
         super().__init__(name, team, alignment, description, action)
         
     def target_kill_night(self):
+        if self.is_poisoned:
+            return True
         return False
 
-class FortuneTeller(Role):
+class Slayer(Role):
     def __init__(self, name, team, alignment, description, action):
-        super().__init__(name, team, alignment, description, action) 
+        super().__init__(name, team, alignment, description, action)
+        self.use_ability = False
+        self.killed_demon = False
+
+    def set_info(self, alive_players, player_infos, day_count = 0):
+        player_info = 'Ability used ' + str(self.use_ability)            
+        return player_info
+
+    def get_action_space(self, phase):
+        action_space = super().get_action_space(phase)
+        if not self.use_ability:
+            action_space.append(str(f'{{"type": "Action", "Description": "{self.description}", "Speaker": null, "Target": "None"}}'))
+        return action_space
+    
+    def apply_action(self, action, other_players):
+        target = action.get("Target")
+        self.use_ability = True
+        if not self.is_poisoned and other_players[target].team == 'Demon':
+            other_players[target].alive = False
+            self.killed_demon = True
+
+    def get_reward(self, node) -> int:
+        reward = 0
+        if self.killed_demon:
+            reward = reward + reward_terminal_good
+        return reward + super().get_reward(node)
 
 class Poisoner(Role):
     def __init__(self, name, team, alignment, description, action):
@@ -398,12 +430,12 @@ roles = {
     'Investigator': Investigator('Investigator', 'Town', 'Good', 'Learns that one of two players is a specific Minion.', None),
     #'Chef': Role('Chef', 'Town','Good',  'Learns how many pairs of evil players are sitting next to each other.', None),
     'Empath': Empath('Empath', 'Town', 'Good', 'Learns how many of their two alive neighbors are evil.', None),
-    ##'Fortune Teller': FortuneTeller('Fortune Teller', 'Town', 'Good', 'Each night, chooses two players. Learns if one is the Demon, but there is a Red Herring.', None),
+    #'Fortune Teller': FortuneTeller('Fortune Teller', 'Town', 'Good', 'Each night, chooses two players. Learns if one is the Demon, but there is a Red Herring.', None),
     #'Undertaker': Role('Undertaker', 'Town', 'Good', 'Each night, learns which character died by execution that day.', None),
     #'Monk': Role('Monk', 'Town', 'Good', 'Each night, chooses a player (not themselves). That player is safe from the Demon that night.', None),
     'Ravenkeeper': Ravenkeeper('Ravenkeeper', 'Town', 'Good', 'If killed at night, select one player and learn the role of this player.', None),
     #'Virgin': Role('Virgin', 'Town', 'Good', 'If nominated for the first time, and the nominator is a Townsfolk, they are executed immediately.', None),
-    #'Slayer': Slayer('Slayer', 'Town', 'Good', 'Once per game, publicly chooses a player. If that player is the Demon, they die.', None),
+    'Slayer': Slayer('Slayer', 'Town', 'Good', 'Once per game, publicly chooses a player. If that player is the Demon, they die.', None),
     'Soldier': Soldier('Soldier', 'Town', 'Good', 'Cannot die at night.', None),
     #'Mayor': Role('Mayor', 'Town', 'Good', 'If only three players live & no execution occurs, your team wins. Might not die at night.', None),
     
@@ -444,7 +476,7 @@ def roles_to_string(roles):
 
 # Stub definitions for GameState methods:
 class BloodOnTheClocktowerState(BasicGameState):
-    def __init__(self, players, available_roles):
+    def __init__(self, players, available_roles, randomize_role = True):
         super().__init__(players)
 
         self.active_players = {}
@@ -455,7 +487,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         self.conv_count_day = 0
         self.max_conv_count_per_day = 5
 
-        self.assign_roles(players, role_list)
+        self.assign_roles(players, role_list, randomize_role)
 
         self.phase = 'Night' # Day, Nominate, Night
         self.nominations = None
@@ -471,7 +503,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         self.game_over = False
 
 
-    def assign_roles(self, players, role_list):
+    def assign_roles(self, players, role_list, randomize_roles):
         """
         Assigns exactly three Townsfolk, one Minion, and one Imp from the role list.
         Ensures correct role distribution while maintaining randomness.
@@ -484,8 +516,6 @@ class BloodOnTheClocktowerState(BasicGameState):
         # Step 2: Ensure enough roles exist
         if len(town_roles) < 3 or len(minion_roles) < 1 or len(imp_roles) < 1:
             raise ValueError("Not enough roles available to meet selection criteria.")
-
-        randomize_roles = False
 
         if randomize_roles:
             # Step 3: Select roles
@@ -727,7 +757,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         # Append additional state features as needed.
         additional_info = self.game_state_features_to_string(player)
 
-        roles_info = "These roles are in the game: " + ", ".join(sorted(roles)) + " .You can use the rules to bluff."
+        roles_info = "These roles are in the game: " + ", ".join(sorted(roles)) + ". You can use the rules to bluff."
 
         return f"{phase_info}\n{players_info}\n{roles_info}\n{private_info}\n{player_info.get_information()}\n\n{additional_info}"
 
@@ -756,12 +786,12 @@ class BloodOnTheClocktowerState(BasicGameState):
         """
         # Get the public state description for the current player.
         state_description = self.get_game_state(current_player)
-        conversation_history = conversation_manager.get_conversation_history_for_player(current_player)
+        conversation_history = conversation_manager.get_conversation_history_for_player(current_player, num_conv_history_action)
         #get_player_plan = conversation_manager.get_player_plan(current_player)
 
         prompt = (
             "You are a helpful board game AI assistant for Blood on the Clocktower.\n"
-            f"Current Player: {current_player}\n\n"
+            f"Current Player: {current_player}\n This list also represents the seating order. The first and last players are seated next to each other.\n"
             "The available actions are given below, but each action is incomplete and missing parameters marked as None.\n"
             "Available Actions Description:\n"
             f"{self.get_action_space_description(current_player)}\n\n"
@@ -793,18 +823,20 @@ class BloodOnTheClocktowerState(BasicGameState):
         speaker = action.get("Speaker")
         
         if speaker == None or speaker not in self.active_players:
-            return False
+            return False, 1
 
         self.active_player = self.active_players[speaker]
         self.active_player_action = action
-
+        llm_errors = 0
+        
         if action_type == "Message":
             # Extract speaker and audience from the action.
             speaker = action.get("Speaker")
             audience = action.get("Audience")        
             # Ensure audience is handled as a list.
             self.add_next_player(audience)
-            self.plan_action(speaker, conversation_manager, model, print_output, server_based)
+            error = self.plan_action(speaker, conversation_manager, model, print_output, server_based)
+            llm_errors = llm_errors + error
             
         elif action_type == "Action":
             target = action.get("Target")
@@ -825,7 +857,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         elif action_type == 'Vote':
             self.num_votes = self.num_votes + 1
             
-        return True
+        return True, llm_errors
 
 
 def reward_function(node, new_node):
@@ -861,12 +893,13 @@ def play_game():
 
     good_wins = 0
     evil_wins = 0
+    num_errors = 0
 
     mcts_all_nodes = []
     
     # Load from file
-    with open('mcts_tree.pkl', 'rb') as f:
-        mcts_all_nodes = pickle.load(f)
+    #with open('mcts_tree.pkl', 'rb') as f:
+    #    mcts_all_nodes = pickle.load(f)
         
     for mcts in mcts_all_nodes:
         mcts.print_tree()
@@ -918,16 +951,14 @@ def play_game():
             with open('mcts_tree.pkl', 'wb') as f:
                 pickle.dump(mcts_all_nodes, f)
 
-        if store_data:
-            #add_convs(mcts.get_root(), conversationManager)
-            for node in nodes:
-                if node.state.good_win():
-                    good_wins = good_wins + 1
-                if node.state.evil_win():
-                    evil_wins = evil_wins + 1
-                conversationManager.append_prompt_outcomes(node.conversation_manager.get_prompt_outcomes())            
+        for node in nodes:
+            if node.state.good_win():
+                good_wins = good_wins + 1
+            if node.state.evil_win():
+                evil_wins = evil_wins + 1           
 
         num_correct_games = num_correct_games + 1
+        num_errors = num_errors + mcts.errors
         
         if show_training_data:
             dataset = load_from_disk(folder_path)
@@ -948,9 +979,8 @@ def play_game():
         with open('mcts_tree.pkl', 'wb') as f:
             pickle.dump(mcts_all_nodes, f)
 
-    #if store_data:
-    #    conversationManager.export_prompt_outcome_log(folder_path, False)
     print(f"Execution time: {elapsed_time:.6f} seconds")
+    print(f"Errors: {num_errors}")
 
 def main():
     play_game()

@@ -94,7 +94,7 @@ def format_prompts_mistral(examples):
         response = examples["output"][i]
         
         # Format the prompt for Mistral-style training
-        formatted_prompt = f"<s>[INST] {prompt} [/INST]"
+        formatted_prompt = f"<s>[INST] {prompt}[/INST]"
         
         formatted_examples["prompt"].append(formatted_prompt)
         formatted_examples["response"].append(response)
