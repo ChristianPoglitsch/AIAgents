@@ -4,6 +4,7 @@ import copy
 import os
 import math
 import shutil
+import re
 from datasets import Dataset
 from datasets import load_from_disk, concatenate_datasets
 
@@ -116,11 +117,11 @@ class PlayerFeatures:
           },
           "C": {
             "conversations": 0,
-            "private_info": null
+            "private_info": None
           },
           "D": {
             "conversations": 0,
-            "private_info": null
+            "private_info": None
           }
         }
         """
@@ -525,6 +526,16 @@ class ConversationManager:
 
 # ------------------ LLM Action Completion Function ------------------
 
+def extract_json_start(text):
+    match = re.match(r'^\s*(\{.*?\})', text, re.DOTALL)
+    if match:
+        try:
+            data = json.loads(match.group(1))
+            return json.dumps(data)
+        except json.JSONDecodeError:
+            return text
+    return None
+
 def complete_action_with_llm(current_player, prompt, model, print_output, server_based):
     """
     Given the global actions (action templates) for the number guessing game,
@@ -554,14 +565,15 @@ def complete_action_with_llm(current_player, prompt, model, print_output, server
     #model = get_model()
     llm_response = model.query_text(messages)
     llm_response = llm_response.strip()
-    
+    llm_response = extract_json_start(llm_response)
+
     try:
         result = json.loads(llm_response)
     except Exception as e:
         errors = errors + 1
         if print_output:
             print('- ___ - ___ -')
-            print("Error parsing LLM response: " + ' \nMessage:\n' + llm_response, e)
+            print("Error parsing LLM response: " + ' \nMessage:\n' + str(llm_response), e)
             print('- ___ - ___ -')
         result = {"error": "No Action", 'Speaker': current_player}
 
@@ -598,7 +610,7 @@ def simulation_policy(node, models, print_output, server_based, num_child_node):
     else:
         model = models[0]
     
-    num_max_nodes = int(max(1, (random.random() * num_child_node + 1)))
+    num_max_nodes = num_child_node # int(max(1, (random.random() * num_child_node + 1)))
     for i in range(num_max_nodes):
         if not player in game_state.active_players:
             continue

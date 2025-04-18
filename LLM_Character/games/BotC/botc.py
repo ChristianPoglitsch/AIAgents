@@ -14,8 +14,8 @@ from botc_base import simulation_policy
 
 model = []
 
-server_based = True
-store_data = True
+server_based = False
+store_data = False
 show_training_data = False
 
 reward_terminal_good    = 0.33
@@ -23,13 +23,13 @@ reward_terminal_evil    = 0.33
 reward_good_action      = 0.33
 reward_node = 0.0
 
-num_child_node = 3 # 3
-num_games = 25 # 25
-num_iterations = 800 # 800
+num_child_node = 1 # 3
+num_games = 1 # 25
+num_iterations = 500 # 2500
 
 print_input = False
 print_output = True
-max_token = 400
+max_token = 450
 num_conv_history_action = 3
 
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
@@ -90,9 +90,11 @@ class Role:
                 reward += num_conversations / len(node.state.active_players)
                 self.num_conversations = num_conversations
 
-        if self.alignment == 'Good' and state.execution:
-            if state.active_players[state.execution].alignment == 'Evil':
-                reward += reward_terminal_good
+        if self.alignment == 'Good' and state.execution and state.active_players[state.execution].alignment == 'Evil':
+            reward += reward_terminal_good
+
+        if self.alignment == 'Evil' and state.execution and state.active_players[state.execution].alignment == 'Good':
+            reward += reward_terminal_good
 
         return reward
   
@@ -249,13 +251,6 @@ class Empath(Role):
             self.player_info = f"You sense that {evil_neighbors} of your alive neighbors are evil."
         return self.player_info
 
-class Soldier(Role):
-    def __init__(self, name, team, alignment, description, action):
-        super().__init__(name, team, alignment, description, action)
-        
-    def target_kill_night(self):
-        return False
-  
 class Ravenkeeper(Role):
     def __init__(self, name, team, alignment, description, action):
         super().__init__(name, team, alignment, description, action)
@@ -316,7 +311,7 @@ class Slayer(Role):
     def get_action_space(self, phase):
         action_space = super().get_action_space(phase)
         if not self.use_ability:
-            action_space.append(str(f'{{"type": "Action", "Description": "{self.description}", "Speaker": null, "Target": "None"}}'))
+            action_space.append(str(f'{{"type": "Action", "Description": "{self.description}", "Speaker": None, "Target": "None"}}'))
         return action_space
     
     def apply_action(self, action, other_players):
@@ -357,7 +352,7 @@ class Poisoner(Role):
     def get_action_space(self, phase):
         action_space = super().get_action_space(phase)
         if phase == 'Night':
-            action_space.append(str(f'{{"type": "Action", "Description": "{self.description}", "Speaker": null, "Target": "None", "Effect": "Poison"}}'))
+            action_space.append(str(f'{{"type": "Action", "Description": "{self.description}", "Speaker": None, "Target": "None", "Effect": "Poison"}}'))
         return action_space
     
     def apply_action(self, action, other_players):
@@ -400,7 +395,7 @@ class Imp(Role):
     def get_action_space(self, phase):
         action_space = super().get_action_space(phase)
         if phase == 'Night':
-            action_space.append(str(f'{{"type": "Action", "Description": "{self.description}", "Speaker": null, "Target": "None"}}'))
+            action_space.append(str(f'{{"type": "Action", "Description": "{self.description}", "Speaker": None, "Target": "None"}}'))
         return action_space
     
     def apply_action(self, action, other_players):
@@ -485,7 +480,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         self.num_votes = 0
 
         self.conv_count_day = 0
-        self.max_conv_count_per_day = 5
+        self.max_conv_count_per_day = 8
 
         self.assign_roles(players, role_list, randomize_role)
 
@@ -556,6 +551,8 @@ class BloodOnTheClocktowerState(BasicGameState):
         if self.is_terminal():
             return
 
+        print('update_game_state')
+
         # initial infos 
         if  self.day_count == 0:
             self.night_info(first_night_order)
@@ -568,6 +565,8 @@ class BloodOnTheClocktowerState(BasicGameState):
             self.phase = 'Day'
             self.day_count = self.day_count + 1
             self.execution = None
+            print(self.get_player_info())
+            print(self.active_players)
         elif self.phase == 'Day' and self.conv_count_day >= self.max_conv_count_per_day and self.phase != 'Nominate':
             self.conv_count_day = 0
             self.day_count = self.day_count + 1
@@ -746,7 +745,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         players_info = "Players: " + ", ".join(
             [f"{p} ({'Alive' if self.active_players[p].get_alive() else 'Dead'})" for p in self.players]
         )
-
+        players_info = players_info + ". This list also represents the seating order. The first and last players are seated next to each other."
         # Private info for the current player.
         player_info = self.active_players[player]
         private_info = f"Your role: {player_info.get_role()} - {player_info.get_description()}"
@@ -791,7 +790,7 @@ class BloodOnTheClocktowerState(BasicGameState):
 
         prompt = (
             "You are a helpful board game AI assistant for Blood on the Clocktower.\n"
-            f"Current Player: {current_player}\n This list also represents the seating order. The first and last players are seated next to each other.\n"
+            f"Current Player: {current_player}\n\n"
             "The available actions are given below, but each action is incomplete and missing parameters marked as None.\n"
             "Available Actions Description:\n"
             f"{self.get_action_space_description(current_player)}\n\n"
@@ -856,8 +855,12 @@ class BloodOnTheClocktowerState(BasicGameState):
             
         elif action_type == 'Vote':
             self.num_votes = self.num_votes + 1
-            
-        return True, llm_errors
+        
+
+        success = True
+        if llm_errors > 0:
+            success = False
+        return success, llm_errors
 
 
 def reward_function(node, new_node):
@@ -890,6 +893,9 @@ def play_game():
     num_correct_games = 0
     model = init_model(model_id, server_based, max_token)
     model = [model]
+    #model0 = init_model(model_id, False, max_token)
+    #model1 = init_model(model_id, True, max_token)
+    #model = [model0, model1]
 
     good_wins = 0
     evil_wins = 0
@@ -898,8 +904,8 @@ def play_game():
     mcts_all_nodes = []
     
     # Load from file
-    #with open('mcts_tree.pkl', 'rb') as f:
-    #    mcts_all_nodes = pickle.load(f)
+    with open('mcts_tree.pkl', 'rb') as f:
+        mcts_all_nodes = pickle.load(f)
         
     for mcts in mcts_all_nodes:
         mcts.print_tree()
@@ -987,5 +993,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 

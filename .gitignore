@@ -178,3 +178,4 @@ cython_debug/
 .vs/
 
 LLM_Character/trained/*
+mcts_tree.pkl

@@ -168,7 +168,7 @@ game_state_soldier.apply_action(conv_manager, action, None, False, False)
 game_state_soldier.update_game_state()
 
 
-# imp
+# demon self.kill
 
 # first day
 
@@ -213,7 +213,7 @@ game_state_imp.apply_action(conv_manager, action, None, False, False)
 game_state_imp.update_game_state()
 
 
-# slayer
+# slayer killing demon
 
 roles = {
     # Townsfolk Roles
