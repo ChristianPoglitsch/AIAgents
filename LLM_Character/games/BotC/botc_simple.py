@@ -24,11 +24,11 @@ reward_small = 4
 reward_node = 0.25
 
 num_child_node = 1 # 3
-num_games = 5 # 35
+num_games = 1 # 35
 num_iterations = 16 # 50
 
 print_output = True
-max_token = 150
+max_token = 450
 
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 #model_id = "deepseek-ai/deepseek-llm-7b-chat"
@@ -69,7 +69,10 @@ class SimpleNumberGuessGameState(BasicGameState):
 
     def is_terminal(self):
         """Game ends when a guess is made."""
-        return self.guess
+        #return self.guess
+        if self.guess is not None:
+            return True
+        return False
 
     def get_game_state(self, player):
         """
@@ -153,6 +156,8 @@ class SimpleNumberGuessGameState(BasicGameState):
         
             # Log the guess in the conversation manager.
             conversation_manager.add_message_to_conversation(speaker, speaker, f"My guess is {guessed_number}.")
+            
+        return True, 0
 
 
 # ------------------ MCTS with LLM Integration ------------------
@@ -204,7 +209,7 @@ player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 num_correct_games = 0
 num_correct_high_reward_games = 0
 model = init_model(model_id, server_based, max_token)
-
+model = [model]
 for i in range(num_games):
     print('Start Game')
     print(str(i) + ' / ' + str(num_games))
