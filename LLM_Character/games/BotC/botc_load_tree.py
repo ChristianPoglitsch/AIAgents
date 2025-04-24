@@ -3,11 +3,18 @@ from botc_base import *
 from botc import *
 
 mcts_all = None
-
+mcts_all2 = None
 # Load from file
-with open('mcts_tree.pkl', 'rb') as f:
+with open('mcts_tree_good.pkl', 'rb') as f:
     mcts_all = pickle.load(f)
-    
+
+with open('mcts_tree_good2.pkl', 'rb') as f:
+    mcts_all2 = pickle.load(f)
+mcts_all = mcts_all + mcts_all2
+
+#with open('mcts_tree.pkl', 'wb') as f:
+#    pickle.dump(mcts_all, f)
+
 good_wins = 0
 evil_wins = 0
 conversationManager = ConversationManager()
@@ -15,7 +22,7 @@ conversationManager = ConversationManager()
 for mcts in mcts_all:
     mcts.print_tree()
 
-    nodes = mcts.get_all_terminal_nodes(mcts.get_root_node())    
+    nodes = mcts.get_all_terminal_nodes(mcts.get_root_node())
 
     for node in nodes:
         if node.state.good_win():

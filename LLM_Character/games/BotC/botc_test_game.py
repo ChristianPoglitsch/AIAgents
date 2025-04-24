@@ -29,6 +29,9 @@ roles = {
     'Imp': Imp('Imp', 'Demon', 'Evil', 'Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp.', None)
 }
 
+first_night_order = ["Poisoner", "Washerwoman", "Investigator", "Empath"]
+night_order = ["Poisoner", "Imp", "Empath", "Ravenkeeper"]
+
 print('Start Game')
 game_state = BloodOnTheClocktowerState(['A', 'B', 'C', 'D', 'E'], roles, False)
 # Create a dummy ConversationManager and add a conversation.
@@ -40,6 +43,7 @@ next_player = game_state.get_player()
 # firsrt night phase
 action = {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'D', 'Target': 'A', 'Effect': 'Poison'}
 game_state.apply_action(conv_manager, action, None, False, False)
+game_state.night_info(first_night_order)
 game_state_ravenkeeper = copy.deepcopy(game_state)
 game_state_soldier = copy.deepcopy(game_state)
 game_state_imp = copy.deepcopy(game_state)
@@ -119,6 +123,9 @@ next_player = game_state_evil.get_player()
 action = {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'D', 'Target': 'A', 'Effect': 'Poison'}
 game_state_evil.apply_action(conv_manager, action, None, False, False)
 game_state_evil.update_game_state()
+action = {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'D', 'Target': 'B', 'Effect': 'Poison'}
+game_state_evil.apply_action(conv_manager, action, None, False, False)
+game_state_evil.update_game_state()
 
 next_player = game_state_evil.get_player()
 action = {'type': 'Action', 'Description': 'Kill player tonight.', 'Speaker': 'E', 'Target': 'C'}
@@ -154,15 +161,32 @@ print('Game over: ' + str(game_state_good.terminal_message()))
 
 # ravenkeeper
 game_state_ravenkeeper.update_game_state()
-action = {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'E', 'Target': 'B'}
+action = {'type': 'Action', 'Description': 'Imp.', 'Speaker': 'E', 'Target': 'C'}
 game_state_ravenkeeper.apply_action(conv_manager, action, None, False, False)
 game_state_ravenkeeper.update_game_state()
-action = {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'B', 'Target': 'E'}
+game_state_ravenkeeper.phase = 'Night'
+action = {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'C', 'Target': 'E'}
 game_state_ravenkeeper.apply_action(conv_manager, action, None, False, False)
-
+game_state_ravenkeeper.night_info(night_order)
 
 # soldier
-game_state_soldier.update_game_state()
+
+roles = {
+    # Townsfolk Roles
+    'Washerwoman': Washerwoman('Washerwoman', 'Town', 'Good', 'Learns that one of two players is a specific Townsfolk.', None),
+    'Investigator': Investigator('Investigator', 'Town', 'Good', 'Learns that one of two players is a specific Minion.', None),
+    'Soldier': Soldier('Soldier', 'Town', 'Good', 'Cannot die at night.', None),
+    'Ravenkeeper': Ravenkeeper('Ravenkeeper', 'Town', 'Good', 'If killed at night, select one player and learn the role of this player.', None),    
+    'Empath': Empath('Empath', 'Town', 'Good', 'Learns how many of their two alive neighbors are evil.', None),
+
+    # Minion Roles
+    'Poisoner': Poisoner('Poisoner', 'Minion', 'Evil', 'Each night, poison one player.', 'Poison'),
+    
+    # Demon Roles
+    'Imp': Imp('Imp', 'Demon', 'Evil', 'Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp.', None)
+}
+
+game_state_soldier = BloodOnTheClocktowerState(['A', 'B', 'C', 'D', 'E'], roles, False)
 action = {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'E', 'Target': 'C'}
 game_state_soldier.apply_action(conv_manager, action, None, False, False)
 game_state_soldier.update_game_state()
@@ -204,6 +228,7 @@ game_state_imp.update_game_state()
 # night actions
 next_player = game_state_imp.get_player()
 
+# self kill
 action = {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'E', 'Target': 'E'}
 game_state_imp.apply_action(conv_manager, action, None, False, False)
 game_state_imp.update_game_state()
@@ -217,11 +242,11 @@ game_state_imp.update_game_state()
 
 roles = {
     # Townsfolk Roles
+    'Slayer': Slayer('Slayer', 'Town', 'Good', 'Once per game, publicly chooses a player. If that player is the Demon, they die.', None),    
     'Washerwoman': Washerwoman('Washerwoman', 'Town', 'Good', 'Learns that one of two players is a specific Townsfolk.', None),
     'Investigator': Investigator('Investigator', 'Town', 'Good', 'Learns that one of two players is a specific Minion.', None),
     'Empath': Empath('Empath', 'Town', 'Good', 'Learns how many of their two alive neighbors are evil.', None),
     'Ravenkeeper': Ravenkeeper('Ravenkeeper', 'Town', 'Good', 'If killed at night, select one player and learn the role of this player.', None),
-    'Slayer': Slayer('Slayer', 'Town', 'Good', 'Once per game, publicly chooses a player. If that player is the Demon, they die.', None),
     'Soldier': Soldier('Soldier', 'Town', 'Good', 'Cannot die at night.', None),
 
     # Minion Roles
@@ -232,7 +257,7 @@ roles = {
 }
 
 game_state = BloodOnTheClocktowerState(['A', 'B', 'C', 'D', 'E'], roles, False)
-action = {'type': 'Action', 'Description': 'Slay.', 'Speaker': 'C', 'Target': 'E'}
+action = {'type': 'Action', 'Description': 'Slay.', 'Speaker': 'A', 'Target': 'E'}
 game_state.apply_action(conv_manager, action, None, False, False)
 game_state.update_game_state()
 print('Game over: ' + str(game_state.terminal_message()))

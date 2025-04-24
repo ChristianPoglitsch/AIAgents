@@ -14,18 +14,19 @@ from botc_base import simulation_policy
 
 model = []
 
-server_based = False
-store_data = False
+server_based = True
+store_data = True
 show_training_data = False
 
-reward_terminal_good    = 0.33
-reward_terminal_evil    = 0.33
-reward_good_action      = 0.33
-reward_node = 0.0
+reward_terminal_good    = 1.0 # 1.0
+reward_terminal_evil    = 0.0 # 1.0
+reward_good_action      = 1.0 # 1.0
+reward_evil_action      = 0.0 # 1.0
+reward_node             = 0.75
 
-num_child_node = 1 # 3
-num_games = 1 # 25
-num_iterations = 500 # 2500
+num_child_node = 2 # 3
+num_games = 10 # 50
+num_iterations = 3000 # 3000
 
 print_input = False
 print_output = True
@@ -35,7 +36,7 @@ num_conv_history_action = 3
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 #model_id = "deepseek-ai/deepseek-llm-7b-chat"
 #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
-model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
+model_id = "trained/Mistral-7B-Instruct-v0.3_merged_good"
 #model_id = "trained/deepseek-llm-7b-chat_merged"
 #model_id = "trained\\Teuken-7B-instruct-research-v0.4_merged"
 
@@ -58,7 +59,7 @@ class Role:
         self.num_conversations = 0
  
     def set_info(self, alive_players, player_infos, day_count = 0):
-        return None
+        return self.player_info
 
     def get_action_space(self, phase):
         actions = []        
@@ -67,7 +68,7 @@ class Role:
     def has_action(self, phase):
         return False
     
-    def apply_action(self, other_players, game_state = None):
+    def apply_action(self, action, other_players):
         None
         
     def set_poison(self, poison: bool) -> None:
@@ -78,7 +79,7 @@ class Role:
     
     def get_reward(self, node) -> int:
         state = node.state
-        reward = reward_node
+        reward = 0
         speaker = node.action.get("Speaker")
 
         if speaker is not None:
@@ -87,14 +88,14 @@ class Role:
                 for partner in state.features.features[speaker]
             )
             if num_conversations > self.num_conversations:
-                reward += num_conversations / len(node.state.active_players)
+                reward += reward_node
                 self.num_conversations = num_conversations
 
         if self.alignment == 'Good' and state.execution and state.active_players[state.execution].alignment == 'Evil':
             reward += reward_terminal_good
 
         if self.alignment == 'Evil' and state.execution and state.active_players[state.execution].alignment == 'Good':
-            reward += reward_terminal_good
+            reward += reward_terminal_evil
 
         return reward
   
@@ -274,14 +275,15 @@ class Ravenkeeper(Role):
     
     def apply_action(self, action, other_players):
         target = action.get("Target")
-        role_other_player = other_players[target].role
-        if self.is_poisoned:
-            random_role = random.choice(list(roles.values()))
-            role_other_player = random_role.role
-        if self.target_tonight is True:
-            self.player_info = "Role of player " + target + " is " + role_other_player
-            self.target_tonight = False
-            return self.player_info
+        if target in other_players:
+            role_other_player = other_players[target].role
+            if self.is_poisoned and self.target_tonight is True:
+                random_role = random.choice(list(roles.values()))
+                role_other_player = random_role.role
+            if self.target_tonight is True:
+                self.player_info = "Role of player " + target + " is " + role_other_player
+                self.target_tonight = False
+                return self.player_info
 
     def get_reward(self, node) -> int:
         reward = 0
@@ -357,19 +359,26 @@ class Poisoner(Role):
     
     def apply_action(self, action, other_players):
         if self.poisoned_player is not None:
-            other_players[self.poisoned_player].set_poison(False)
+            self.poisoned_player.set_poison(False)
         target = action.get("Target")
-        self.poisoned_player = target
-        if self.poisoned_player in other_players:
-            other_players[self.poisoned_player].set_poison(True)
+        if target in other_players:
+            self.poisoned_player = other_players[target]
+            self.poisoned_player.set_poison(True)
             self.poisoned_tonight = True
         
     def get_reward(self, node) -> int:
         reward = 0
         if self.poisoned_tonight:
             self.poisoned_tonight = False
-            reward = reward + reward_terminal_evil
+            reward = reward + reward_evil_action
         return reward + super().get_reward(node)
+    
+    def set_alive(self, value):
+        super().set_alive(value)
+        if self.poisoned_player is not None:
+            self.poisoned_player.set_poison(False)
+            self.poisoned_player = None
+
     
 class Imp(Role):
     def __init__(self, name, team, alignment, description, action):
@@ -480,7 +489,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         self.num_votes = 0
 
         self.conv_count_day = 0
-        self.max_conv_count_per_day = 8
+        self.max_conv_count_per_day = 10
 
         self.assign_roles(players, role_list, randomize_role)
 
@@ -525,8 +534,8 @@ class BloodOnTheClocktowerState(BasicGameState):
         else:
             # Step 3b: Fix order
             selected_roles = [town_roles[0]]
-            selected_roles.append(town_roles[3]) # 1
-            selected_roles.append(town_roles[4]) # 2
+            selected_roles.append(town_roles[1]) # 1
+            selected_roles.append(town_roles[2]) # 2
             selected_roles.append(minion_roles[0])
             selected_roles.append(imp_roles[0])
 
@@ -550,8 +559,6 @@ class BloodOnTheClocktowerState(BasicGameState):
         
         if self.is_terminal():
             return
-
-        print('update_game_state')
 
         # initial infos 
         if  self.day_count == 0:
@@ -625,7 +632,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         """
         # Filter and sort players based on order
         sorted_players = sorted(
-            [player for player in self.active_players if self.active_players[player].role in order and self.active_players[player].alive == True],
+            [player for player in self.active_players if self.active_players[player].role in order],
             key=lambda p: order.index(self.active_players[p].role)
         )
 
@@ -821,7 +828,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         action_type = action.get("type")
         speaker = action.get("Speaker")
         
-        if speaker == None or speaker not in self.active_players:
+        if speaker == None or speaker is list or speaker not in self.active_players:
             return False, 1
 
         self.active_player = self.active_players[speaker]
@@ -892,20 +899,22 @@ def play_game():
 
     num_correct_games = 0
     model = init_model(model_id, server_based, max_token)
+    # server model
+    #model_server = init_model(model_id, True, max_token)
+    #model = [model, model_server]
     model = [model]
-    #model0 = init_model(model_id, False, max_token)
-    #model1 = init_model(model_id, True, max_token)
-    #model = [model0, model1]
 
     good_wins = 0
     evil_wins = 0
     num_errors = 0
 
     mcts_all_nodes = []
+    filename = 'mcts_tree_good.pkl'
     
     # Load from file
-    with open('mcts_tree.pkl', 'rb') as f:
-        mcts_all_nodes = pickle.load(f)
+    if store_data:
+        with open(filename, 'rb') as f:
+            mcts_all_nodes = pickle.load(f)
         
     for mcts in mcts_all_nodes:
         mcts.print_tree()
@@ -919,7 +928,6 @@ def play_game():
                 evil_wins = evil_wins + 1
             conversationManager.append_prompt_outcomes(node.conversation_manager.get_prompt_outcomes())
     print("Good wins: " + str(good_wins) + " / Evil wins: " + str(evil_wins))
-
 
     for i in range(num_games):
         print('Start Game')
@@ -954,7 +962,7 @@ def play_game():
         #        conversationManager.append_prompt_outcomes(best_node.conversation_manager.get_prompt_outcomes())
 
         if store_data:
-            with open('mcts_tree.pkl', 'wb') as f:
+            with open(filename, 'wb') as f:
                 pickle.dump(mcts_all_nodes, f)
 
         for node in nodes:
@@ -980,11 +988,6 @@ def play_game():
 
     end_time = time.time()
     elapsed_time = end_time - start_time
-
-    if store_data:
-        with open('mcts_tree.pkl', 'wb') as f:
-            pickle.dump(mcts_all_nodes, f)
-
     print(f"Execution time: {elapsed_time:.6f} seconds")
     print(f"Errors: {num_errors}")
 

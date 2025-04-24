@@ -13,7 +13,7 @@ num_child_node = 3
 
 def reward_function(node, new_node):
     multiply = new_node.action.get('Action')
-    get_reward = float(multiply)
+    get_reward = float(multiply) * round(random.random())
     return get_reward
 
 class Simple(BasicGameState):

@@ -710,7 +710,7 @@ class MCTS:
     def search(self, initial_state, conversation_manager, model, print_output, server_based):
         self.root = self.get_node(initial_state, conversation_manager, initial_state.get_no_action())
 
-        for _ in range(self.iterations):
+        for index in range(self.iterations):
             node = self.select(self.root)
             new_nodes = self.expand(node, model, print_output, server_based)
 
@@ -723,7 +723,7 @@ class MCTS:
                 reward = self.reward_function(node, new_node)
                 self.backpropagate(new_node, reward)
 
-            print('*** *** *** *** *** *** ***')
+            print('*** *** *** *** *** *** *** ' + str(index) + ' / ' + str(self.iterations))
         return self.root.best_leaf()
 
     def select(self, node):
