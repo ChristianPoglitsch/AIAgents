@@ -5,7 +5,7 @@ from botc import *
 mcts_all = None
 mcts_all2 = None
 # Load from file
-with open('mcts_tree_good.pkl', 'rb') as f:
+with open('mcts_tree.pkl', 'rb') as f:
     mcts_all = pickle.load(f)
 
 #with open('mcts_tree_good2.pkl', 'rb') as f:
