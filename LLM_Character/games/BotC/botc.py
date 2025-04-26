@@ -14,8 +14,8 @@ from botc_base import simulation_policy
 
 model = []
 
-server_based = True
-store_data = True
+server_based = False
+store_data = False
 show_training_data = False
 
 reward_terminal_good    = 1.0 # 1.0
@@ -24,9 +24,9 @@ reward_good_action      = 1.0 # 1.0
 reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.75
 
-num_child_node = 2 # 3
-num_games = 10 # 50
-num_iterations = 3000 # 3000
+num_child_node = 1 # 3
+num_games = 100 # 50
+num_iterations = 250 # 3000
 
 print_input = False
 print_output = True
@@ -36,7 +36,7 @@ num_conv_history_action = 3
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 #model_id = "deepseek-ai/deepseek-llm-7b-chat"
 #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
-model_id = "trained/Mistral-7B-Instruct-v0.3_merged_good"
+model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
 #model_id = "trained/deepseek-llm-7b-chat_merged"
 #model_id = "trained\\Teuken-7B-instruct-research-v0.4_merged"
 
@@ -410,13 +410,14 @@ class Imp(Role):
     def apply_action(self, action, other_players):
         target = action.get("Target")
         speaker = action.get("Speaker")
-        if other_players[target].target_kill_night():
-            other_players[target].set_alive(False)
-        if target == speaker:
-            available_players = [p for p, data in other_players.items() if data.get_role() and data.get_team() == "Minion" and p != self.role]
-            if available_players is not None:
-                new_demon = random.choice(available_players)
-                other_players[new_demon] = Imp('Imp', 'Demon', 'Evil', 'Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp.', None)
+        if self.is_poisoned is False:
+            if other_players[target].target_kill_night():
+                other_players[target].set_alive(False)
+            if target == speaker:
+                available_players = [p for p, data in other_players.items() if data.get_role() and data.get_team() == "Minion" and p != self.role]
+                if available_players is not None:
+                    new_demon = random.choice(available_players)
+                    other_players[new_demon] = Imp('Imp', 'Demon', 'Evil', 'Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp.', None)
             
         self.killed_tonight = True
         
@@ -524,7 +525,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         if randomize_roles:
             # Step 3: Select roles
             selected_roles = (
-                random.sample(town_roles, 3) +  # Pick 3 Townsfolk
+                random.sample(town_roles, len(players) - 2) +  # Pick 3 Townsfolk
                 random.sample(minion_roles, 1) +  # Pick 1 Minion
                 random.sample(imp_roles, 1)  # Pick 1 Imp
             )
@@ -565,7 +566,7 @@ class BloodOnTheClocktowerState(BasicGameState):
             self.night_info(first_night_order)
             self.day_count = self.day_count + 1
 
-        if self.phase == 'Day':
+        if self.phase == 'Day' and self.phase != 'Nominate':
             self.conv_count_day = self.conv_count_day + 1
 
         if self.phase == 'Night' and self.get_next_players_count() == 0:
@@ -584,14 +585,16 @@ class BloodOnTheClocktowerState(BasicGameState):
         if self.phase == 'Nominate':
             count = self.count_next_players()
             if count == 0:
-                num_alive_players = len(self.active_players)
-                if self.num_votes > int(num_alive_players / 2):
+                alive_players = [name for name, player in self.active_players.items() if player.alive]
+                if self.num_votes > int(len(alive_players) / 2):
                     self.active_players[self.nominated].set_alive(False)
                     self.nomination_count_max = self.num_votes
                     self.execution = self.nominated
-                self.phase = 'Night'
-                self.empty_next_players()
-                self.night_info(night_order)
+                    self.phase = 'Night'
+                    self.empty_next_players()
+                    self.night_info(night_order)
+                    self.conv_count_day = 0
+                    self.day_count = self.day_count + 1              
             
      
     def get_alive_neighbors(self, players, idx, alive_players):
@@ -635,7 +638,7 @@ class BloodOnTheClocktowerState(BasicGameState):
             [player for player in self.active_players if self.active_players[player].role in order],
             key=lambda p: order.index(self.active_players[p].role)
         )
-
+        
         # Process each player in order
         for player in sorted_players:
             player_info = self.active_players[player]
@@ -671,13 +674,16 @@ class BloodOnTheClocktowerState(BasicGameState):
             # Always available action: Message
             actions.append('{"type": "Message", "Speaker": None, "Audience": None, "Message": None}')
             # Nominate action (if the player hasn't already nominated someone)
-            actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None}')
+            if player_info.alive is True and self.conv_count_day > 2:
+                actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None}')
             # Vote action is available in the day phase
         elif self.phase == "Day":
-            actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None}')
+            if player_info.alive is True:
+                actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None}')
             # Vote action is available in the day phase            
         elif self.phase == "Nominate":
-            actions.append('{"type": "Vote", "Speaker": None}')
+            if player_info.alive is True:
+                actions.append('{"type": "Vote", "Speaker": None}')
 
         # Always include a NoAction option.
         actions.append(str(self.no_action).replace("'", '"'))
@@ -894,22 +900,19 @@ def play_game():
     folder_path = 'training_botc'
     conversationManager = ConversationManager()
 
-    # Define a dummy player_to_idx mapping for graph construction (for players A, B, C, D).
-    player_to_idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
-
     num_correct_games = 0
     model = init_model(model_id, server_based, max_token)
     # server model
-    #model_server = init_model(model_id, True, max_token)
-    #model = [model, model_server]
-    model = [model]
+    model_server = init_model(model_id, True, max_token)
+    model = [model, model_server]
+    #model = [model]
 
     good_wins = 0
     evil_wins = 0
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree_good.pkl'
+    filename = 'mcts_tree.pkl'
     
     # Load from file
     if store_data:
@@ -932,7 +935,7 @@ def play_game():
     for i in range(num_games):
         print('Start Game')
         print(str(i) + ' / ' + str(num_games))
-        game_state = BloodOnTheClocktowerState(['A', 'B', 'C', 'D', 'E'], roles)
+        game_state = BloodOnTheClocktowerState(['A', 'B', 'C', 'D', 'E', 'F'], roles)
         # Create a dummy ConversationManager and add a conversation.
         conv_manager = ConversationManager()
 
@@ -970,6 +973,7 @@ def play_game():
                 good_wins = good_wins + 1
             if node.state.evil_win():
                 evil_wins = evil_wins + 1           
+        print("Good wins: " + str(good_wins) + " / Evil wins: " + str(evil_wins))
 
         num_correct_games = num_correct_games + 1
         num_errors = num_errors + mcts.errors
