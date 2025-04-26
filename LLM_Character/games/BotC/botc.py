@@ -27,12 +27,12 @@ reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
 num_child_node = 2 # 2
-num_games = 1 # 50
+num_games = 3 # 50
 num_iterations = 3000 # 3000
 
 print_input = False
 print_output = True
-max_token = 700
+max_token = 500
 num_conv_history_action = 3
 
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
