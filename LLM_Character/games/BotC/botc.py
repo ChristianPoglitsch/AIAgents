@@ -1,10 +1,12 @@
 ﻿import random
 import time
 import pickle
+import json
 
 from datasets import load_from_disk
 
 from botc_base import BasicGameState
+from botc_base import PlayerFeatures
 from botc_base import MCTS
 from botc_base import ConversationManager
 from botc_base import MCTS
@@ -14,23 +16,23 @@ from botc_base import simulation_policy
 
 model = []
 
-server_based = False
-store_data = False
+server_based = True
+store_data = True
 show_training_data = False
 
 reward_terminal_good    = 1.0 # 1.0
 reward_terminal_evil    = 0.0 # 1.0
 reward_good_action      = 1.0 # 1.0
 reward_evil_action      = 0.0 # 1.0
-reward_node             = 0.75
+reward_node             = 0.5
 
-num_child_node = 1 # 3
-num_games = 100 # 50
-num_iterations = 250 # 3000
+num_child_node = 2 # 2
+num_games = 1 # 50
+num_iterations = 3000 # 3000
 
 print_input = False
 print_output = True
-max_token = 450
+max_token = 700
 num_conv_history_action = 3
 
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
@@ -92,10 +94,10 @@ class Role:
                 self.num_conversations = num_conversations
 
         if self.alignment == 'Good' and state.execution and state.active_players[state.execution].alignment == 'Evil':
-            reward += reward_terminal_good
+            reward += reward_good_action
 
         if self.alignment == 'Evil' and state.execution and state.active_players[state.execution].alignment == 'Good':
-            reward += reward_terminal_evil
+            reward += reward_evil_action
 
         return reward
   
@@ -479,10 +481,46 @@ def roles_to_string(roles):
 
 # ------------------ GameState and ActionSpace ------------------
 
+class BloodOnTheClocktowerPlayerFeatures(PlayerFeatures):
+    def __init__(self, players):
+        super().__init__(players)
+        
+    def generate_private_info_update_prompt(self, player, conversation_history, game_state):
+        """
+        Generates an LLM prompt to update a player's private features based on recent conversation history.
+    
+        :param player: The player whose private features should be updated.
+        :param conversation_history: A string containing the last x conversation messages involving that player.
+        :return: A prompt string.
+        """
+        current_features = self.features.get(player, {})
+        prompt = (
+            "You are an assistant tasked with updating a player's game state based for Blood on the Clocktower. "
+            "The player's private feature state contains, for each other player, the number of conversations they've had.\n\n"
+            f"Current Player: {player}\n\n"
+            "Recent Conversation History:\n"
+            f"{conversation_history}\n\n"
+            "Current Feature State for other player:\n"
+            "Game State:\n"
+            f"{game_state}\n\n"            
+        )
+
+        prompt += (
+            "First, think about the update the number of conversations, second think about an update for private info about other players.\n"
+            "\n\nBased on the conversation history and the current private info state, please update the private infos about role and the alignment for each player. Example:Alignment: ,Role: \nIf there is no new information keep the private state as it is. No extra explanation. Do not add the Current Player.\n"                     
+            "Return the updated Feature State in JSON format with keys for each player and values being an object "
+            "with 'number of conversations' and 'private info' fields. Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes."
+            
+        )
+        return prompt
+        
+
 # Stub definitions for GameState methods:
 class BloodOnTheClocktowerState(BasicGameState):
     def __init__(self, players, available_roles, randomize_role = True):
         super().__init__(players)
+
+        self.features = BloodOnTheClocktowerPlayerFeatures(players)
 
         self.active_players = {}
         role_list = list(available_roles.values())  
@@ -490,7 +528,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         self.num_votes = 0
 
         self.conv_count_day = 0
-        self.max_conv_count_per_day = 10
+        self.max_conv_count_per_day = 12
 
         self.assign_roles(players, role_list, randomize_role)
 
@@ -674,7 +712,7 @@ class BloodOnTheClocktowerState(BasicGameState):
             # Always available action: Message
             actions.append('{"type": "Message", "Speaker": None, "Audience": None, "Message": None}')
             # Nominate action (if the player hasn't already nominated someone)
-            if player_info.alive is True and self.conv_count_day > 2:
+            if player_info.alive is True and self.conv_count_day > 3:
                 actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None}')
             # Vote action is available in the day phase
         elif self.phase == "Day":
@@ -770,7 +808,9 @@ class BloodOnTheClocktowerState(BasicGameState):
         additional_info = self.game_state_features_to_string(player)
 
         roles_info = "These roles are in the game: " + ", ".join(sorted(roles)) + ". You can use the rules to bluff."
-
+        info = player_info.get_information()
+        if info is None:
+            info = ''
         return f"{phase_info}\n{players_info}\n{roles_info}\n{private_info}\n{player_info.get_information()}\n\n{additional_info}"
 
     def get_player_info(self):
@@ -903,9 +943,9 @@ def play_game():
     num_correct_games = 0
     model = init_model(model_id, server_based, max_token)
     # server model
-    model_server = init_model(model_id, True, max_token)
-    model = [model, model_server]
-    #model = [model]
+    #model_server = init_model(model_id, True, max_token)
+    #model = [model, model_server]
+    model = [model]
 
     good_wins = 0
     evil_wins = 0

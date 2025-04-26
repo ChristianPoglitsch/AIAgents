@@ -66,7 +66,7 @@ class PlayerFeatures:
             for player in players
         }
 
-    def generate_private_info_update_prompt(self, player, conversation_history):
+    def generate_private_info_update_prompt(self, player, conversation_history, game_state):
         """
         Generates an LLM prompt to update a player's private features based on recent conversation history.
     
@@ -232,7 +232,7 @@ class BasicGameState:
         raise NotImplementedError("Subclasses must implement this method.")
 
     def generate_game_state_prompt(self, current_player, conversation_history):
-        return self.features.generate_private_info_update_prompt(current_player, conversation_history)
+        return self.features.generate_private_info_update_prompt(current_player, conversation_history, self.get_game_state(current_player))
 
     def generate_prompt(self, current_player, conversation_history):
         raise NotImplementedError("Subclasses must implement this method.")
