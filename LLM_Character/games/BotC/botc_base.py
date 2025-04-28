@@ -14,7 +14,7 @@ from LLM_Character.llm_comms.llm_openai import OpenAIComms
 from LLM_Character.messages_dataclass import AIMessage, AIMessages
 
 num_conv_history_reasoning = 2
-print_input = False
+print_input = True
 
 # ------------------ LLM Integration Stub ------------------
 
@@ -130,8 +130,8 @@ class PlayerFeatures:
             
         for other_player, data in json_data.items():
             # Optionally, add a new entry if other_player is not yet present.
-            conversations = data.get("Conversations", 0)
-            private_info = data.get("Private Info") if data.get("Private Info") is not None else "None"
+            conversations = data.get("number of conversations", 0)
+            private_info = data.get("private info") if data.get("private info") is not None else "None"
             self.features[player][other_player] = [conversations, private_info]
 
     def count_num_player_conversations(self, player, num_convs):
@@ -380,14 +380,14 @@ class ConversationManager:
             if act.get("type") in ["Message"]:
                 self.add_message_to_conversation(participants, speaker, act)
 
-    def get_conversation_for_player(self, player_name, num_convs = 1) -> Conversation:
+    def get_conversation_for_player(self, player_name, num_convs = 2) -> Conversation:
         result = []
         for participants_tuple, conv in self.conversations.items():
             if player_name in participants_tuple:
                 result.append(conv.history[-num_convs:])
         return result  # Return only the last `num_convs` conversations
 
-    def get_conversation_history_for_player(self, current_player, num_convs = 1) -> str:
+    def get_conversation_history_for_player(self, current_player, num_convs = 2) -> str:
         """
         Retrieves and returns a formatted conversation history for the given player.
 
@@ -752,6 +752,17 @@ class MCTS:
                 terminal_nodes.extend(self.get_all_terminal_nodes(child))
 
         return terminal_nodes
+
+    def get_all_nodes(self, node):
+        """Return a list of all terminal nodes reachable from the given node."""
+        nodes = []
+
+        if len(node.children) == 0:
+            nodes.append(node)
+        for child in node.children:
+            nodes.extend(self.get_all_nodes(child))
+
+        return nodes
 
     def expand(self, node, model, print_output, server_based):
         if node is None:
