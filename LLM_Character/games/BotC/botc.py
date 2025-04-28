@@ -27,8 +27,8 @@ reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
 num_child_node = 2 # 2
-num_games = 3 # 50
-num_iterations = 3000 # 3000
+num_games = 4 # 50
+num_iterations = 3500 # 3500
 
 print_input = False
 print_output = True
