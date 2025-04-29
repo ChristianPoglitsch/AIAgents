@@ -27,8 +27,8 @@ reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
 num_child_node = 2 # 2
-num_games = 2 # 50
-num_iterations = 3500 # 3500
+num_games = 4 # 50
+num_iterations = 10000 # 10000
 
 print_output = True
 max_token = 500
@@ -499,7 +499,6 @@ class BloodOnTheClocktowerPlayerFeatures(PlayerFeatures):
             f"Current Player: {player}\n\n"
             "Recent Conversation History:\n"
             f"{conversation_history}\n\n"
-            "Current Feature State for other player:\n"
             "Game State:\n"
             f"{game_state}\n\n"            
         )
@@ -508,8 +507,7 @@ class BloodOnTheClocktowerPlayerFeatures(PlayerFeatures):
             "First, think about the update the number of conversations, second think about an update for private info about other players.\n"
             "\n\nBased on the conversation history and the current private info state, please update the private infos about role and the alignment for each player. Example:Alignment: ,Role: \nIf there is no new information keep the private state as it is. No extra explanation. Do not add the Current Player.\n"                     
             "Return the updated Feature State in JSON format with keys for each player and values being an object "
-            "with 'number of conversations' and 'private info' fields. Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes."
-            
+            "with 'number of conversations' and 'private info' fields. Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes."            
         )
         return prompt
         
@@ -618,12 +616,13 @@ class BloodOnTheClocktowerState(BasicGameState):
             self.phase = 'Night'
             self.empty_next_players()
             self.night_info(night_order)
+            self.num_votes = 0
             
         if self.phase == 'Nominate':
             count = self.count_next_players()
             if count == 0:
                 alive_players = [name for name, player in self.active_players.items() if player.alive]
-                if self.num_votes > int(len(alive_players) / 2):
+                if self.num_votes >= int(len(alive_players) / 2):
                     self.active_players[self.nominated].set_alive(False)
                     self.nomination_count_max = self.num_votes
                     self.execution = self.nominated
@@ -631,7 +630,9 @@ class BloodOnTheClocktowerState(BasicGameState):
                     self.empty_next_players()
                     self.night_info(night_order)
                     self.conv_count_day = 0
-                    self.day_count = self.day_count + 1              
+                    self.day_count = self.day_count + 1
+                else:
+                    self.phase = 'Day'
             
      
     def get_alive_neighbors(self, players, idx, alive_players):
@@ -942,9 +943,9 @@ def play_game():
     num_correct_games = 0
     model = init_model(model_id, server_based, max_token)
     # server model
-    model_server = init_model(model_id, True, max_token)
-    model = [model, model_server]
-    #model = [model]
+    #model_server = init_model(model_id2, server_based, max_token)
+    #model = [model, model_server]
+    model = [model]
 
     good_wins = 0
     evil_wins = 0

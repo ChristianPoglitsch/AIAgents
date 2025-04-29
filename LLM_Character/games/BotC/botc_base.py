@@ -293,7 +293,7 @@ class BasicGameState:
         if player not in self.features.features:
             return f"Player {player} not found in feature space."
     
-        result_lines = [f"Feature space for player {player}:"]
+        result_lines = [f"Game state for player {player}:"]
         for other_player, feature_vector in self.features.features[player].items():
             line = (f"{other_player}: number of conversations = {feature_vector[0]}, "
                     f"private info = {feature_vector[1]}")
@@ -724,6 +724,8 @@ class MCTS:
                 self.backpropagate(new_node, reward)
 
             print('*** *** *** *** *** *** *** ' + str(index) + ' / ' + str(self.iterations))
+            print(self.root.state.active_players)
+            print('*** *** *** *** *** *** *** ')
         return self.root.best_leaf()
 
     def select(self, node):

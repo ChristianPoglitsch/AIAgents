@@ -13,7 +13,7 @@ num_child_node = 3
 
 def reward_function(node, new_node):
     multiply = new_node.action.get('Action')
-    get_reward = float(multiply) * round(random.random())
+    get_reward = new_node.value + float(multiply) * round(random.random())
     return get_reward
 
 class Simple(BasicGameState):
@@ -31,7 +31,9 @@ def simulation_policy(node, model, print_output, server_based, num_child_node):
     num_max_nodes = num_child_node # int(max(2, (random.random() * num_child_node + 1)))
     for i in range(num_max_nodes):
         action = {"Action": f"{i}"}
-        child_nodes.append(MCTSNode(state=Simple(''), action=action, parent=node, terminal_state=node.state.is_terminal()))
+        new_node = MCTSNode(state=Simple(''), action=action, parent=node, terminal_state=node.state.is_terminal())
+        new_node.value = i
+        child_nodes.append()
     return child_nodes, 0
 
 conversationManager = ConversationManager()
