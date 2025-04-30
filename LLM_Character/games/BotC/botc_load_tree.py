@@ -10,11 +10,14 @@ with open('mcts_tree.pkl', 'rb') as f:
 
 with open('mcts_tree2.pkl', 'rb') as f:
     mcts_all2 = pickle.load(f)
-mcts_all = mcts_all + mcts_all2
+mcts_all = mcts_all + mcts_all2    
 with open('mcts_tree3.pkl', 'rb') as f:
     mcts_all2 = pickle.load(f)
 mcts_all = mcts_all + mcts_all2
 with open('mcts_tree4.pkl', 'rb') as f:
+    mcts_all2 = pickle.load(f)
+mcts_all = mcts_all + mcts_all2
+with open('mcts_tree5.pkl', 'rb') as f:
     mcts_all2 = pickle.load(f)
 mcts_all = mcts_all + mcts_all2
 

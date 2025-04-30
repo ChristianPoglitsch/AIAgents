@@ -8,17 +8,18 @@ from botc_base import simulation_policy
 from botc_base import BasicGameState
 
 num_games = 1
-num_iterations = 750
+num_iterations = 250
 num_child_node = 3
 
 def reward_function(node, new_node):
     multiply = new_node.action.get('Action')
-    get_reward = new_node.value + float(multiply) * round(random.random())
+    get_reward = new_node.value + float(multiply) * round(random.random() + 0.1)
     return get_reward
 
 class Simple(BasicGameState):
     def __init__(self, players):
         super().__init__(players)
+        self.active_players = 'None'
         
     def is_terminal(self):
         value = random.random()
@@ -33,7 +34,7 @@ def simulation_policy(node, model, print_output, server_based, num_child_node):
         action = {"Action": f"{i}"}
         new_node = MCTSNode(state=Simple(''), action=action, parent=node, terminal_state=node.state.is_terminal())
         new_node.value = i
-        child_nodes.append()
+        child_nodes.append(new_node)
     return child_nodes, 0
 
 conversationManager = ConversationManager()

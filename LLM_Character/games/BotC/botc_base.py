@@ -259,7 +259,7 @@ class BasicGameState:
         prompt_template = self.generate_prompt(player, conversation_manager)
         prompt = self.generate_prompt(player, conversation_manager)
         if previous_results is not None:
-            prompt = prompt + "\n Do not use this actions as result: " + previous_results
+            prompt = prompt + "\n Do not one this result(s): " + previous_results
         _, result, errors = complete_action_with_llm(player, prompt, model, print_output, server_based)
         return prompt_template, result, errors
     
@@ -385,6 +385,10 @@ class ConversationManager:
         for participants_tuple, conv in self.conversations.items():
             if player_name in participants_tuple:
                 result.append(conv.history[-num_convs:])
+        for sublist in result:
+            for message_obj in sublist:
+                if 'message' in message_obj and isinstance(message_obj['message'], dict):
+                    message_obj['message'].pop('Type', None)  # Remove 'Type' if present                
         return result  # Return only the last `num_convs` conversations
 
     def get_conversation_history_for_player(self, current_player, num_convs = 2) -> str:

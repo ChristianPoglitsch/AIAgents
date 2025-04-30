@@ -27,8 +27,8 @@ reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
 num_child_node = 2 # 2
-num_games = 4 # 50
-num_iterations = 10000 # 10000
+num_games = 2 # 50
+num_iterations = 6000 # 6000
 
 print_output = True
 max_token = 500
@@ -499,8 +499,7 @@ class BloodOnTheClocktowerPlayerFeatures(PlayerFeatures):
             f"Current Player: {player}\n\n"
             "Recent Conversation History:\n"
             f"{conversation_history}\n\n"
-            "Game State:\n"
-            f"{game_state}\n\n"            
+            f"{game_state}\n\n"
         )
 
         prompt += (
@@ -710,7 +709,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         # Day phase actions
         if self.phase == "Day" and self.conv_count_day < self.max_conv_count_per_day:
             # Always available action: Message
-            actions.append('{"type": "Message", "Speaker": None, "Audience": None, "Message": None}')
+            actions.append('{"type": "Message", "Speaker": None, "Audience": None, "Message": None, "Type": None} \nMessage Type: Truth-Telling (reveal your game state and role), Bluff, Fishing, Claim, Misdirection')
             # Nominate action (if the player hasn't already nominated someone)
             if player_info.alive is True and self.conv_count_day > 3:
                 actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None}')
@@ -803,7 +802,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         if player_info.alignment == 'Good':
             private_info = private_info + ' Try to nominate and vote for players who might be evil.\n'
         elif player_info.alignment == 'Evil':
-            private_info = private_info + ' Try to nominate and vote for players who might be good.\n'
+            private_info = private_info + ' Try to nominate and vote for players.\n'
         # Append additional state features as needed.
         additional_info = self.game_state_features_to_string(player)
 
@@ -811,7 +810,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         info = player_info.get_information()
         if info is None:
             info = ''
-        return f"{phase_info}\n{players_info}\n{roles_info}\n{private_info}\n{player_info.get_information()}\n\n{additional_info}"
+        return f"{phase_info}\n{players_info}\n{roles_info}\n{private_info}\n{info}\n\n{additional_info}"
 
     def get_player_info(self):
         players_info = "Players: " + ", ".join(
@@ -952,7 +951,7 @@ def play_game():
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree.pkl'
+    filename = 'mcts_tree3.pkl'
     
     # Load from file
     if store_data:
