@@ -615,12 +615,17 @@ def simulation_policy(node, models, print_output, server_based, num_child_node):
         model = models[0]
     
     num_max_nodes = num_child_node # int(max(1, (random.random() * num_child_node + 1)))
+    action_is_not_message = False
     for i in range(num_max_nodes):
         if not player in game_state.players:
+            continue
+        if action_is_not_message is True:
             continue
         model.set_temperature(0.8) # (max(0.8, 1.2 - i * 0.1))
         prompt, result, erros = game_state.create_action(player, conversation_manager, model, print_output, server_based, previous_results)
         llm_erros = llm_erros + erros
+        if result.get("type") != "Message":
+            action_is_not_message = True
         if result not in result_action:
             result_action.append(result)
             if previous_results is None:

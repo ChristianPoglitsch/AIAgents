@@ -28,11 +28,11 @@ reward_node             = 0.5
 
 num_child_node = 2 # 2
 num_games = 2 # 50
-num_iterations = 6000 # 6000
+num_iterations = 2500 # 2500
 
 print_output = True
 max_token = 500
-num_conv_history_action = 3
+num_conv_history_action = 2
 
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 #model_id = "deepseek-ai/deepseek-llm-7b-chat"
@@ -504,7 +504,7 @@ class BloodOnTheClocktowerPlayerFeatures(PlayerFeatures):
 
         prompt += (
             "First, think about the update the number of conversations, second think about an update for private info about other players.\n"
-            "\n\nBased on the conversation history and the current private info state, please update the private infos about role and the alignment for each player. Example:Alignment: ,Role: \nIf there is no new information keep the private state as it is. No extra explanation. Do not add the Current Player.\n"                     
+            "\n\nBased on the conversation history and the private info, reason about role and the alignment for each player and update the private info. Example:Alignment: ,Role:, Info: \nIf there is no new information keep the private state as it is. No extra explanation. Do not add the Current Player.\n"                     
             "Return the updated Feature State in JSON format with keys for each player and values being an object "
             "with 'number of conversations' and 'private info' fields. Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes."            
         )
@@ -709,7 +709,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         # Day phase actions
         if self.phase == "Day" and self.conv_count_day < self.max_conv_count_per_day:
             # Always available action: Message
-            actions.append('{"type": "Message", "Speaker": None, "Audience": None, "Message": None, "Type": None} \nMessage Type: Truth-Telling (reveal your game state and role), Bluff, Fishing, Claim, Misdirection')
+            actions.append('{"type": "Message", "Speaker": None, "Audience": None, "Message": None, "Message-Type": None} \nMessage-Type: Truth-Telling (reveal your game state and role), Bluff, Fishing, Claim, Misdirection')
             # Nominate action (if the player hasn't already nominated someone)
             if player_info.alive is True and self.conv_count_day > 3:
                 actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None}')
@@ -800,9 +800,9 @@ class BloodOnTheClocktowerState(BasicGameState):
         player_info = self.active_players[player]
         private_info = f"Your role: {player_info.get_role()} - {player_info.get_description()}"
         if player_info.alignment == 'Good':
-            private_info = private_info + ' Try to nominate and vote for players who might be evil.\n'
+            private_info = private_info + ' Reason about the game state and find the evil players.\n'
         elif player_info.alignment == 'Evil':
-            private_info = private_info + ' Try to nominate and vote for players.\n'
+            private_info = private_info + ' Reason about the game state and manipulate good players.\n'
         # Append additional state features as needed.
         additional_info = self.game_state_features_to_string(player)
 
@@ -951,7 +951,7 @@ def play_game():
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree3.pkl'
+    filename = 'mcts_tree5.pkl'
     
     # Load from file
     if store_data:
