@@ -16,8 +16,8 @@ from botc_base import simulation_policy
 
 model = []
 
-server_based = True
-store_data = True
+server_based = False
+store_data = False
 show_training_data = False
 
 reward_terminal_good    = 1.0 # 1.0
@@ -26,9 +26,9 @@ reward_good_action      = 1.0 # 1.0
 reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
-num_child_node = 2 # 2
-num_games = 2 # 50
-num_iterations = 2500 # 2500
+num_child_node = 1 # 2
+num_games = 10 # 50
+num_iterations = 250 # 2500
 
 print_output = True
 max_token = 500
@@ -620,6 +620,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         if self.phase == 'Nominate':
             count = self.count_next_players()
             if count == 0:
+                self.num_votes = 0
                 alive_players = [name for name, player in self.active_players.items() if player.alive]
                 if self.num_votes >= int(len(alive_players) / 2):
                     self.active_players[self.nominated].set_alive(False)
@@ -942,16 +943,16 @@ def play_game():
     num_correct_games = 0
     model = init_model(model_id, server_based, max_token)
     # server model
-    #model_server = init_model(model_id2, server_based, max_token)
-    #model = [model, model_server]
-    model = [model]
+    model_server = init_model(model_id, True, max_token)
+    model = [model, model_server]
+    #model = [model]
 
     good_wins = 0
     evil_wins = 0
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree5.pkl'
+    filename = 'mcts_tree2.pkl'
     
     # Load from file
     if store_data:
