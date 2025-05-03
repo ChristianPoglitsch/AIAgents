@@ -2,6 +2,7 @@
 import time
 import pickle
 import json
+import sys
 
 from datasets import load_from_disk
 
@@ -17,7 +18,7 @@ from botc_base import simulation_policy
 model = []
 
 server_based = False
-store_data = False
+store_data = True
 show_training_data = False
 
 reward_terminal_good    = 1.0 # 1.0
@@ -26,9 +27,9 @@ reward_good_action      = 1.0 # 1.0
 reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
-num_child_node = 1 # 2
-num_games = 10 # 50
-num_iterations = 250 # 2500
+num_child_node = 2 # 2
+num_games = 1 # 100
+num_iterations = 3000 # 250 - 3000
 
 print_output = True
 max_token = 500
@@ -37,7 +38,7 @@ num_conv_history_action = 2
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 #model_id = "deepseek-ai/deepseek-llm-7b-chat"
 #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
-model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
+#model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
 #model_id = "trained/deepseek-llm-7b-chat_merged"
 #model_id = "trained\\Teuken-7B-instruct-research-v0.4_merged"
 
@@ -524,7 +525,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         self.num_votes = 0
 
         self.conv_count_day = 0
-        self.max_conv_count_per_day = 12
+        self.max_conv_count_per_day = 10
 
         self.assign_roles(players, role_list, randomize_role)
 
@@ -610,6 +611,7 @@ class BloodOnTheClocktowerState(BasicGameState):
             print(self.get_player_info())
             print(self.active_players)
         elif self.phase == 'Day' and self.conv_count_day >= self.max_conv_count_per_day and self.phase != 'Nominate':
+            self.num_nominations = 0
             self.conv_count_day = 0
             self.day_count = self.day_count + 1
             self.phase = 'Night'
@@ -620,7 +622,6 @@ class BloodOnTheClocktowerState(BasicGameState):
         if self.phase == 'Nominate':
             count = self.count_next_players()
             if count == 0:
-                self.num_votes = 0
                 alive_players = [name for name, player in self.active_players.items() if player.alive]
                 if self.num_votes >= int(len(alive_players) / 2):
                     self.active_players[self.nominated].set_alive(False)
@@ -631,8 +632,8 @@ class BloodOnTheClocktowerState(BasicGameState):
                     self.night_info(night_order)
                     self.conv_count_day = 0
                     self.day_count = self.day_count + 1
-                else:
-                    self.phase = 'Day'
+                    self.num_nominations = 0
+                self.num_votes = 0
             
      
     def get_alive_neighbors(self, players, idx, alive_players):
@@ -937,22 +938,30 @@ def add_convs(node, conv_manager):
 def play_game():
     start_time = time.time()  # Start timing
 
+    limit = sys.getrecursionlimit()
+    # Print the current limit  
+    print('Before changing, limit of stack =', limit)  
+    # New limit 
+    Newlimit = 2500
+    # Using sys.setrecursionlimit() method
+    sys.setrecursionlimit(Newlimit)
+
     folder_path = 'training_botc'
     conversationManager = ConversationManager()
 
     num_correct_games = 0
     model = init_model(model_id, server_based, max_token)
     # server model
-    model_server = init_model(model_id, True, max_token)
-    model = [model, model_server]
-    #model = [model]
+    #model_server = init_model(model_id, True, max_token)
+    #model = [model, model_server]
+    model = [model]
 
     good_wins = 0
     evil_wins = 0
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree2.pkl'
+    filename = 'mcts_tree_self_mistral.pkl' # mcts_tree
     
     # Load from file
     if store_data:

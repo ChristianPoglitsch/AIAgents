@@ -388,7 +388,7 @@ class ConversationManager:
         for sublist in result:
             for message_obj in sublist:
                 if 'message' in message_obj and isinstance(message_obj['message'], dict):
-                    message_obj['message'].pop('Type', None)  # Remove 'Type' if present                
+                    message_obj['message'].pop('Message-Type', None)  # Remove 'Type' if present                
         return result  # Return only the last `num_convs` conversations
 
     def get_conversation_history_for_player(self, current_player, num_convs = 2) -> str:
@@ -614,7 +614,7 @@ def simulation_policy(node, models, print_output, server_based, num_child_node):
     else:
         model = models[0]
     
-    num_max_nodes = num_child_node # int(max(1, (random.random() * num_child_node + 1)))
+    num_max_nodes = num_child_node
     action_is_not_message = False
     for i in range(num_max_nodes):
         if not player in game_state.players:
