@@ -27,9 +27,9 @@ reward_good_action      = 1.0 # 1.0
 reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
-num_child_node = 2 # 2
-num_games = 1 # 100
-num_iterations = 3000 # 250 - 3000
+num_child_node = 1 # 2
+num_games = 100 # 100
+num_iterations = 250 # 250 - 3000
 
 print_output = True
 max_token = 500
@@ -38,7 +38,7 @@ num_conv_history_action = 2
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 #model_id = "deepseek-ai/deepseek-llm-7b-chat"
 #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
-#model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
+model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
 #model_id = "trained/deepseek-llm-7b-chat_merged"
 #model_id = "trained\\Teuken-7B-instruct-research-v0.4_merged"
 
@@ -952,21 +952,21 @@ def play_game():
     num_correct_games = 0
     model = init_model(model_id, server_based, max_token)
     # server model
-    #model_server = init_model(model_id, True, max_token)
-    #model = [model, model_server]
-    model = [model]
+    model_server = init_model(model_id, True, max_token)
+    model = [model, model_server]
+    #model = [model]
 
     good_wins = 0
     evil_wins = 0
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree_self_mistral.pkl' # mcts_tree
+    filename = 'mcts_tree_gpt4o-mistral.pkl' # mcts_tree
     
     # Load from file
-    if store_data:
-        with open(filename, 'rb') as f:
-            mcts_all_nodes = pickle.load(f)
+    #if store_data:
+    #    with open(filename, 'rb') as f:
+    #        mcts_all_nodes = pickle.load(f)
         
     for mcts in mcts_all_nodes:
         mcts.print_tree()
