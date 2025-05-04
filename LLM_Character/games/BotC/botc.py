@@ -1,4 +1,5 @@
-﻿import random
+﻿from ctypes import alignment
+import random
 import time
 import pickle
 import json
@@ -17,7 +18,7 @@ from botc_base import simulation_policy
 
 model = []
 
-server_based = False
+server_based = True
 store_data = True
 show_training_data = False
 
@@ -27,9 +28,9 @@ reward_good_action      = 1.0 # 1.0
 reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
-num_child_node = 1 # 2
-num_games = 100 # 100
-num_iterations = 250 # 250 - 3000
+num_child_node = 2 # 2
+num_games = 1 # 100
+num_iterations = 1000 # 250 - 2000
 
 print_output = True
 max_token = 500
@@ -58,7 +59,7 @@ class Role:
         self.Information = None
         self.neighbors = None
         self.player_info = None
-        self.num_conversations = 0
+        self.correct_guesses = 0
  
     def set_info(self, alive_players, player_infos, day_count = 0):
         return self.player_info
@@ -79,19 +80,43 @@ class Role:
     def get_poison(self) -> bool:
         return self.is_poisoned
     
+    def count_correct_guesses(self, state, speaker):
+        correct = 0
+        for target, data in state.features.features[speaker].items():
+            guessed_role = str(data[1])
+            if guessed_role is None or len(guessed_role.split("Role:")) <= 1:
+                continue
+            guessed_role = guessed_role.split("Role:")[1].split(",")[0].strip()
+            true_role = state.active_players[target].role
+            if guessed_role == true_role:
+                correct += 1
+        return correct
+
     def get_reward(self, node) -> int:
         state = node.state
         reward = 0
         speaker = node.action.get("Speaker")
 
-        if speaker is not None:
-            num_conversations = sum(
-                state.features.features[speaker][partner][0] 
-                for partner in state.features.features[speaker]
-            )
-            if num_conversations > self.num_conversations:
-                reward += reward_node
-                self.num_conversations = num_conversations
+        if node.action.get('type') == 'Nominate' or node.action.get('type') == 'Vote':
+            alignment = node.state.active_players[node.state.nominated].alignment
+            if alignment != self.alignment:
+                if self.alignment == 'Good':
+                    reward += reward_good_action * reward_good_action
+                if self.alignment == 'Evil':
+                    reward += reward_good_action * reward_evil_action
+
+        result = self.count_correct_guesses(node.state, speaker)
+        if result > 0:
+            if self.alignment == 'Good':
+                reward += reward_good_action * reward_good_action
+            if self.alignment == 'Evil':
+                reward += reward_good_action * reward_evil_action        
+        #if result > self.correct_guesses:
+        #    self.correct_guesses = result
+        #    if self.alignment == 'Good':
+        #        reward += reward_good_action * reward_good_action
+        #    if self.alignment == 'Evil':
+        #        reward += reward_good_action * reward_evil_action
 
         if self.alignment == 'Good' and state.execution and state.active_players[state.execution].alignment == 'Evil':
             reward += reward_good_action
@@ -505,7 +530,7 @@ class BloodOnTheClocktowerPlayerFeatures(PlayerFeatures):
 
         prompt += (
             "First, think about the update the number of conversations, second think about an update for private info about other players.\n"
-            "\n\nBased on the conversation history and the private info, reason about role and the alignment for each player and update the private info. Example:Alignment: ,Role:, Info: \nIf there is no new information keep the private state as it is. No extra explanation. Do not add the Current Player.\n"                     
+            "\n\nBased on the conversation history and the private info, reason about role and the alignment for each player and update the private info. Example:Alignment: ,Role:, Info: \n For role write the most plausibel role as one word. Addiotional infos like possible roles are part of Info. If there is no new information keep the private state as it is. No extra explanation. Do not add the Current Player.\n"                     
             "Return the updated Feature State in JSON format with keys for each player and values being an object "
             "with 'number of conversations' and 'private info' fields. Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes."            
         )
@@ -952,21 +977,21 @@ def play_game():
     num_correct_games = 0
     model = init_model(model_id, server_based, max_token)
     # server model
-    model_server = init_model(model_id, True, max_token)
-    model = [model, model_server]
-    #model = [model]
+    #model_server = init_model(model_id, True, max_token)
+    #model = [model, model_server]
+    model = [model]
 
     good_wins = 0
     evil_wins = 0
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree_gpt4o-mistral.pkl' # mcts_tree
+    filename = 'mcts_tree_reward.pkl' # mcts_tree
     
     # Load from file
-    #if store_data:
-    #    with open(filename, 'rb') as f:
-    #        mcts_all_nodes = pickle.load(f)
+    if store_data:
+        with open(filename, 'rb') as f:
+            mcts_all_nodes = pickle.load(f)
         
     for mcts in mcts_all_nodes:
         mcts.print_tree()
@@ -989,7 +1014,7 @@ def play_game():
         conv_manager = ConversationManager()
 
         # Create an MCTS instance
-        mcts = MCTS(simulation_policy, reward_function, num_child_node, iterations=num_iterations)
+        mcts = MCTS(simulation_policy, reward_function, num_child_node, iterations=num_iterations, exploration_weight=0.6)
         mcts_all_nodes.append(mcts)
 
         # Run MCTS to get the best action/state
