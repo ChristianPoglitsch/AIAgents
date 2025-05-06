@@ -18,7 +18,7 @@ from botc_base import simulation_policy
 
 model = []
 
-server_based = True
+server_based = False
 store_data = True
 show_training_data = False
 
@@ -28,9 +28,9 @@ reward_good_action      = 1.0 # 1.0
 reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
-num_child_node = 2 # 2
-num_games = 1 # 100
-num_iterations = 1000 # 250 - 2000
+num_child_node = 4 # 4
+num_games = 10 # 100
+num_iterations = 2000 # 250 - 2000
 
 print_output = True
 max_token = 500
@@ -83,13 +83,25 @@ class Role:
     def count_correct_guesses(self, state, speaker):
         correct = 0
         for target, data in state.features.features[speaker].items():
-            guessed_role = str(data[1])
-            if guessed_role is None or len(guessed_role.split("Role:")) <= 1:
+            guessed_info = str(data[1])
+            if not guessed_info or "Role:" not in guessed_info or "Alignment:" not in guessed_info:
                 continue
-            guessed_role = guessed_role.split("Role:")[1].split(",")[0].strip()
+
+            # Extract guessed alignment and role
+            try:
+                guessed_alignment = guessed_info.split("Alignment:")[1].split(",")[0].strip()
+                guessed_role = guessed_info.split("Role:")[1].split(",")[0].strip()
+            except IndexError:
+                continue  # Skip malformed entries
+
+            # Get true values
             true_role = state.active_players[target].role
-            if guessed_role == true_role:
+            true_alignment = state.active_players[target].alignment
+
+            # Check if both match
+            if guessed_role in true_role or guessed_alignment == true_alignment:
                 correct += 1
+
         return correct
 
     def get_reward(self, node) -> int:
@@ -97,26 +109,21 @@ class Role:
         reward = 0
         speaker = node.action.get("Speaker")
 
-        if node.action.get('type') == 'Nominate' or node.action.get('type') == 'Vote':
+        if node.action.get('type') == 'Nominate' or node.action.get('type') == 'Vote' and node.state.nominated is not None:            
             alignment = node.state.active_players[node.state.nominated].alignment
             if alignment != self.alignment:
                 if self.alignment == 'Good':
-                    reward += reward_good_action * reward_good_action
+                    reward += reward_good_action
                 if self.alignment == 'Evil':
-                    reward += reward_good_action * reward_evil_action
+                    reward += reward_evil_action
 
         result = self.count_correct_guesses(node.state, speaker)
-        if result > 0:
+        if result > self.correct_guesses:
+            self.correct_guesses = result
             if self.alignment == 'Good':
                 reward += reward_good_action * reward_good_action
             if self.alignment == 'Evil':
-                reward += reward_good_action * reward_evil_action        
-        #if result > self.correct_guesses:
-        #    self.correct_guesses = result
-        #    if self.alignment == 'Good':
-        #        reward += reward_good_action * reward_good_action
-        #    if self.alignment == 'Evil':
-        #        reward += reward_good_action * reward_evil_action
+                reward += reward_good_action * reward_evil_action
 
         if self.alignment == 'Good' and state.execution and state.active_players[state.execution].alignment == 'Evil':
             reward += reward_good_action
@@ -346,7 +353,7 @@ class Slayer(Role):
     def apply_action(self, action, other_players):
         target = action.get("Target")
         self.use_ability = True
-        if not self.is_poisoned and other_players[target].team == 'Demon':
+        if target in other_players and not self.is_poisoned and other_players[target].team == 'Demon':
             other_players[target].alive = False
             self.killed_demon = True
 
@@ -530,7 +537,7 @@ class BloodOnTheClocktowerPlayerFeatures(PlayerFeatures):
 
         prompt += (
             "First, think about the update the number of conversations, second think about an update for private info about other players.\n"
-            "\n\nBased on the conversation history and the private info, reason about role and the alignment for each player and update the private info. Example:Alignment: ,Role:, Info: \n For role write the most plausibel role as one word. Addiotional infos like possible roles are part of Info. If there is no new information keep the private state as it is. No extra explanation. Do not add the Current Player.\n"                     
+            "\n\nBased on the conversation history and the private info, reason about role and the alignment for each player and update the private info. Example:Alignment: ,Role:, Info: \n For role write the most plausibel role as one word. Additional infos like possible roles are part of Info. If there is no new information keep the private state as it is. No extra explanation. Do not add the Current Player.\n"                     
             "Return the updated Feature State in JSON format with keys for each player and values being an object "
             "with 'number of conversations' and 'private info' fields. Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes."            
         )
@@ -636,7 +643,6 @@ class BloodOnTheClocktowerState(BasicGameState):
             print(self.get_player_info())
             print(self.active_players)
         elif self.phase == 'Day' and self.conv_count_day >= self.max_conv_count_per_day and self.phase != 'Nominate':
-            self.num_nominations = 0
             self.conv_count_day = 0
             self.day_count = self.day_count + 1
             self.phase = 'Night'
@@ -657,7 +663,6 @@ class BloodOnTheClocktowerState(BasicGameState):
                     self.night_info(night_order)
                     self.conv_count_day = 0
                     self.day_count = self.day_count + 1
-                    self.num_nominations = 0
                 self.num_votes = 0
             
      
@@ -986,12 +991,12 @@ def play_game():
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree_reward.pkl' # mcts_tree
+    filename = 'mcts_tree_mistral-training_gtp4o-basic.pkl' # mcts_tree 
     
     # Load from file
-    if store_data:
-        with open(filename, 'rb') as f:
-            mcts_all_nodes = pickle.load(f)
+    #if store_data:
+    #    with open(filename, 'rb') as f:
+    #        mcts_all_nodes = pickle.load(f)
         
     for mcts in mcts_all_nodes:
         mcts.print_tree()

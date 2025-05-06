@@ -5,21 +5,21 @@ from botc import *
 mcts_all = None
 mcts_all2 = None
 # Load from file
-with open('mcts_tree.pkl', 'rb') as f:
+with open('mcts_tree_reward2.pkl', 'rb') as f:
     mcts_all = pickle.load(f)
 
-with open('mcts_tree2.pkl', 'rb') as f:
-    mcts_all2 = pickle.load(f)
-mcts_all = mcts_all + mcts_all2
-with open('mcts_tree3.pkl', 'rb') as f:
-    mcts_all2 = pickle.load(f)
-mcts_all = mcts_all + mcts_all2
-with open('mcts_tree4.pkl', 'rb') as f:
-    mcts_all2 = pickle.load(f)
-mcts_all = mcts_all + mcts_all2
-with open('mcts_tree5.pkl', 'rb') as f:
-    mcts_all2 = pickle.load(f)
-mcts_all = mcts_all + mcts_all2
+#with open('mcts_tree_reward.pkl', 'rb') as f:
+#    mcts_all2 = pickle.load(f)
+#mcts_all = mcts_all + mcts_all2
+#with open('mcts_tree_reward2.pkl', 'rb') as f:
+#    mcts_all2 = pickle.load(f)
+#mcts_all = mcts_all + mcts_all2
+#with open('mcts_tree_reward3.pkl', 'rb') as f:
+#    mcts_all2 = pickle.load(f)
+#mcts_all = mcts_all + mcts_all2
+#with open('mcts_tree_reward4.pkl', 'rb') as f:
+#    mcts_all2 = pickle.load(f)
+#mcts_all = mcts_all + mcts_all2
 
 ##with open('mcts_tree.pkl', 'wb') as f:
 ##    pickle.dump(mcts_all, f)
@@ -48,4 +48,4 @@ for mcts in mcts_all:
 
 print("Good wins: " + str(good_wins) + " / Evil wins: " + str(evil_wins) + " / Num leaf nodes: " + str(num_nodes))
 folder_path = 'training_botc'
-conversationManager.export_prompt_outcome_log(folder_path, False)
+#conversationManager.export_prompt_outcome_log(folder_path, False)

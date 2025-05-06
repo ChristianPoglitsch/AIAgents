@@ -37,9 +37,8 @@ def train_model(model, tokenizer, instruct_tune_dataset, target_modules, save_mo
         # batches (2*16=32) and Low-Rank Adapters are updated only then (not
         # per batch); method to increase batch size in a memory-efficient
         # manner.
-        # num_train_epochs=5,
-
-        max_steps=500, # 500   # comment out this line if you want to train in epochs - 100+ recommended
+        num_train_epochs=3, # 5
+        # max_steps=500, # 500   # comment out this line if you want to train in epochs - 100+ recommended
         save_strategy="epoch",
         # evaluation_strategy="epoch",
         evaluation_strategy="steps",
