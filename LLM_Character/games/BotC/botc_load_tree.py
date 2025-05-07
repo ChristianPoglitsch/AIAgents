@@ -5,7 +5,7 @@ from botc import *
 mcts_all = None
 mcts_all2 = None
 # Load from file
-with open('mcts_tree_reward2.pkl', 'rb') as f:
+with open('mcts_tree_gpt4o.pkl', 'rb') as f:
     mcts_all = pickle.load(f)
 
 #with open('mcts_tree_reward.pkl', 'rb') as f:
@@ -44,8 +44,7 @@ for mcts in mcts_all:
             #conversationManager.append_prompt_outcomes(node.conversation_manager.get_prompt_outcomes())
         if node.state.good_win() or node.value > 0.0:
             num_nodes = num_nodes + 1
-            #conversationManager.append_prompt_outcomes(node.conversation_manager.get_prompt_outcomes())
 
 print("Good wins: " + str(good_wins) + " / Evil wins: " + str(evil_wins) + " / Num leaf nodes: " + str(num_nodes))
 folder_path = 'training_botc'
-#conversationManager.export_prompt_outcome_log(folder_path, False)
+conversationManager.export_prompt_outcome_log(folder_path, False)

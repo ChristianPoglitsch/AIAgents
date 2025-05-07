@@ -37,12 +37,12 @@ def train_model(model, tokenizer, instruct_tune_dataset, target_modules, save_mo
         # batches (2*16=32) and Low-Rank Adapters are updated only then (not
         # per batch); method to increase batch size in a memory-efficient
         # manner.
-        num_train_epochs=3, # 5
+        num_train_epochs=2, # 2 5
         # max_steps=500, # 500   # comment out this line if you want to train in epochs - 100+ recommended
         save_strategy="epoch",
-        # evaluation_strategy="epoch",
-        evaluation_strategy="steps",
-        eval_steps=1010,  # comment out this line if you want to evaluate at the end of each epoch
+        evaluation_strategy="epoch",
+        #evaluation_strategy="steps",
+        #eval_steps=1010,  # comment out this line if you want to evaluate at the end of each epoch
         learning_rate=2e-4,
         warmup_steps=0,
         # warmup_ratio =0, # Number of iterations in which the actual learning
@@ -64,7 +64,8 @@ def train_model(model, tokenizer, instruct_tune_dataset, target_modules, save_mo
 
     trainer = SFTTrainer(
         model=model,
-        train_dataset=instruct_tune_dataset,
+        train_dataset=instruct_tune_dataset["train"],
+        eval_dataset=instruct_tune_dataset["test"],
         peft_config=peft_config,
         max_seq_length=None,
         dataset_text_field="text",
@@ -154,14 +155,15 @@ if __name__ == "__main__":
     # format_prompts_deepseek
     # format_prompts_teuken
     dataset = dataset.map(format_prompts_mistral, batched=True)
-    
+
     if True:
         for record in dataset:
-            print("--- --- ---")
-            print(record["input"])
-            print("*** *** ***")
-            print(record["output"])
-            print("--- --- ---")
+            for data in dataset[record]:      
+                print("--- --- ---")
+                print(data["input"])
+                print("*** *** ***")
+                print(data["output"])
+                print("--- --- ---")
 
     target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj"]
     #target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]

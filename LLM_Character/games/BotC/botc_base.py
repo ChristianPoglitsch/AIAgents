@@ -6,7 +6,7 @@ import math
 import shutil
 import re
 from datasets import Dataset
-from datasets import load_from_disk, concatenate_datasets
+from datasets import load_from_disk, concatenate_datasets, DatasetDict
 
 from LLM_Character.llm_comms.llm_api import LLM_API
 from LLM_Character.llm_comms.llm_local import LocalComms
@@ -487,46 +487,91 @@ class ConversationManager:
         """
         self.prompt_outcome_log = log
 
-    def export_prompt_outcome_log(self, file_path, append=False):
-        """
-        Exports the prompt_outcome_log as a Hugging Face Dataset formatted for Mistral-7B-Instruct training.
+    #def export_prompt_outcome_log(self, file_path, append=False):
+    #    """
+    #    Exports the prompt_outcome_log as a Hugging Face Dataset formatted for Mistral-7B-Instruct training.
+    #
+    #    Each record follows the ChatML-style format:
+    #        <s>[INST] input [/INST] output </s>
+    #
+    #    If `input_text` is available, it's included as additional context.
+    #
+    #    The dataset is then saved to disk at the provided file path.
+    #
+    #    If the file_path exists, it is removed beforehand.
+    #
+    #    Assumption:
+    #        self.prompt_outcome_log is a list of tuples (input, output).
+    #
+    #    :param file_path: The directory path where the dataset will be saved.
+    #    :param append: If True, load the existing dataset from file_path and append new data.        
+    #    """
+    #    inputs, outputs = [], []
+    #    prompt_outcome_log = list(dict.fromkeys(self.prompt_outcome_log))
+    #
+    #    for i, o in prompt_outcome_log:
+    #        inputs.append(i.strip())
+    #        outputs.append(o.strip())
+    #
+    #    # Convert to Hugging Face Dataset format
+    #    dataset = Dataset.from_dict({"input": inputs, "output": outputs})
+    #
+    #    if append and os.path.exists(file_path):
+    #        existing_dataset = load_from_disk(file_path)
+    #        combined_dataset = concatenate_datasets([existing_dataset, dataset])
+    #    else:
+    #        combined_dataset = dataset
+    #
+    #    # Save dataset
+    #    # Remove existing dataset directory
+    #    if os.path.exists(file_path):
+    #        shutil.rmtree(file_path)
+    #    combined_dataset.save_to_disk(file_path)
     
-        Each record follows the ChatML-style format:
+    def export_prompt_outcome_log(self, file_path, append=False, val_split=0.1, seed=42):
+        """
+        Exports the prompt_outcome_log as a Hugging Face DatasetDict with train/validation split
+        for Mistral-7B-Instruct training.
+    
+        Format per example:
             <s>[INST] input [/INST] output </s>
 
-        If `input_text` is available, it's included as additional context.
+        Assumes:
+            self.prompt_outcome_log is a list of (input, output) tuples.
 
-        The dataset is then saved to disk at the provided file path.
-    
-        If the file_path exists, it is removed beforehand.
-
-        Assumption:
-            self.prompt_outcome_log is a list of tuples (input, output).
-    
-        :param file_path: The directory path where the dataset will be saved.
-        :param append: If True, load the existing dataset from file_path and append new data.        
+        Args:
+            file_path: Directory path where the dataset will be saved.
+            append: Whether to append to existing dataset.
+            val_split: Proportion of data to use for validation.
+            seed: Random seed for reproducibility.
         """
         inputs, outputs = [], []
-        prompt_outcome_log = list(dict.fromkeys(self.prompt_outcome_log))
+        prompt_outcome_log = list(dict.fromkeys(self.prompt_outcome_log))  # Remove duplicates
 
         for i, o in prompt_outcome_log:
             inputs.append(i.strip())
             outputs.append(o.strip())
 
-        # Convert to Hugging Face Dataset format
         dataset = Dataset.from_dict({"input": inputs, "output": outputs})
 
-        if append and os.path.exists(file_path):
-            existing_dataset = load_from_disk(file_path)
-            combined_dataset = concatenate_datasets([existing_dataset, dataset])
-        else:
-            combined_dataset = dataset
+        # Split into train/validation
+        dataset = dataset.train_test_split(test_size=val_split, seed=seed)
+        # dataset['train'], dataset['test'] are available
 
-        # Save dataset
-        # Remove existing dataset directory
+        # Optionally append to existing dataset
+        if append and os.path.exists(file_path):
+            existing = load_from_disk(file_path)
+            combined = DatasetDict({
+                "train": concatenate_datasets([existing["train"], dataset["train"]]),
+                "test": concatenate_datasets([existing["test"], dataset["test"]]),
+            })
+        else:
+            combined = dataset
+
+        # Save to disk
         if os.path.exists(file_path):
             shutil.rmtree(file_path)
-        combined_dataset.save_to_disk(file_path)
+        combined.save_to_disk(file_path)    
 
 # ------------------ LLM Action Completion Function ------------------
 
