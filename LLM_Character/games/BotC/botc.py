@@ -39,7 +39,7 @@ num_conv_history_action = 2
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 #model_id = "deepseek-ai/deepseek-llm-7b-chat"
 #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
-model_id = "trained/Mistral-7B-Instruct-v0.3_merged_base"
+model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
 #model_id = "trained/deepseek-llm-7b-chat_merged"
 #model_id = "trained\\Teuken-7B-instruct-research-v0.4_merged"
 
@@ -121,9 +121,9 @@ class Role:
         if result > self.correct_guesses:
             self.correct_guesses = result
             if self.alignment == 'Good':
-                reward += reward_good_action * reward_good_action
+                reward += reward_good_action
             if self.alignment == 'Evil':
-                reward += reward_good_action * reward_evil_action
+                reward += reward_evil_action
 
         if self.alignment == 'Good' and state.execution and state.active_players[state.execution].alignment == 'Evil':
             reward += reward_good_action
@@ -738,21 +738,25 @@ class BloodOnTheClocktowerState(BasicGameState):
         if action is not None and len(action) > 0:
             actions.extend(action)
             
+        vote_for = 'Good'
+        if player_info.alignment == 'Good':
+            vote_for = 'Evil'
+
         # Day phase actions
         if self.phase == "Day" and self.conv_count_day < self.max_conv_count_per_day:
             # Always available action: Message
             actions.append('{"type": "Message", "Speaker": None, "Audience": None, "Message": None, "Message-Type": None} \nMessage-Type: Truth-Telling (reveal your game state and role), Bluff, Fishing, Claim, Misdirection')
             # Nominate action (if the player hasn't already nominated someone)
             if player_info.alive is True and self.conv_count_day > 3:
-                actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None}')
+                actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None} \n Nominate ' + vote_for + ' players.')
             # Vote action is available in the day phase
         elif self.phase == "Day":
             if player_info.alive is True:
-                actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None}')
+                actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None} \n Nominate ' + vote_for + ' players.')
             # Vote action is available in the day phase            
         elif self.phase == "Nominate":
             if player_info.alive is True:
-                actions.append('{"type": "Vote", "Speaker": None}')
+                actions.append('{"type": "Vote", "Speaker": None}\n Vote for ' + vote_for + ' players.')
 
         # Always include a NoAction option.
         actions.append(str(self.no_action).replace("'", '"'))
@@ -991,12 +995,12 @@ def play_game():
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree_gtp4o-vs-mistral_trained-basic.pkl' # mcts_tree 
+    filename = 'mcts_tree_mistral_trained-basic-vs-gtp4o-good.pkl' # mcts_tree 
     
     # Load from file
-    #if store_data:
-    #    with open(filename, 'rb') as f:
-    #        mcts_all_nodes = pickle.load(f)
+    if store_data:
+        with open(filename, 'rb') as f:
+            mcts_all_nodes = pickle.load(f)
         
     for mcts in mcts_all_nodes:
         mcts.print_tree()
