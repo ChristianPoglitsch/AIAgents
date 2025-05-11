@@ -1,0 +1,260 @@
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: B
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Vote for Good players.
+{"type": "No Action", "Speaker": None}
+
+Current phase: Nominate
+Nominated is B
+Players: A (Alive), B (Alive), C (Alive), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Imp - Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp. Reason about the game state and manipulate good players.
+
+
+
+Game state for player B:
+A: number of conversations = 1, private info = Alignment: Good, Role: Soldier, Info: Revealed role
+C: number of conversations = 1, private info = Alignment: Good, Role: Unknown, Info: Participant in discussion initiated by B
+D: number of conversations = 0, private info = Alignment: Unknown, Role: Unknown, Info: No information
+E: number of conversations = 0, private info = Alignment: Unknown, Role: Unknown, Info: No information
+F: number of conversations = 0, private info = Alignment: Unknown, Role: Unknown, Info: No information
+B: number of conversations = 2, private info = Alignment: Good, Role: Empath, Info: Initiator of discussion
+
+Chronological conversation History:
+A: {'type': 'Message', 'Speaker': 'A', 'Audience': ['B'], 'Message': "I am the Soldier. I can't die at night, which could be useful for our team. Let's discuss who might be evil."}
+B: {'type': 'Message', 'Speaker': 'B', 'Audience': ['A', 'C', 'D', 'E', 'F'], 'Message': "I have information that might be crucial for our team. Somebody revealed their role as Soldier, but this role can also be dangerous if used incorrectly. Let's be careful and discuss who might be evil among us."}
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: B
+ {'type': 'Vote', 'Speaker': 'B'}
+--- --- --- ---
+*** *** *** *** *** *** *** 8 / 250
+{'A': <__main__.Soldier object at 0x000002951E3325B0>, 'B': <__main__.Imp object at 0x000002951E332670>, 'C': <__main__.Slayer object at 0x000002951E332520>, 'D': <__main__.Washerwoman object at 0x000002951E332550>, 'E': <__main__.Investigator object at 0x000002951E3325E0>, 'F': <__main__.Poisoner object at 0x000002951E332730>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: C
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Action", "Description": "Once per game, publicly chooses a player. If that player is the Demon, they die.", "Speaker": None, "Target": "None"}
+{"type": "Vote", "Speaker": None}
+ Vote for Evil players.
+{"type": "No Action", "Speaker": None}
+
+Current phase: Nominate
+Nominated is B
+Players: A (Alive), B (Alive), C (Alive), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Slayer - Once per game, publicly chooses a player. If that player is the Demon, they die. Reason about the game state and find the evil players.
+
+
+
+Game state for player C:
+A: number of conversations = 0, private info = None
+B: number of conversations = 0, private info = None
+D: number of conversations = 0, private info = None
+E: number of conversations = 0, private info = None
+F: number of conversations = 0, private info = None
+
+Chronological conversation History:
+B: {'type': 'Message', 'Speaker': 'B', 'Audience': ['A', 'C', 'D', 'E', 'F'], 'Message': "I have information that might be crucial for our team. Somebody revealed their role as Soldier, but this role can also be dangerous if used incorrectly. Let's be careful and discuss who might be evil among us."}
+A: {'type': 'Message', 'Speaker': 'A', 'Audience': ['C', 'D', 'E', 'F'], 'Message': "I spoke with B earlier, and I'm the Soldier. B mentioned information about a Soldier role and seemed to be steering the conversation towards caution. This could be a sign of misdirection. We should consider nominating B and see their reaction."}
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: C
+ {'type': 'Action', 'Description': 'Once per game, publicly chooses a player. If that player is the Demon, they die.', 'Speaker': 'C', 'Target': 'B'}
+--- --- --- ---
+*** *** *** *** *** *** *** 9 / 250
+{'A': <__main__.Soldier object at 0x000002951E3325B0>, 'B': <__main__.Imp object at 0x000002951E332670>, 'C': <__main__.Slayer object at 0x000002951E332520>, 'D': <__main__.Washerwoman object at 0x000002951E332550>, 'E': <__main__.Investigator object at 0x000002951E3325E0>, 'F': <__main__.Poisoner object at 0x000002951E332730>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: D
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Vote for Evil players.
+{"type": "No Action", "Speaker": None}
+
+Current phase: Nominate
+Nominated is B
+Players: A (Alive), B (Alive), C (Alive), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Washerwoman - Learns that one of two players is a specific Townsfolk. Reason about the game state and find the evil players.
+
+You learn that D or E is a Washerwoman
+
+Game state for player D:
+A: number of conversations = 0, private info = None
+B: number of conversations = 0, private info = None
+C: number of conversations = 0, private info = None
+E: number of conversations = 0, private info = None
+F: number of conversations = 0, private info = None
+
+Chronological conversation History:
+B: {'type': 'Message', 'Speaker': 'B', 'Audience': ['A', 'C', 'D', 'E', 'F'], 'Message': "I have information that might be crucial for our team. Somebody revealed their role as Soldier, but this role can also be dangerous if used incorrectly. Let's be careful and discuss who might be evil among us."}
+A: {'type': 'Message', 'Speaker': 'A', 'Audience': ['C', 'D', 'E', 'F'], 'Message': "I spoke with B earlier, and I'm the Soldier. B mentioned information about a Soldier role and seemed to be steering the conversation towards caution. This could be a sign of misdirection. We should consider nominating B and see their reaction."}
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: D
+ {'type': 'Vote', 'Speaker': 'D'}
+--- --- --- ---
+*** *** *** *** *** *** *** 10 / 250
+{'A': <__main__.Soldier object at 0x000002951E3325B0>, 'B': <__main__.Imp object at 0x000002951E332670>, 'C': <__main__.Slayer object at 0x000002951E332520>, 'D': <__main__.Washerwoman object at 0x000002951E332550>, 'E': <__main__.Investigator object at 0x000002951E3325E0>, 'F': <__main__.Poisoner object at 0x000002951E332730>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: E
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Vote for Evil players.
+{"type": "No Action", "Speaker": None}
+
+Current phase: Nominate
+Nominated is B
+Players: A (Alive), B (Alive), C (Alive), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Investigator - Learns that one of two players is a specific Minion. Reason about the game state and find the evil players.
+
+You learn that F or C is a Poisoner
+
+Game state for player E:
+A: number of conversations = 0, private info = None
+B: number of conversations = 0, private info = None
+C: number of conversations = 0, private info = None
+D: number of conversations = 0, private info = None
+F: number of conversations = 0, private info = None
+
+Chronological conversation History:
+B: {'type': 'Message', 'Speaker': 'B', 'Audience': ['A', 'C', 'D', 'E', 'F'], 'Message': "I have information that might be crucial for our team. Somebody revealed their role as Soldier, but this role can also be dangerous if used incorrectly. Let's be careful and discuss who might be evil among us."}
+A: {'type': 'Message', 'Speaker': 'A', 'Audience': ['C', 'D', 'E', 'F'], 'Message': "I spoke with B earlier, and I'm the Soldier. B mentioned information about a Soldier role and seemed to be steering the conversation towards caution. This could be a sign of misdirection. We should consider nominating B and see their reaction."}
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: E
+ {'type': 'Vote', 'Speaker': 'E'}
+--- --- --- ---
+*** *** *** *** *** *** *** 11 / 250
+{'A': <__main__.Soldier object at 0x000002951E3325B0>, 'B': <__main__.Imp object at 0x000002951E332670>, 'C': <__main__.Slayer object at 0x000002951E332520>, 'D': <__main__.Washerwoman object at 0x000002951E332550>, 'E': <__main__.Investigator object at 0x000002951E3325E0>, 'F': <__main__.Poisoner object at 0x000002951E332730>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: F
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Vote for Good players.
+{"type": "No Action", "Speaker": None}
+
+Current phase: Nominate
+Nominated is B
+Players: A (Alive), B (Alive), C (Alive), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Poisoner - Each night, poison one player. Reason about the game state and manipulate good players.
+
+The Demon is B.
+
+Game state for player F:
+A: number of conversations = 0, private info = Empath, Info: Suspicious about F's accusation of B
+B: number of conversations = 1, private info = Demon, Info: F suspects B
+C: number of conversations = 0, private info = Info: Listening to F's accusation of B
+D: number of conversations = 0, private info = Info: Listening to F's accusation of B
+E: number of conversations = 0, private info = Info: Listening to F's accusation of B
+
+Chronological conversation History:
+B: {'type': 'Message', 'Speaker': 'B', 'Audience': ['A', 'C', 'D', 'E', 'F'], 'Message': "I have information that might be crucial for our team. Somebody revealed their role as Soldier, but this role can also be dangerous if used incorrectly. Let's be careful and discuss who might be evil among us."}
+A: {'type': 'Message', 'Speaker': 'A', 'Audience': ['C', 'D', 'E', 'F'], 'Message': "I spoke with B earlier, and I'm the Soldier. B mentioned information about a Soldier role and seemed to be steering the conversation towards caution. This could be a sign of misdirection. We should consider nominating B and see their reaction."}
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: F
+ {'type': 'Vote', 'Speaker': 'F'}
+--- --- --- ---
+*** *** *** *** *** *** *** 12 / 250
+{'A': <__main__.Soldier object at 0x000002951E3325B0>, 'B': <__main__.Imp object at 0x000002951E332670>, 'C': <__main__.Slayer object at 0x000002951E332520>, 'D': <__main__.Washerwoman object at 0x000002951E332550>, 'E': <__main__.Investigator object at 0x000002951E3325E0>, 'F': <__main__.Poisoner object at 0x000002951E332730>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: F
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Action", "Description": "Each night, poison one player.", "Speaker": None, "Target": "None", "Effect": "Poison"}
+{"type": "No Action", "Speaker": None}
+
+Current phase: Night
+Players: A (Alive), B (Dead), C (Alive), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Poisoner - Each night, poison one player. Reason about the game state and manipulate good players.
+
+The Demon is B.
+
+Game state for player F:
+A: number of conversations = 0, private info = Empath, Info: Suspicious about F's accusation of B
+B: number of conversations = 1, private info = Demon, Info: F suspects B
+C: number of conversations = 0, private info = Info: Listening to F's accusation of B
+D: number of conversations = 0, private info = Info: Listening to F's accusation of B
+E: number of conversations = 0, private info = Info: Listening to F's accusation of B
+
+Chronological conversation History:
+B: {'type': 'Message', 'Speaker': 'B', 'Audience': ['A', 'C', 'D', 'E', 'F'], 'Message': "I have information that might be crucial for our team. Somebody revealed their role as Soldier, but this role can also be dangerous if used incorrectly. Let's be careful and discuss who might be evil among us."}
+A: {'type': 'Message', 'Speaker': 'A', 'Audience': ['C', 'D', 'E', 'F'], 'Message': "I spoke with B earlier, and I'm the Soldier. B mentioned information about a Soldier role and seemed to be steering the conversation towards caution. This could be a sign of misdirection. We should consider nominating B and see their reaction."}
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: F
+ {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'F', 'Target': 'B'}
+--- --- --- ---
+*** *** *** *** *** *** *** 13 / 250
+{'A': <__main__.Soldier object at 0x000002951E3325B0>, 'B': <__main__.Imp object at 0x000002951E332670>, 'C': <__main__.Slayer object at 0x000002951E332520>, 'D': <__main__.Washerwoman object at 0x000002951E332550>, 'E': <__main__.Investigator object at 0x000002951E3325E0>, 'F': <__main__.Poisoner object at 0x000002951E332730>}
+*** *** *** *** *** *** ***
+- Visits: 13, Value: 4.00
+  - Visits: 13, Value: 4.00
+    - Visits: 12, Value: 4.00
+      - Visits: 11, Value: 4.00
+        - Visits: 10, Value: 4.00
+          - Visits: 9, Value: 4.00
+            - Visits: 8, Value: 4.00
+              - Visits: 7, Value: 3.00
+                - Visits: 6, Value: 2.00
+                  - Visits: 5, Value: 2.00
+                    - Visits: 4, Value: 2.00
+                      - Visits: 3, Value: 1.00
+                        - Visits: 2, Value: 0.00
+                          - Visits: 1, Value: 0.00 (Terminal) Good Win
+None
+Alive players: Players: A (Alive), B (Dead), C (Alive), D (Alive), E (Alive), F (Alive)
+Good win: True
+Evil win: False
+<__main__.Soldier object at 0x000002953FF56CA0>
+<__main__.Imp object at 0x000002953FF565B0>
+<__main__.Slayer object at 0x000002953FF56130>
+<__main__.Washerwoman object at 0x000002953FF56220>
+<__main__.Investigator object at 0x000002953FF564F0>
+<__main__.Poisoner object at 0x000002953FF56BB0>
+Good wins: 7 / Evil wins: 23
+Good wins: 7 / Evil wins: 23
+Execution time: 983.206674 seconds
+Errors: 10
+Drücken Sie eine beliebige Taste . . .
+
+for 5 games

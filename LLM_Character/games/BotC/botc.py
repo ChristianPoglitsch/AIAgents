@@ -28,9 +28,9 @@ reward_good_action      = 1.0 # 1.0
 reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
-num_child_node = 1 # 4
-num_games = 10 # 100
-num_iterations = 250 # 250 - 2000
+num_child_node = 4 # 4
+num_games = 1 # 100
+num_iterations = 2000 # 250 - 2000
 
 print_output = True
 max_token = 500
@@ -39,7 +39,7 @@ num_conv_history_action = 2
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 #model_id = "deepseek-ai/deepseek-llm-7b-chat"
 #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
-model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
+#model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
 #model_id = "trained/deepseek-llm-7b-chat_merged"
 #model_id = "trained\\Teuken-7B-instruct-research-v0.4_merged"
 
@@ -109,7 +109,7 @@ class Role:
         reward = 0
         speaker = node.action.get("Speaker")
 
-        if node.action.get('type') == 'Nominate' or node.action.get('type') == 'Vote' and node.state.nominated is not None:            
+        if (node.state.nominated is not None) and (str(node.state.nominated) in node.state.active_players) and (node.action.get('type') == 'Nominate' or node.action.get('type') == 'Vote'):
             alignment = node.state.active_players[node.state.nominated].alignment
             if alignment != self.alignment:
                 if self.alignment == 'Good':
@@ -537,7 +537,7 @@ class BloodOnTheClocktowerPlayerFeatures(PlayerFeatures):
 
         prompt += (
             "First, think about the update the number of conversations, second think about an update for private info about other players.\n"
-            "\n\nBased on the conversation history and the private info, reason about role and the alignment for each player and update the private info. Example:Alignment: ,Role:, Info: \n For role write the most plausibel role as one word. Additional infos like possible roles are part of Info. If there is no new information keep the private state as it is. No extra explanation. Do not add the Current Player.\n"                     
+            "\n\nBased on the conversation history and the private info, reason about role and the alignment for each player and update the private info in this format:Alignment: ,Role:, Info: \n For role write the most plausibel role as one word. Additional infos like possible roles are part of Info. If there is no new information keep the private state as it is. No extra explanation. Do not add the Current Player.\n"                     
             "Return the updated Feature State in JSON format with keys for each player and values being an object "
             "with 'number of conversations' and 'private info' fields. Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes."            
         )
@@ -654,7 +654,7 @@ class BloodOnTheClocktowerState(BasicGameState):
             count = self.count_next_players()
             if count == 0:
                 alive_players = [name for name, player in self.active_players.items() if player.alive]
-                if self.num_votes >= int(len(alive_players) / 2):
+                if self.num_votes >= int(len(alive_players) / 2) and (self.nominated in self.active_players):
                     self.active_players[self.nominated].set_alive(False)
                     self.nomination_count_max = self.num_votes
                     self.execution = self.nominated
@@ -663,6 +663,8 @@ class BloodOnTheClocktowerState(BasicGameState):
                     self.night_info(night_order)
                     self.conv_count_day = 0
                     self.day_count = self.day_count + 1
+                else:
+                    self.nominated = None
                 self.num_votes = 0
             
      
@@ -882,7 +884,6 @@ class BloodOnTheClocktowerState(BasicGameState):
             "The available actions are given below, but each action is incomplete and missing parameters marked as None.\n"
             "Available Actions Description:\n"
             f"{self.get_action_space_description(current_player)}\n\n"
-            "Game State:\n"
             f"{state_description}\n\n"
             "Chronological conversation History:\n"
             f"{conversation_history}\n\n"
@@ -890,7 +891,7 @@ class BloodOnTheClocktowerState(BasicGameState):
             #f"{get_player_plan}\n\n"
         )        
 
-        prompt = prompt + "First, consider a possible answer. Then, provide the corresponding action. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.\n"
+        prompt = prompt + "Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.\n"
         prompt = prompt + "Please output one complete possible action from the Available Actions Description list in JSON format.\n"
         prompt = prompt + "Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.\n"        
 
@@ -986,16 +987,16 @@ def play_game():
     num_correct_games = 0
     model = init_model(model_id, server_based, max_token)
     # server model
-    model_server = init_model(model_id, True, max_token)
-    model = [model, model_server]
-    #model = [model]
+    #model_server = init_model(model_id, True, max_token)
+    #model = [model, model_server]
+    model = [model]
 
     good_wins = 0
     evil_wins = 0
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree_mistral_trained-basic-vs-gtp4o-good.pkl' # mcts_tree 
+    filename = 'mcts_tree_mistral-training_untrained.pkl' # mcts_tree
     
     # Load from file
     if store_data:

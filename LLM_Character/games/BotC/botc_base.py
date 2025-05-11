@@ -363,6 +363,8 @@ class ConversationManager:
             self.conversations[participants_tuple] = conv
 
     def add_message_to_conversation(self, participants, sender, message):
+        if None in participants:
+            return
         participants_tuple = tuple(sorted(participants))
         if participants_tuple not in self.conversations:
             self.start_conversation(participants)
@@ -651,6 +653,9 @@ def simulation_policy(node, models, print_output, server_based, num_child_node):
     previous_results = None
     llm_erros = 0
     
+    if not player in game_state.active_players:
+        return [], 1
+
     if len(models) > 1:
         if game_state.active_players[player].alignment == 'Good':
             model = models[0]
@@ -662,8 +667,6 @@ def simulation_policy(node, models, print_output, server_based, num_child_node):
     num_max_nodes = num_child_node
     for i in range(num_max_nodes):
         if not player in game_state.players:
-            continue
-        if i > 1 and game_state.active_players[player].alignment == 'Evil': # Good
             continue
         model.set_temperature(0.8)
         if i > 1:
