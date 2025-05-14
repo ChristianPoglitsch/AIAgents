@@ -19,7 +19,7 @@ from botc_base import simulation_policy
 
 model = []
 
-server_based = False
+server_based = True
 store_data = True
 show_training_data = False
 
@@ -887,9 +887,9 @@ class BloodOnTheClocktowerState(BasicGameState):
             "The available actions are given below, but each action is incomplete and missing parameters marked as None.\n"
             "Available Actions Description:\n"
             f"{self.get_action_space_description(current_player)}\n\n"
-            f"{state_description}\n\n"
             "Chronological conversation History:\n"
             f"{conversation_history}\n\n"
+            f"{state_description}\n"
             #"Current plans\n"
             #f"{get_player_plan}\n\n"
         )        
@@ -990,16 +990,16 @@ def play_game():
     num_correct_games = 0
     model = init_model(model_id, server_based, max_token)
     # server model
-    model_server = init_model(model_id, True, max_token)
-    model = [model, model_server]
-    #model = [model]
+    #model_server = init_model(model_id, True, max_token)
+    #model = [model, model_server]
+    model = [model]
 
     good_wins = 0
     evil_wins = 0
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree_gtp4o-vs-mistral_untrained.pkl' # mcts_tree_gtp4o-vs-mistral_untrained - mcts_tree_gtp4o-vs-mistral_trained-basic - mcts_tree_gtp4o-vs-mistral_trained-advanced_27 - mcts_tree_mistral_trained-basic-vs-gtp4o-good
+    filename = 'mcts_tree_gpt4o.pkl' # mcts_tree_gtp4o-vs-mistral_untrained - mcts_tree_gtp4o-vs-mistral_trained-basic - mcts_tree_gtp4o-vs-mistral_trained-advanced_27 - mcts_tree_mistral_trained-basic-vs-gtp4o-good
     
     # Load from file
     if os.path.exists(filename) and store_data:
