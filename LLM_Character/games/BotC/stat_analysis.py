@@ -5,3 +5,5 @@ nobs = [100, 100]
 
 stat, pval = proportions_ztest(count, nobs)
 print(f"z-Wert: {stat:.3f}, p-Wert: {pval:.3f}")
+
+

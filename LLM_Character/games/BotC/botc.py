@@ -41,6 +41,7 @@ model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 #model_id = "deepseek-ai/deepseek-llm-7b-chat"
 #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
 #model_id = "trained/Mistral-7B-Instruct-v0.3_merged_base"
+model_id = "trained/Mistral-7B-Instruct-v0.3_merged_advancded"
 #model_id = "trained/deepseek-llm-7b-chat_merged"
 #model_id = "trained\\Teuken-7B-instruct-research-v0.4_merged"
 

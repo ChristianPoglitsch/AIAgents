@@ -1,4 +1,5 @@
 ﻿import torch
+import time
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from transformers import DataCollatorForSeq2Seq, Trainer, TrainingArguments
 from trl import SFTTrainer
@@ -146,6 +147,7 @@ def format_prompts_teuken(examples):
 
 if __name__ == "__main__":
     # fine tuning
+    start_time = time.time()  # Start timing    
 
     file_name = 'training'
     file_name =  'training_botc'
@@ -181,3 +183,7 @@ if __name__ == "__main__":
     #save_model = "trained\\deepseek-llm-7b-chat"
     #save_model = "trained\\Teuken-7B-instruct-research-v0.4"   
     train_model(model, tokenizer, dataset, target_modules, save_model)
+    
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"Execution time: {elapsed_time:.6f} seconds")
