@@ -753,15 +753,15 @@ class BloodOnTheClocktowerState(BasicGameState):
             actions.append('{"type": "Message", "Speaker": None, "Audience": None, "Message": None, "Message-Type": None} \nMessage-Type: Truth-Telling (reveal your game state and role), Bluff, Fishing, Claim, Misdirection')
             # Nominate action (if the player hasn't already nominated someone)
             if player_info.alive is True and self.conv_count_day > 3:
-                actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None} \n Nominate ' + vote_for + ' players.')
+                actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None} \n Nominate for the players you believe are ' + vote_for + '')
             # Vote action is available in the day phase
         elif self.phase == "Day":
             if player_info.alive is True:
-                actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None} \n Nominate ' + vote_for + ' players.')
+                actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None} \n Nominate for the players you believe are ' + vote_for + '')
             # Vote action is available in the day phase            
         elif self.phase == "Nominate":
             if player_info.alive is True:
-                actions.append('{"type": "Vote", "Speaker": None}\n Vote for ' + vote_for + ' players.')
+                actions.append('{"type": "Vote", "Speaker": None}\n Vote for the players you believe are ' + vote_for + '')
 
         # Always include a NoAction option.
         actions.append(str(self.no_action).replace("'", '"'))
