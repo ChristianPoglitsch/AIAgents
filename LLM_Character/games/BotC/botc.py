@@ -19,7 +19,7 @@ from botc_base import simulation_policy
 
 model = []
 
-server_based = True
+server_based = False
 store_data = True
 show_training_data = False
 
@@ -845,7 +845,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         elif player_info.alignment == 'Evil':
             private_info = private_info + ' Reason about the game state and manipulate good players.\n'
         # Append additional state features as needed.
-        additional_info = self.game_state_features_to_string(player)
+        additional_info = ' ' # self.game_state_features_to_string(player)
 
         roles_info = "These roles are in the game: " + ", ".join(sorted(roles)) + ". You can use the rules to bluff."
         info = player_info.get_information()
@@ -889,7 +889,7 @@ class BloodOnTheClocktowerState(BasicGameState):
             f"{self.get_action_space_description(current_player)}\n\n"
             "Chronological conversation History:\n"
             f"{conversation_history}\n\n"
-            f"{state_description}\n"
+            f"{state_description}\n\n"
             #"Current plans\n"
             #f"{get_player_plan}\n\n"
         )        
@@ -999,7 +999,7 @@ def play_game():
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree_gpt4o.pkl' # mcts_tree_gtp4o-vs-mistral_untrained - mcts_tree_gtp4o-vs-mistral_trained-basic - mcts_tree_gtp4o-vs-mistral_trained-advanced_27 - mcts_tree_mistral_trained-basic-vs-gtp4o-good
+    filename = 'mcts_tree_gpt4o-no_private_data.pkl' # mcts_tree_gtp4o-vs-mistral_untrained - mcts_tree_gtp4o-vs-mistral_trained-basic - mcts_tree_gtp4o-vs-mistral_trained-advanced_27 - mcts_tree_mistral_trained-basic-vs-gtp4o-good
     
     # Load from file
     if os.path.exists(filename) and store_data:
