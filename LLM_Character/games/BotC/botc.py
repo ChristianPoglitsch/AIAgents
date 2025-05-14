@@ -29,9 +29,9 @@ reward_good_action      = 1.0 # 1.0
 reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
-num_child_node = 1 # 4
-num_games = 30 # 100
-num_iterations = 250 # 250 - 2000
+num_child_node = 4 # 4
+num_games = 20 # 100
+num_iterations = 2000 # 250 - 2000
 
 print_output = True
 max_token = 500
@@ -990,9 +990,9 @@ def play_game():
     num_correct_games = 0
     model = init_model(model_id, server_based, max_token)
     # server model
-    model_server = init_model(model_id, True, max_token)
-    model = [model, model_server]
-    #model = [model]
+    #model_server = init_model(model_id, True, max_token)
+    #model = [model, model_server]
+    model = [model]
 
     good_wins = 0
     evil_wins = 0
