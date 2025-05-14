@@ -179,3 +179,6 @@ cython_debug/
 
 LLM_Character/trained/*
 *.pkl
+training_botc/*
+training_botc_basic/*
+mcts_tree_temp.zip

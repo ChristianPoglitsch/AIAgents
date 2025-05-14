@@ -5,6 +5,7 @@ import os
 import math
 import shutil
 import re
+import time
 from datasets import Dataset
 from datasets import load_from_disk, concatenate_datasets, DatasetDict
 
@@ -129,6 +130,8 @@ class PlayerFeatures:
             raise ValueError(f"Player {player} not found in features.")
             
         for other_player, data in json_data.items():
+            if not isinstance(data, dict):
+                continue
             # Optionally, add a new entry if other_player is not yet present.
             conversations = data.get("number of conversations", 0)
             private_info = data.get("private info") if data.get("private info") is not None else "None"
@@ -764,10 +767,13 @@ class MCTS:
         self.num_child_node = num_child_node
         self.exploration_weight = exploration_weight
         self.errors = 0
+        self.start_time = -1
+        self.end_time = -1
 
     def search(self, initial_state, conversation_manager, model, print_output, server_based):
         self.root = self.get_node(initial_state, conversation_manager, initial_state.get_no_action())
 
+        self.start_time = time.time()
         for index in range(self.iterations):
             node = self.select(self.root)
             new_nodes = self.expand(node, model, print_output, server_based)
@@ -784,6 +790,7 @@ class MCTS:
             print('*** *** *** *** *** *** *** ' + str(index) + ' / ' + str(self.iterations))
             print(self.root.state.active_players)
             print('*** *** *** *** *** *** *** ')
+        self.end_time = time.time()
         return self.root.best_leaf()
 
     def select(self, node):

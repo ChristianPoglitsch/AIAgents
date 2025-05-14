@@ -29,7 +29,7 @@ reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
 num_child_node = 4 # 4
-num_games = 1 # 100
+num_games = 20 # 100
 num_iterations = 2000 # 250 - 2000
 
 print_output = True
@@ -39,7 +39,7 @@ num_conv_history_action = 2
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 #model_id = "deepseek-ai/deepseek-llm-7b-chat"
 #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
-#model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
+#model_id = "trained/Mistral-7B-Instruct-v0.3_merged_base"
 #model_id = "trained/deepseek-llm-7b-chat_merged"
 #model_id = "trained\\Teuken-7B-instruct-research-v0.4_merged"
 
@@ -84,7 +84,7 @@ class Role:
         correct = 0
         for target, data in state.features.features[speaker].items():
             guessed_info = str(data[1])
-            if not guessed_info or "Role:" not in guessed_info or "Alignment:" not in guessed_info:
+            if not guessed_info or "Role:" not in guessed_info or "Alignment:" not in guessed_info or not target in state.active_players:
                 continue
 
             # Extract guessed alignment and role
@@ -108,28 +108,29 @@ class Role:
         state = node.state
         reward = 0
         speaker = node.action.get("Speaker")
-
-        if (node.state.nominated is not None) and (str(node.state.nominated) in node.state.active_players) and (node.action.get('type') == 'Nominate' or node.action.get('type') == 'Vote'):
-            alignment = node.state.active_players[node.state.nominated].alignment
-            if alignment != self.alignment:
+        result = self.count_correct_guesses(node.state, speaker)
+        
+        if result > 0:
+            if (node.state.nominated is not None) and (str(node.state.nominated) in node.state.active_players) and (node.action.get('type') == 'Nominate' or node.action.get('type') == 'Vote'):
+                alignment = node.state.active_players[node.state.nominated].alignment
+                if alignment != self.alignment:
+                    if self.alignment == 'Good':
+                        reward += reward_good_action
+                    if self.alignment == 'Evil':
+                        reward += reward_evil_action
+        
+            if result > self.correct_guesses:
+                self.correct_guesses = result
                 if self.alignment == 'Good':
                     reward += reward_good_action
                 if self.alignment == 'Evil':
                     reward += reward_evil_action
 
-        result = self.count_correct_guesses(node.state, speaker)
-        if result > self.correct_guesses:
-            self.correct_guesses = result
-            if self.alignment == 'Good':
+            if self.alignment == 'Good' and state.execution and state.active_players[state.execution].alignment == 'Evil':
                 reward += reward_good_action
-            if self.alignment == 'Evil':
+
+            if self.alignment == 'Evil' and state.execution and state.active_players[state.execution].alignment == 'Good':
                 reward += reward_evil_action
-
-        if self.alignment == 'Good' and state.execution and state.active_players[state.execution].alignment == 'Evil':
-            reward += reward_good_action
-
-        if self.alignment == 'Evil' and state.execution and state.active_players[state.execution].alignment == 'Good':
-            reward += reward_evil_action
 
         return reward
   
