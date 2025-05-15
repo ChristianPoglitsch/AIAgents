@@ -29,6 +29,7 @@ evil_wins = 0
 num_nodes = 0
 conversationManager = ConversationManager()
 errors = 0
+elapsed_time = 0
 
 index = 0
 for mcts in mcts_all:
@@ -37,7 +38,8 @@ for mcts in mcts_all:
     #nodes = mcts.get_all_terminal_nodes(mcts.get_root_node())
     nodes = mcts.get_all_nodes(mcts.get_root_node())
     errors = errors + mcts.errors
-
+    elapsed_time = mcts.end_time - mcts.start_time
+    
     for node in nodes:
         if node.state.good_win():
             good_wins = good_wins + 1
@@ -47,6 +49,8 @@ for mcts in mcts_all:
             conversationManager.append_prompt_outcomes(node.conversation_manager.get_prompt_outcomes())
         index = index + 1
 
+
 print("Good wins: " + str(good_wins) + " / Evil wins: " + str(evil_wins) + " / Errors: " + str(errors))
+print(f"Execution time: {elapsed_time:.6f} seconds")
 folder_path = 'training_botc'
 conversationManager.export_prompt_outcome_log(folder_path, False)
