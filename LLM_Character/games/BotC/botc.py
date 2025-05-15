@@ -29,8 +29,8 @@ reward_good_action      = 1.0 # 1.0
 reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
-num_child_node = 4 # 4
-num_games = 3 # 100
+num_child_node = 2 # 2
+num_games = 10 # 100
 num_iterations = 2000 # 250 - 2000
 
 print_output = True
@@ -999,7 +999,7 @@ def play_game():
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree_reward1.pkl' # mcts_tree_gtp4o-vs-mistral_untrained - mcts_tree_gtp4o-vs-mistral_trained-basic - mcts_tree_gtp4o-vs-mistral_trained-advanced_27 - mcts_tree_mistral_trained-basic-vs-gtp4o-good
+    filename = 'mcts_tree_reward4.pkl' # mcts_tree_gtp4o-vs-mistral_untrained - mcts_tree_gtp4o-vs-mistral_trained-basic - mcts_tree_gtp4o-vs-mistral_trained-advanced_27 - mcts_tree_mistral_trained-basic-vs-gtp4o-good
     
     # Load from file
     if os.path.exists(filename) and store_data:
