@@ -5,10 +5,10 @@ from botc import *
 mcts_all = None
 mcts_all2 = None
 # Load from file
-with open('mcts_tree_gpt4o.pkl', 'rb') as f:
+with open('mcts_tree_reward1.pkl', 'rb') as f:
     mcts_all = pickle.load(f)
 
-#with open('mcts_tree_reward.pkl', 'rb') as f:
+#with open('mcts_tree_reward1.pkl', 'rb') as f:
 #    mcts_all2 = pickle.load(f)
 #mcts_all = mcts_all + mcts_all2
 #with open('mcts_tree_reward2.pkl', 'rb') as f:

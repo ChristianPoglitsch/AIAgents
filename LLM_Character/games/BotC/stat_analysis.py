@@ -1,6 +1,6 @@
 from statsmodels.stats.proportion import proportions_ztest
 
-count = [31, 18]
+count = [49, 35]
 nobs = [100, 100]
 
 stat, pval = proportions_ztest(count, nobs)

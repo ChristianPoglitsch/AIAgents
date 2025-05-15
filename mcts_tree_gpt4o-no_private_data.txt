@@ -1,0 +1,60 @@
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: A
+ {'type': 'Action', 'Description': 'Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp.', 'Speaker': 'A', 'Target': 'B'}
+--- --- --- ---
+*** *** *** *** *** *** *** 35 / 250
+{'A': <__main__.Imp object at 0x0000016FC346B4F0>, 'B': <__main__.Washerwoman object at 0x0000016FC344F880>, 'C': <__main__.Investigator object at 0x0000016FC344F8B0>, 'D': <__main__.Ravenkeeper object at 0x0000016FC344F7C0>, 'E': <__main__.Poisoner object at 0x0000016FC344F940>, 'F': <__main__.Empath object at 0x0000016FC344F820>}
+*** *** *** *** *** *** ***
+- Visits: 32, Value: 4.00
+  - Visits: 32, Value: 4.00
+    - Visits: 31, Value: 4.00
+      - Visits: 30, Value: 4.00
+        - Visits: 29, Value: 4.00
+          - Visits: 28, Value: 4.00
+            - Visits: 27, Value: 3.00
+              - Visits: 26, Value: 3.00
+                - Visits: 25, Value: 2.00
+                  - Visits: 24, Value: 2.00
+                    - Visits: 23, Value: 2.00
+                      - Visits: 22, Value: 1.00
+                        - Visits: 21, Value: 1.00
+                          - Visits: 20, Value: 1.00
+                            - Visits: 19, Value: 1.00
+                              - Visits: 18, Value: 1.00
+                                - Visits: 17, Value: 1.00
+                                  - Visits: 16, Value: 1.00
+                                    - Visits: 15, Value: 1.00
+                                      - Visits: 14, Value: 1.00
+                                        - Visits: 13, Value: 1.00
+                                          - Visits: 13, Value: 1.00
+                                            - Visits: 12, Value: 1.00
+                                              - Visits: 11, Value: 0.00
+                                                - Visits: 10, Value: 0.00
+                                                  - Visits: 9, Value: 0.00
+                                                    - Visits: 8, Value: 0.00
+                                                      - Visits: 7, Value: 0.00
+                                                        - Visits: 6, Value: 0.00
+                                                          - Visits: 5, Value: 0.00
+                                                            - Visits: 4, Value: 0.00
+                                                              - Visits: 3, Value: 0.00
+                                                                - Visits: 2, Value: 0.00
+                                                                  - Visits: 1, Value: 0.00
+                                                                    - Visits: 1, Value: 0.00
+                                                                      - Visits: 1, Value: 0.00
+                                                                        - Visits: 1, Value: 0.00 (Terminal) Evil Win
+None
+Alive players: Players: A (Alive), B (Dead), C (Dead), D (Alive), E (Dead), F (Dead)
+Good win: False
+Evil win: True
+<__main__.Imp object at 0x0000017002D7F760>
+<__main__.Washerwoman object at 0x00000170029A0AC0>
+<__main__.Investigator object at 0x00000170029A0FA0>
+<__main__.Ravenkeeper object at 0x0000017002D8B580>
+<__main__.Poisoner object at 0x0000017002D8BB80>
+<__main__.Empath object at 0x0000017002D8BF70>
+Good wins: 41 / Evil wins: 59
+Good wins: 41 / Evil wins: 59
+Execution time: 17557.113806 seconds
+Errors: 4
+Press any key to continue . . .

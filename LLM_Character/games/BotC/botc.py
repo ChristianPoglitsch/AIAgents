@@ -19,7 +19,7 @@ from botc_base import simulation_policy
 
 model = []
 
-server_based = False
+server_based = True
 store_data = True
 show_training_data = False
 
@@ -29,9 +29,9 @@ reward_good_action      = 1.0 # 1.0
 reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
-num_child_node = 1 # 4
-num_games = 100 # 100
-num_iterations = 250 # 250 - 2000
+num_child_node = 4 # 4
+num_games = 5 # 100
+num_iterations = 2000 # 250 - 2000
 
 print_output = True
 max_token = 500
@@ -750,18 +750,18 @@ class BloodOnTheClocktowerState(BasicGameState):
         # Day phase actions
         if self.phase == "Day" and self.conv_count_day < self.max_conv_count_per_day:
             # Always available action: Message
-            actions.append('{"type": "Message", "Speaker": None, "Audience": None, "Message": None, "Message-Type": None} \nMessage-Type: Truth-Telling (reveal your game state and role), Bluff, Fishing, Claim, Misdirection')
+            actions.append('{"type": "Message", "Speaker": None, "Audience": None, "Message": None, "Message-Type": None} \n Collect information about other players. Message-Type: Truth-Telling (reveal your game state and role), Bluff, Fishing, Claim, Misdirection')
             # Nominate action (if the player hasn't already nominated someone)
             if player_info.alive is True and self.conv_count_day > 3:
-                actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None} \n Nominate players you believe are ' + vote_for + '')
+                actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None} \n Based on the game state nominate players you believe are ' + vote_for + '')
             # Vote action is available in the day phase
         elif self.phase == "Day":
             if player_info.alive is True:
-                actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None} \n Nominate players you believe are ' + vote_for + '')
+                actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None} \n Based on the game state nominate players you believe are ' + vote_for + '')
             # Vote action is available in the day phase            
         elif self.phase == "Nominate":
             if player_info.alive is True:
-                actions.append('{"type": "Vote", "Speaker": None}\n Vote for the players you believe are ' + vote_for + '')
+                actions.append('{"type": "Vote", "Speaker": None}\n Based on the game state vote for the players you believe are ' + vote_for + '')
 
         # Always include a NoAction option.
         actions.append(str(self.no_action).replace("'", '"'))
@@ -845,7 +845,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         elif player_info.alignment == 'Evil':
             private_info = private_info + ' Reason about the game state and manipulate good players.\n'
         # Append additional state features as needed.
-        additional_info = self.game_state_features_to_string(player)
+        additional_info = ' ' #self.game_state_features_to_string(player)
 
         roles_info = "These roles are in the game: " + ", ".join(sorted(roles)) + ". You can use the rules to bluff."
         info = player_info.get_information()
@@ -913,7 +913,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         action_type = action.get("type")
         speaker = action.get("Speaker")
         
-        if speaker == None or speaker is list or speaker not in self.active_players:
+        if speaker is None or isinstance(speaker, list) or speaker not in self.active_players:
             return False, 1
 
         self.active_player = self.active_players[speaker]
@@ -999,7 +999,7 @@ def play_game():
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree_gpt4o.pkl' # mcts_tree_gtp4o-vs-mistral_untrained - mcts_tree_gtp4o-vs-mistral_trained-basic - mcts_tree_gtp4o-vs-mistral_trained-advanced_27 - mcts_tree_mistral_trained-basic-vs-gtp4o-good
+    filename = 'mcts_tree_reward3.pkl' # mcts_tree_gtp4o-vs-mistral_untrained - mcts_tree_gtp4o-vs-mistral_trained-basic - mcts_tree_gtp4o-vs-mistral_trained-advanced_27 - mcts_tree_mistral_trained-basic-vs-gtp4o-good
     
     # Load from file
     if os.path.exists(filename) and store_data:
