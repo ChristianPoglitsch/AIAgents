@@ -30,7 +30,7 @@ reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
 num_child_node = 4 # 4
-num_games = 5 # 100
+num_games = 3 # 100
 num_iterations = 2000 # 250 - 2000
 
 print_output = True
@@ -845,7 +845,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         elif player_info.alignment == 'Evil':
             private_info = private_info + ' Reason about the game state and manipulate good players.\n'
         # Append additional state features as needed.
-        additional_info = ' ' #self.game_state_features_to_string(player)
+        additional_info = self.game_state_features_to_string(player)
 
         roles_info = "These roles are in the game: " + ", ".join(sorted(roles)) + ". You can use the rules to bluff."
         info = player_info.get_information()
@@ -999,7 +999,7 @@ def play_game():
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree_reward3.pkl' # mcts_tree_gtp4o-vs-mistral_untrained - mcts_tree_gtp4o-vs-mistral_trained-basic - mcts_tree_gtp4o-vs-mistral_trained-advanced_27 - mcts_tree_mistral_trained-basic-vs-gtp4o-good
+    filename = 'mcts_tree_reward1.pkl' # mcts_tree_gtp4o-vs-mistral_untrained - mcts_tree_gtp4o-vs-mistral_trained-basic - mcts_tree_gtp4o-vs-mistral_trained-advanced_27 - mcts_tree_mistral_trained-basic-vs-gtp4o-good
     
     # Load from file
     if os.path.exists(filename) and store_data:
