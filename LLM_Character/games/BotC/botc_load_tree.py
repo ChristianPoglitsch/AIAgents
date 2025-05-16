@@ -5,7 +5,7 @@ from botc import *
 mcts_all = None
 mcts_all2 = None
 # Load from file
-with open('mcts_tree_reward1.pkl', 'rb') as f:
+with open('mcts_tree_gpt4o.pkl', 'rb') as f:
     mcts_all = pickle.load(f)
 
 #with open('mcts_tree_reward1.pkl', 'rb') as f:
@@ -38,13 +38,13 @@ for mcts in mcts_all:
     #nodes = mcts.get_all_terminal_nodes(mcts.get_root_node())
     nodes = mcts.get_all_nodes(mcts.get_root_node())
     errors = errors + mcts.errors
-    elapsed_time = mcts.end_time - mcts.start_time
+    elapsed_time += mcts.end_time - mcts.start_time
     
     for node in nodes:
         if node.state.good_win():
             good_wins = good_wins + 1
             conversationManager.append_prompt_outcomes(node.conversation_manager.get_prompt_outcomes())
-        if index < 100 and node.state.evil_win():
+        if index <= 100 and node.state.evil_win():
             evil_wins = evil_wins + 1
             conversationManager.append_prompt_outcomes(node.conversation_manager.get_prompt_outcomes())
         index = index + 1

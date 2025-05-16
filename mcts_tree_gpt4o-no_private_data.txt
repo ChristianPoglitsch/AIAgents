@@ -1,60 +1,203 @@
+--- --- --- ---
+*** *** *** *** *** *** *** 48 / 250
+{'A': <__main__.Imp object at 0x00000298D227B3D0>, 'B': <__main__.Slayer object at 0x00000298D225F730>, 'C': <__main__.Investigator object at 0x00000298D225F790>, 'D': <__main__.Empath object at 0x00000298D225F700>, 'E': <__main__.Poisoner object at 0x00000298D225F820>, 'F': <__main__.Soldier object at 0x00000298D225F8B0>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: A
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Good
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+A: {'type': 'Message', 'Speaker': 'A', 'Audience': ['D'], 'Message': "D, I appreciate the opportunity to clarify. I'm indeed the Ravenkeeper and was planning to keep quiet to avoid becoming a target. With F confirming to be the Soldier, we should focus on B. If they truly are the Slayer, they should target someone like F to confirm their role. I'm suspicious of B's aggressive approach and think they might not be who they claim. Let's work together on this."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['A'], 'Message': "A, since I'm the Empath and have confirmed that neither of my alive neighbors are evil, I'm inclined to believe your Ravenkeeper claim. We should focus our efforts on players who haven't been as thoroughly verified. Since B is considering using their Slayer ability, it might be wise to direct it towards players like F, if their role suggests they're a threat. What are your thoughts on this?"}
+
+Current phase: Nominate
+Nominated is B
+Players: A (Alive), B (Alive), C (Dead), D (Alive), E (Dead), F (Dead). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Imp - Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp. Reason about the game state and manipulate good players.
+
+Your minions are E.
+
+
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
 Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
 
 LLM Responds: A
- {'type': 'Action', 'Description': 'Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp.', 'Speaker': 'A', 'Target': 'B'}
+ {'type': 'Vote', 'Speaker': 'A'}
 --- --- --- ---
-*** *** *** *** *** *** *** 35 / 250
-{'A': <__main__.Imp object at 0x0000016FC346B4F0>, 'B': <__main__.Washerwoman object at 0x0000016FC344F880>, 'C': <__main__.Investigator object at 0x0000016FC344F8B0>, 'D': <__main__.Ravenkeeper object at 0x0000016FC344F7C0>, 'E': <__main__.Poisoner object at 0x0000016FC344F940>, 'F': <__main__.Empath object at 0x0000016FC344F820>}
+*** *** *** *** *** *** *** 49 / 250
+{'A': <__main__.Imp object at 0x00000298D227B3D0>, 'B': <__main__.Slayer object at 0x00000298D225F730>, 'C': <__main__.Investigator object at 0x00000298D225F790>, 'D': <__main__.Empath object at 0x00000298D225F700>, 'E': <__main__.Poisoner object at 0x00000298D225F820>, 'F': <__main__.Soldier object at 0x00000298D225F8B0>}
 *** *** *** *** *** *** ***
-- Visits: 32, Value: 4.00
-  - Visits: 32, Value: 4.00
-    - Visits: 31, Value: 4.00
-      - Visits: 30, Value: 4.00
-        - Visits: 29, Value: 4.00
-          - Visits: 28, Value: 4.00
-            - Visits: 27, Value: 3.00
-              - Visits: 26, Value: 3.00
-                - Visits: 25, Value: 2.00
-                  - Visits: 24, Value: 2.00
-                    - Visits: 23, Value: 2.00
-                      - Visits: 22, Value: 1.00
-                        - Visits: 21, Value: 1.00
-                          - Visits: 20, Value: 1.00
-                            - Visits: 19, Value: 1.00
-                              - Visits: 18, Value: 1.00
-                                - Visits: 17, Value: 1.00
-                                  - Visits: 16, Value: 1.00
-                                    - Visits: 15, Value: 1.00
-                                      - Visits: 14, Value: 1.00
-                                        - Visits: 13, Value: 1.00
-                                          - Visits: 13, Value: 1.00
-                                            - Visits: 12, Value: 1.00
-                                              - Visits: 11, Value: 0.00
-                                                - Visits: 10, Value: 0.00
-                                                  - Visits: 9, Value: 0.00
-                                                    - Visits: 8, Value: 0.00
-                                                      - Visits: 7, Value: 0.00
-                                                        - Visits: 6, Value: 0.00
-                                                          - Visits: 5, Value: 0.00
-                                                            - Visits: 4, Value: 0.00
-                                                              - Visits: 3, Value: 0.00
-                                                                - Visits: 2, Value: 0.00
-                                                                  - Visits: 1, Value: 0.00
-                                                                    - Visits: 1, Value: 0.00
-                                                                      - Visits: 1, Value: 0.00
-                                                                        - Visits: 1, Value: 0.00 (Terminal) Evil Win
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: B
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B'], 'Message': "B, I'm the Empath and I sensed that neither of my alive neighbors, A or C, are evil. This suggests A is likely telling the truth about being the Ravenkeeper and should not be your target. Let's focus on players who are less cleared by others' claims."}
+B: {'type': 'Message', 'Speaker': 'B', 'Audience': ['D'], 'Message': "Thanks for your insight, D. Since you're the Empath and feel confident about A and C, I'll focus on F's advice. D, we should consider the possibility that F might be deceiving us as the actual Imp or Poisoner. I think I'll use my Slayer ability soon to test someone. Keeping an open mind is crucial here."}
+
+Current phase: Nominate
+Nominated is B
+Players: A (Alive), B (Alive), C (Dead), D (Alive), E (Dead), F (Dead). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Slayer - Once per game, publicly chooses a player. If that player is the Demon, they die. Reason about the game state and find the evil players.
+
+
+
+
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: B
+ {'type': 'Vote', 'Speaker': 'B'}
+--- --- --- ---
+*** *** *** *** *** *** *** 50 / 250
+{'A': <__main__.Imp object at 0x00000298D227B3D0>, 'B': <__main__.Slayer object at 0x00000298D225F730>, 'C': <__main__.Investigator object at 0x00000298D225F790>, 'D': <__main__.Empath object at 0x00000298D225F700>, 'E': <__main__.Poisoner object at 0x00000298D225F820>, 'F': <__main__.Soldier object at 0x00000298D225F8B0>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: D
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B'], 'Message': "B, I'm the Empath and I sensed that neither of my alive neighbors, A or C, are evil. This suggests A is likely telling the truth about being the Ravenkeeper and should not be your target. Let's focus on players who are less cleared by others' claims."}
+B: {'type': 'Message', 'Speaker': 'B', 'Audience': ['D'], 'Message': "Thanks for your insight, D. Since you're the Empath and feel confident about A and C, I'll focus on F's advice. D, we should consider the possibility that F might be deceiving us as the actual Imp or Poisoner. I think I'll use my Slayer ability soon to test someone. Keeping an open mind is crucial here."}
+
+Current phase: Nominate
+Nominated is B
+Players: A (Alive), B (Alive), C (Dead), D (Alive), E (Dead), F (Dead). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Empath - Learns how many of their two alive neighbors are evil. Reason about the game state and find the evil players.
+
+You sense that 0 of your alive neighbors are evil.
+
+
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: D
+ {'type': 'Vote', 'Speaker': 'D'}
+--- --- --- ---
+*** *** *** *** *** *** *** 51 / 250
+{'A': <__main__.Imp object at 0x00000298D227B3D0>, 'B': <__main__.Slayer object at 0x00000298D225F730>, 'C': <__main__.Investigator object at 0x00000298D225F790>, 'D': <__main__.Empath object at 0x00000298D225F700>, 'E': <__main__.Poisoner object at 0x00000298D225F820>, 'F': <__main__.Soldier object at 0x00000298D225F8B0>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: E
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Action", "Description": "Each night, poison one player.", "Speaker": None, "Target": "None", "Effect": "Poison"}
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+A: {'type': 'Message', 'Speaker': 'A', 'Audience': ['E'], 'Message': "Hey E, just had a chat with C. They claim to be the Investigator and suspect you might be the Poisoner. I'm not sure if I fully trust that claim yet. What do you think? Have you heard anything suspicious about other players?"}
+E: {'type': 'Message', 'Speaker': 'E', 'Audience': ['A'], 'Message': "Thanks for letting me know about C's claim. I haven't heard anything concrete yet, but I'll keep an eye out. Maybe we should consider if there's a chance C is bluffing to throw us off. Let's stay in touch and see if we can figure out more about the others."}
+
+Current phase: Night
+Players: A (Alive), B (Dead), C (Dead), D (Alive), E (Dead), F (Dead). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Poisoner - Each night, poison one player. Reason about the game state and manipulate good players.
+
+The Demon is A.
+
+
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: E
+ {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'E', 'Target': 'D', 'Effect': 'Poison'}
+--- --- --- ---
+*** *** *** *** *** *** *** 52 / 250
+{'A': <__main__.Imp object at 0x00000298D227B3D0>, 'B': <__main__.Slayer object at 0x00000298D225F730>, 'C': <__main__.Investigator object at 0x00000298D225F790>, 'D': <__main__.Empath object at 0x00000298D225F700>, 'E': <__main__.Poisoner object at 0x00000298D225F820>, 'F': <__main__.Soldier object at 0x00000298D225F8B0>}
+*** *** *** *** *** *** ***
+- Visits: 52, Value: 4.00
+  - Visits: 52, Value: 4.00
+    - Visits: 51, Value: 4.00
+      - Visits: 50, Value: 4.00
+        - Visits: 49, Value: 4.00
+          - Visits: 48, Value: 4.00
+            - Visits: 47, Value: 3.00
+              - Visits: 46, Value: 3.00
+                - Visits: 45, Value: 3.00
+                  - Visits: 44, Value: 3.00
+                    - Visits: 43, Value: 3.00
+                      - Visits: 42, Value: 3.00
+                        - Visits: 41, Value: 2.00
+                          - Visits: 40, Value: 2.00
+                            - Visits: 39, Value: 2.00
+                              - Visits: 38, Value: 2.00
+                                - Visits: 37, Value: 2.00
+                                  - Visits: 36, Value: 2.00
+                                    - Visits: 35, Value: 2.00
+                                      - Visits: 34, Value: 2.00
+                                        - Visits: 33, Value: 2.00
+                                          - Visits: 32, Value: 2.00
+                                            - Visits: 31, Value: 2.00
+                                              - Visits: 30, Value: 2.00
+                                                - Visits: 29, Value: 2.00
+                                                  - Visits: 28, Value: 2.00
+                                                    - Visits: 27, Value: 2.00
+                                                      - Visits: 27, Value: 2.00
+                                                        - Visits: 26, Value: 2.00
+                                                          - Visits: 25, Value: 2.00
+                                                            - Visits: 24, Value: 2.00
+                                                              - Visits: 23, Value: 2.00
+                                                                - Visits: 22, Value: 2.00
+                                                                  - Visits: 21, Value: 2.00
+                                                                    - Visits: 20, Value: 2.00
+                                                                      - Visits: 19, Value: 2.00
+                                                                        - Visits: 18, Value: 2.00
+                                                                          - Visits: 17, Value: 2.00
+                                                                            - Visits: 16, Value: 2.00
+                                                                              - Visits: 15, Value: 2.00
+                                                                                - Visits: 14, Value: 2.00
+                                                                                  - Visits: 13, Value: 2.00
+                                                                                    - Visits: 12, Value: 2.00
+                                                                                      - Visits: 11, Value: 2.00
+                                                                                        - Visits: 10, Value: 1.00
+                                                                                          - Visits: 9, Value: 1.00
+                                                                                            - Visits: 8, Value: 1.00
+                                                                                              - Visits: 7, Value: 1.00
+                                                                                                - Visits: 6, Value: 1.00
+                                                                                                  - Visits: 5, Value: 0.00
+                                                                                                    - Visits: 4, Value: 0.00
+                                                                                                      - Visits: 3, Value: 0.00
+                                                                                                        - Visits: 2, Value: 0.00
+                                                                                                          - Visits: 1, Value: 0.00 (Terminal) Evil Win
 None
 Alive players: Players: A (Alive), B (Dead), C (Dead), D (Alive), E (Dead), F (Dead)
 Good win: False
 Evil win: True
-<__main__.Imp object at 0x0000017002D7F760>
-<__main__.Washerwoman object at 0x00000170029A0AC0>
-<__main__.Investigator object at 0x00000170029A0FA0>
-<__main__.Ravenkeeper object at 0x0000017002D8B580>
-<__main__.Poisoner object at 0x0000017002D8BB80>
-<__main__.Empath object at 0x0000017002D8BF70>
-Good wins: 41 / Evil wins: 59
-Good wins: 41 / Evil wins: 59
-Execution time: 17557.113806 seconds
-Errors: 4
+<__main__.Imp object at 0x0000029904C9D7C0>
+<__main__.Slayer object at 0x0000029904A6B5E0>
+<__main__.Investigator object at 0x0000029904A6B3A0>
+<__main__.Empath object at 0x0000029904626BB0>
+<__main__.Poisoner object at 0x00000299046200A0>
+<__main__.Soldier object at 0x0000029904620DF0>
+Good wins: 26 / Evil wins: 74
+Good wins: 26 / Evil wins: 74
+Execution time: 12011.156307 seconds
+Errors: 2
 Press any key to continue . . .
