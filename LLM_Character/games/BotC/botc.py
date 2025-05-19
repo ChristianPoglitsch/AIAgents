@@ -29,9 +29,9 @@ reward_good_action      = 1.0 # 1.0
 reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
-num_child_node = 1 # 2
-num_games = 100 # 100
-num_iterations = 250 # 250 - 2000
+num_child_node = 2 # 2
+num_games = 25 # 100
+num_iterations = 2000 # 250 - 2000
 
 print_output = True
 max_token = 500
@@ -398,7 +398,7 @@ class Poisoner(Role):
         if self.poisoned_player is not None:
             self.poisoned_player.set_poison(False)
         target = action.get("Target")
-        if target in other_players:
+        if target in other_players and (not isinstance(target, list)):
             self.poisoned_player = other_players[target]
             self.poisoned_player.set_poison(True)
             self.poisoned_tonight = True
@@ -446,6 +446,8 @@ class Imp(Role):
     
     def apply_action(self, action, other_players):
         target = action.get("Target")
+        if isinstance(target, list):
+            return
         speaker = action.get("Speaker")
         if self.is_poisoned is False:
             if (target in other_players) and other_players[target].target_kill_night():
@@ -990,16 +992,16 @@ def play_game():
     num_correct_games = 0
     model = init_model(model_id, server_based, max_token)
     # server model
-    model_server = init_model(model_id, True, max_token)
-    model = [model, model_server]
-    #model = [model]
+    #model_server = init_model(model_id, True, max_token)
+    #model = [model, model_server]
+    model = [model]
 
     good_wins = 0
     evil_wins = 0
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree_gtp4o-vs-mistral_trained-basic.pkl' # mcts_tree_gtp4o-vs-mistral_untrained - mcts_tree_gtp4o-vs-mistral_trained-basic - mcts_tree_gtp4o-vs-mistral_trained-advanced_27
+    filename = 'mcts_tree_mistral_training_trained-basic.pkl' # mcts_tree_gtp4o-vs-mistral_untrained - mcts_tree_gtp4o-vs-mistral_trained-basic - mcts_tree_gtp4o-vs-mistral_trained-advanced_27
     
     # Load from file
     if os.path.exists(filename) and store_data:
