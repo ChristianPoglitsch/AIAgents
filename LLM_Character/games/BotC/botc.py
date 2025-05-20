@@ -356,7 +356,7 @@ class Slayer(Role):
     def apply_action(self, action, other_players):
         target = action.get("Target")
         self.use_ability = True
-        if target in other_players and not self.is_poisoned and other_players[target].team == 'Demon':
+        if (not isinstance(target,list)) and (target in other_players) and (not self.is_poisoned and other_players[target].team == 'Demon'):
             other_players[target].alive = False
             self.killed_demon = True
 
@@ -398,7 +398,7 @@ class Poisoner(Role):
         if self.poisoned_player is not None:
             self.poisoned_player.set_poison(False)
         target = action.get("Target")
-        if target in other_players and (not isinstance(target, list)):
+        if (not isinstance(target, list)) and target in other_players:
             self.poisoned_player = other_players[target]
             self.poisoned_player.set_poison(True)
             self.poisoned_tonight = True
@@ -449,7 +449,7 @@ class Imp(Role):
         if isinstance(target, list):
             return
         speaker = action.get("Speaker")
-        if self.is_poisoned is False:
+        if self.is_poisoned is False and (not isinstance(target, list)):
             if (target in other_players) and other_players[target].target_kill_night():
                 other_players[target].set_alive(False)
             if target == speaker:
@@ -659,7 +659,7 @@ class BloodOnTheClocktowerState(BasicGameState):
             count = self.count_next_players()
             if count == 0:
                 alive_players = [name for name, player in self.active_players.items() if player.alive]
-                if self.num_votes >= int(len(alive_players) / 2) and (self.nominated in self.active_players):
+                if self.num_votes >= int(len(alive_players) / 2) and (not isinstance(self.nominated, list) and self.nominated in self.active_players):
                     self.active_players[self.nominated].set_alive(False)
                     self.nomination_count_max = self.num_votes
                     self.execution = self.nominated
