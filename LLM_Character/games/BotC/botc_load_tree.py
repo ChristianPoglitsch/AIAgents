@@ -8,18 +8,18 @@ mcts_all2 = None
 with open('mcts_tree_mistral_training_trained-basic.pkl', 'rb') as f:
     mcts_all = pickle.load(f)
 
-#with open('mcts_tree_reward1.pkl', 'rb') as f:
-#    mcts_all2 = pickle.load(f)
-#mcts_all = mcts_all + mcts_all2
-#with open('mcts_tree_reward2.pkl', 'rb') as f:
-#    mcts_all2 = pickle.load(f)
-#mcts_all = mcts_all + mcts_all2
-#with open('mcts_tree_reward3.pkl', 'rb') as f:
-#    mcts_all2 = pickle.load(f)
-#mcts_all = mcts_all + mcts_all2
-#with open('mcts_tree_reward4.pkl', 'rb') as f:
-#    mcts_all2 = pickle.load(f)
-#mcts_all = mcts_all + mcts_all2
+with open('mcts_tree_reward2.pkl', 'rb') as f:
+    mcts_all2 = pickle.load(f)
+mcts_all = mcts_all + mcts_all2
+with open('mcts_tree_reward2.pkl', 'rb') as f:
+    mcts_all2 = pickle.load(f)
+mcts_all = mcts_all + mcts_all2
+with open('mcts_tree_reward3.pkl', 'rb') as f:
+    mcts_all2 = pickle.load(f)
+mcts_all = mcts_all + mcts_all2
+with open('mcts_tree_reward4.pkl', 'rb') as f:
+    mcts_all2 = pickle.load(f)
+mcts_all = mcts_all + mcts_all2
 
 ##with open('mcts_tree.pkl', 'wb') as f:
 ##    pickle.dump(mcts_all, f)
@@ -36,8 +36,8 @@ index = 0
 for mcts in mcts_all:
     mcts.print_tree()
 
-    #nodes = mcts.get_all_terminal_nodes(mcts.get_root_node())
-    nodes = mcts.get_all_nodes(mcts.get_root_node())
+    nodes = mcts.get_all_terminal_nodes(mcts.get_root_node())
+    #nodes = mcts.get_all_nodes(mcts.get_root_node())
     errors = errors + mcts.errors
     elapsed_time += mcts.end_time - mcts.start_time
     has_terminal_state = False

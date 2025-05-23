@@ -183,3 +183,4 @@ training_botc/*
 training_botc_basic/*
 mcts_tree_temp.zip
 training_botc_basic_training/*
+training_botc_basic_self_mistral/*
