@@ -29,9 +29,9 @@ reward_good_action      = 1.0 # 1.0
 reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
-num_child_node = 2 # 2
-num_games = 25 # 100
-num_iterations = 2000 # 250 - 2000
+num_child_node = 1 # 2
+num_games = 50 # 100
+num_iterations = 250 # 250 - 2000
 
 print_output = True
 max_token = 500
@@ -40,7 +40,7 @@ num_conv_history_action = 2
 model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 #model_id = "deepseek-ai/deepseek-llm-7b-chat"
 #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
-model_id = "trained/Mistral-7B-Instruct-v0.3_merged_base"
+model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
 #model_id = "trained/Mistral-7B-Instruct-v0.3_merged_advanced"
 #model_id = "trained/deepseek-llm-7b-chat_merged"
 #model_id = "trained\\Teuken-7B-instruct-research-v0.4_merged"
@@ -562,7 +562,7 @@ class BloodOnTheClocktowerState(BasicGameState):
         self.num_votes = 0
 
         self.conv_count_day = 0
-        self.max_conv_count_per_day = 10
+        self.max_conv_count_per_day = 15 # ( 6 2 )
 
         self.assign_roles(players, role_list, randomize_role)
 
@@ -754,7 +754,7 @@ class BloodOnTheClocktowerState(BasicGameState):
             # Always available action: Message
             actions.append('{"type": "Message", "Speaker": None, "Audience": None, "Message": None, "Message-Type": None} \n Collect information about other players. Message-Type: Truth-Telling (reveal your game state and role), Bluff, Fishing, Claim, Misdirection')
             # Nominate action (if the player hasn't already nominated someone)
-            if player_info.alive is True and self.conv_count_day > 3:
+            if player_info.alive is True and self.conv_count_day > (self.max_conv_count_per_day / 2):
                 actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None} \n Based on the game state nominate players you believe are ' + vote_for + '')
             # Vote action is available in the day phase
         elif self.phase == "Day":
@@ -992,16 +992,16 @@ def play_game():
     num_correct_games = 0
     model = init_model(model_id, server_based, max_token)
     # server model
-    #model_server = init_model(model_id, True, max_token)
-    #model = [model, model_server]
-    model = [model]
+    model_server = init_model(model_id, True, max_token)
+    model = [model, model_server]
+    #model = [model]
 
     good_wins = 0
     evil_wins = 0
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree_mistral_training_trained-basic.pkl' # mcts_tree_gtp4o-vs-mistral_untrained - mcts_tree_gtp4o-vs-mistral_trained-basic - mcts_tree_gtp4o-vs-mistral_trained-advanced_27
+    filename = 'mcts_tree_gtp4o-vs-mistral_trained_base_self_all_good-15-talks.pkl' # mcts_tree_mistral_untrained-vs-gtp4   mcts_tree_gtp4o-vs-mistral_trained_base_self_all_good
     
     # Load from file
     if os.path.exists(filename) and store_data:
