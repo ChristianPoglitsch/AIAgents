@@ -30,7 +30,7 @@ reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
 num_child_node = 1 # 2
-num_games = 50 # 100
+num_games = 10 # 100
 num_iterations = 250 # 250 - 2000
 
 print_output = True
@@ -754,7 +754,7 @@ class BloodOnTheClocktowerState(BasicGameState):
             # Always available action: Message
             actions.append('{"type": "Message", "Speaker": None, "Audience": None, "Message": None, "Message-Type": None} \n Collect information about other players. Message-Type: Truth-Telling (reveal your game state and role), Bluff, Fishing, Claim, Misdirection')
             # Nominate action (if the player hasn't already nominated someone)
-            if player_info.alive is True and self.conv_count_day > (self.max_conv_count_per_day / 2):
+            if player_info.alive is True and self.conv_count_day > (self.max_conv_count_per_day / 3):
                 actions.append('{"type": "Nominate", "Speaker": None, "Nominee": None} \n Based on the game state nominate players you believe are ' + vote_for + '')
             # Vote action is available in the day phase
         elif self.phase == "Day":
@@ -1001,7 +1001,7 @@ def play_game():
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree_gtp4o-vs-mistral_trained_base_self_all_good-15-talks.pkl' # mcts_tree_mistral_untrained-vs-gtp4   mcts_tree_gtp4o-vs-mistral_trained_base_self_all_good
+    filename = 'mcts_tree_gtp4o-vs-mistral_trained_base_self_all_good.pkl' # mcts_tree_mistral_untrained-vs-gtp4   mcts_tree_gtp4o-vs-mistral_trained_base_self_all_good
     
     # Load from file
     if os.path.exists(filename) and store_data:
