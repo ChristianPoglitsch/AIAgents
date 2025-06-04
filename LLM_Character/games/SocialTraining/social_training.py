@@ -1,4 +1,6 @@
 ﻿import pandas as pd
+import os
+import time
 import logging
 from LLM_Character.llm_comms.llm_api import LLM_API
 from LLM_Character.messages_dataclass import AIMessage, AIMessages
@@ -20,7 +22,7 @@ model.max_tokens = 4096
 model.set_temperature(0.2)
 
 # Replace 'your_file.xlsx' with the path to your Excel file
-file_path = 'LLM_Character/games/SocialTraining/data/ToM_may_part2.xlsx'
+file_path = 'LLM_Character/games/SocialTraining/data/ToM_may_part1.xlsx'
 
 # Anzeigeoption: alle Zeilen anzeigen
 pd.set_option('display.max_rows', None)
@@ -46,7 +48,8 @@ of non-literal meaning/inference of hidden meaning, understanding of social mean
 and prediction of the mental state of the characters involved.
 Each answer can be rated as either correct or incorrect. Use your expertise in this field and
 your intuitive judgment to decide. One point is awarded for each correct answer and zero for
-each incorrect one. Half points are not possible. As last line of your message return the points for each question exactly like this '0 1 1 0 1'. No additional information."""
+each incorrect one. Half points are not possible. 
+As last line of your message return the points for each question exactly like this '0 1 1 0'. The count of returned number has to match the number of question. No additional information."""
 
 story1 = """
 Scoring
@@ -219,6 +222,7 @@ sheets = xls.sheet_names
 sheets.pop(0) #  drop Questionnaire sheet
 print(sheets)
 
+start_time = time.time()  # Start timing
 
 #index = 0
 for sheet in sheets:
@@ -260,4 +264,18 @@ for sheet in sheets:
 
         df.iloc[:len(scores), story_index_column+1] = scores
 
-    df.to_excel('LLM_Character/games/SocialTraining/data/ToM_may_part2_result.xlsx', sheet_name=user_id, index=False)
+    #df.to_excel('LLM_Character/games/SocialTraining/data/ToM_may_part1_result.xlsx', sheet_name=user_id, index=False, mode='a')
+    file_path_result = 'LLM_Character/games/SocialTraining/data/ToM_may_part1_result.xlsx' 
+    if os.path.exists(file_path_result):
+        # Append as new sheet
+        with pd.ExcelWriter(file_path_result, engine='openpyxl', mode='a', if_sheet_exists='new') as writer:
+            df.to_excel(writer, sheet_name=user_id, index=False)
+    else:
+        # Create a new file with the first sheet
+        with pd.ExcelWriter(file_path_result, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name=user_id, index=False)
+
+
+end_time = time.time()
+elapsed_time = end_time - start_time
+print(f"Execution time: {elapsed_time:.6f} seconds")
