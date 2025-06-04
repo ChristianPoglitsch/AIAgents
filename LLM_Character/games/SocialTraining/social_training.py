@@ -11,35 +11,20 @@ from LLM_Character.llm_comms.llm_openai import OpenAIComms
 from LLM_Character.llm_comms.llm_local import LocalComms
 
 
+model = OpenAIComms()
+model_id = "gpt-4o"
+
+model.init(model_id)
+wrapped_model = LLM_API(model)    
+model.max_tokens = 4096
+model.set_temperature(0.2)
+
 # Replace 'your_file.xlsx' with the path to your Excel file
-file_path = 'LLM_Character/games/SocialTraining/data/ToM_may_part1.xlsx'
-
-# Liste aller Sheets anzeigen
-xls = pd.ExcelFile(file_path)
-print("Verfügbare Sheets:", xls.sheet_names)
-
-# Ein bestimmtes Blatt laden, z. B. 'Tabelle1'
-df = pd.read_excel(file_path, sheet_name='16')
+file_path = 'LLM_Character/games/SocialTraining/data/ToM_may_part2.xlsx'
 
 # Anzeigeoption: alle Zeilen anzeigen
 pd.set_option('display.max_rows', None)
 
-# DataFrame anzeigen
-#df_spalten = df.iloc[:, [0]]
-
-value = df.iloc[0:8, 0]
-string_list = [str(v) for v in value]
-
-split_list = [item.split('?:') for item in string_list]
-
-print(split_list)
-
-df.iloc[0, 1] = 0
-
-df.to_excel('LLM_Character/games/SocialTraining/data/ToM_may_part1_result.xlsx', index=False)
-
-
-stories = []
 
 instruction = """
 The study contains tasks from four different Theory of Mind categories: Faux Pas, Irony,
@@ -61,7 +46,7 @@ of non-literal meaning/inference of hidden meaning, understanding of social mean
 and prediction of the mental state of the characters involved.
 Each answer can be rated as either correct or incorrect. Use your expertise in this field and
 your intuitive judgment to decide. One point is awarded for each correct answer and zero for
-each incorrect one. Half points are not possible."""
+each incorrect one. Half points are not possible. As last line of your message return the points for each question exactly like this '0 1 1 0 1'. No additional information."""
 
 story1 = """
 Scoring
@@ -224,32 +209,55 @@ question
 6. What did Melissa’s friend cook? - Open text question
 """
 
+stories = [story1, story2, story3, story4, story5, story6, story7, story8]
+
+# Show all sheets in file
+xls = pd.ExcelFile(file_path)
+print("num Sheets:", xls.sheet_names)
+
+sheets = xls.sheet_names
+sheets.pop(0) #  drop Questionnaire sheet
+print(sheets)
 
 
-model = OpenAIComms()
-model_id = "gpt-4o"
+#index = 0
+for sheet in sheets:
+    user_id = sheet
+    # load specific sheet
+    df = pd.read_excel(file_path, sheet_name=user_id)
+    
+    #if index > 0:
+    #    continue
+    #index = index + 1
 
-model.init(model_id)
-wrapped_model = LLM_API(model)    
-model.max_tokens = 4096
+    story_index = 0
+    for story_index_column in range(0, 16, 2):
+        count = df.iloc[:, story_index_column].count()
+        print(count)
 
-messages = AIMessages()
-message = AIMessage(message='You are a helpful assistant. ', role="user", class_type="Introduction", sender="user")
-messages.add_message(message)
-message = AIMessage(message='hi', role="assistant", class_type="MessageAI", sender="assistant")
-messages.add_message(message)
+        value = df.iloc[0:count, story_index_column]
+        string_list = [str(v) for v in value]
 
-while True:
-    query_introduction = input("Chat: ")
-    if query_introduction == "q":
-        break        
+        split_list = [item.split('?:') for item in string_list]
+
+        split_list_as_string = '\n'.join([f"{q.strip()}: {a.strip()}" for q, a in split_list])
+        print(split_list_as_string)
+
+        query_introduction = 'Instruction:\n' + instruction + '\n\nStory:\n' + stories[story_index] + '\n\nEvaluate this response:\n\n' + split_list_as_string
+        story_index = story_index + 1
         
-    message = AIMessage(message=query_introduction, role="user", class_type="MessageAI", sender="user")
-    messages.add_message(message)
-    query_result = wrapped_model.query_text(messages)
-    print('-'*9)
-    #print(query_introduction)
-    print(query_result)
-    print('-'*9)
-    message = AIMessage(message=query_result, role="assistant", class_type="MessageAI", sender="assistant")
-    messages.add_message(message)
+        #'-'*9
+        messages = AIMessages()
+        message = AIMessage(message=query_introduction, role="user", class_type="MessageAI", sender="user")
+        messages.add_message(message)
+        query_result = wrapped_model.query_text(messages)
+        print(query_result)
+
+        last_line = query_result.strip().split('\n')[-1]
+        scores_str = [int(x) for x in last_line.split()]
+        scores = list(map(int, scores_str))
+        print(scores)
+
+        df.iloc[:len(scores), story_index_column+1] = scores
+
+    df.to_excel('LLM_Character/games/SocialTraining/data/ToM_may_part2_result.xlsx', sheet_name=user_id, index=False)
