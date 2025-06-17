@@ -16,13 +16,16 @@ from LLM_Character.llm_comms.llm_local import LocalComms
 model = OpenAIComms()
 model_id = "gpt-4o"
 
+#model = LocalComms()
+#model_id = "mistralai/Mistral-7B-Instruct-v0.3"
+
 model.init(model_id)
 wrapped_model = LLM_API(model)    
 model.max_tokens = 4096
 model.set_temperature(0.2)
 
 # Replace 'your_file.xlsx' with the path to your Excel file
-file_path = 'LLM_Character/games/SocialTraining/data/ToM_may_part1.xlsx'
+file_path = 'LLM_Character/games/SocialTraining/data/ToM_may_part2.xlsx'
 
 # Anzeigeoption: alle Zeilen anzeigen
 pd.set_option('display.max_rows', None)
@@ -32,34 +35,19 @@ instruction = """
 The study contains tasks from four different Theory of Mind categories: Faux Pas, Irony,
 Hinting and Strange Stories. Each category includes both a real and a control task, meaning
 that all participants complete eight tasks in total.
-The participants received the stories for each task in the form of a short animated scene.
-They saw the characters talking to each other, listened to the story simultaneously (with
-different voices for each character and the narrator) and read the story as it appeared on the
-screen. Participants could restart these scenes as often as they liked. Once they felt ready,
-they could begin answering the questions. They received the questions one after the other
-and were unable to go back to previous questions or rewatch the scenes.
-The type (Yes/No or open text) and number of questions for each task depends on its category.
-However, two comprehension questions are always asked at the end of each task.
-These questions establish whether participants have understood and remembered the details
-of the story. Therefore, no interpretation of the story is necessary; only factual information
-is required.
-For every task, at least one question is asked from each of the following categories: understanding
-of non-literal meaning/inference of hidden meaning, understanding of social meaning,
-and prediction of the mental state of the characters involved.
-Each answer can be rated as either correct or incorrect. Use your expertise in this field and
-your intuitive judgment to decide. One point is awarded for each correct answer and zero for
-each incorrect one. Half points are not possible. 
-As last line of your message return the points for each question exactly like this '0 1 1 0'. The count of returned number has to match the number of question. No additional information."""
+Evaluate the responses based on the given story and corresponding questions.
+Each answer can be rated as either correct or incorrect. One point is awarded for each correct answers, otherwise zero points. Half points are not possible. The symbol - is equal to not answered.
+At the end of your message, return the scores for each question in the following format: Example for four questions: 0 1 1 0. The number of values must exactly match the number of questions. Do not include any additional text or explanations."""
 
 story1 = """
 Scoring
 Max. points for this task: 9
-If participants answer
-’No’ to the first question, the next four questions (questions two to five) are skipped, but
+If participants answer No to the first question, the next four questions (questions two to five) are skipped, but
 still need to be scored.
 For the story containing a faux pas, questions two to five are awarded zero points if they are
 not answered. If answers are provided, they are scored as normal by checking whether they
-are correct or incorrect. For the control story (without a faux pas), questions two to five are
+are correct or incorrect. 
+For the control story (without a faux pas), questions two to five are
 awarded one point if they remain unanswered and zero points if an answer is provided.
 Task:
 Faux Pas Task: with Faux Pas
@@ -85,12 +73,12 @@ text question
 story2 = """
 Scoring
 Max. points for this task: 9
-If participants answer
-’No’ to the first question, the next four questions (questions two to five) are skipped, but
+If participants answer No to the first question, the next four questions (questions two to five) are skipped, but
 still need to be scored.
 For the story containing a faux pas, questions two to five are awarded zero points if they are
 not answered. If answers are provided, they are scored as normal by checking whether they
-are correct or incorrect. For the control story (without a faux pas), questions two to five are
+are correct or incorrect. 
+For the control story (without a faux pas), questions two to five are
 awarded one point if they remain unanswered and zero points if an answer is provided.
 Task:
 Faux Pas Task: without Faux Pas - Control Story
@@ -123,7 +111,7 @@ Story:
 Hanna is the boss of a large company. As she walks through the office, she sees one of her
 employees sitting relaxed at his desk watching a movie. Hanna says to him: “I see you’re
 working particularly hard today.”
-3.2.2 Questions:
+Questions:
 1. Did Hanna think that her employee was working hard today? - Yes/No question
 2. What could have been a reason for Hanna to say this? - Open text question
 3. How could Hanna have felt in this situation? - Open text question
@@ -245,6 +233,7 @@ for sheet in sheets:
         split_list = [item.split('?:') for item in string_list]
 
         split_list_as_string = '\n'.join([f"{q.strip()}: {a.strip()}" for q, a in split_list])
+        #split_list_as_string = '\n'.join([f"{a.strip()}" for q, a in split_list])
         print(split_list_as_string)
 
         query_introduction = 'Instruction:\n' + instruction + '\n\nStory:\n' + stories[story_index] + '\n\nEvaluate this response:\n\n' + split_list_as_string
@@ -265,7 +254,7 @@ for sheet in sheets:
         df.iloc[:len(scores), story_index_column+1] = scores
 
     #df.to_excel('LLM_Character/games/SocialTraining/data/ToM_may_part1_result.xlsx', sheet_name=user_id, index=False, mode='a')
-    file_path_result = 'LLM_Character/games/SocialTraining/data/ToM_may_part1_result.xlsx' 
+    file_path_result = 'LLM_Character/games/SocialTraining/data/ToM_result_all_1.xlsx' 
     if os.path.exists(file_path_result):
         # Append as new sheet
         with pd.ExcelWriter(file_path_result, engine='openpyxl', mode='a', if_sheet_exists='new') as writer:

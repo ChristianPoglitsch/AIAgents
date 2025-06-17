@@ -39,8 +39,11 @@ def extract_scores_with_categories(file_path):
                 continue  # skip if column index out of bounds
 
             count = df.iloc[:, story_index_column].count()
-            scores = df.iloc[:count, story_index_column + 1]
-            scores = scores.fillna(0)
+            scores = df.iloc[:count, story_index_column + 1]            
+            if story_index_column + 1 < 2:
+                scores = scores.fillna(0)
+            else:
+                scores = scores.fillna(1)
             score_list = scores.astype(float).tolist()
 
             category = category_map.get(story_index_column // 2, 'Unknown')
@@ -80,7 +83,11 @@ part2 = [(score / 3, category) for score, category in part2]
 human_list = human_list + part2
 
 # LLM
-file_path = 'LLM_Character/games/SocialTraining/data/ToM_may_results_all.xlsx'
+
+#file_path = 'LLM_Character/games/SocialTraining/data/ToM_result_all_0.xlsx'
+#human_list = extract_scores_with_categories(file_path)
+
+file_path = 'LLM_Character/games/SocialTraining/data/ToM_result_all_1.xlsx'
 llm_list = extract_scores_with_categories(file_path)
 
 print(human_list)
@@ -88,15 +95,16 @@ print(llm_list)
 
 
 from scipy.stats import wilcoxon
+from scipy.stats import mannwhitneyu
 
 # Extract scores only
 llm_scores = [score for score, category in llm_list]
 human_scores = [score for score, category in human_list]
 
 # For paired scores
-stat, p_value = wilcoxon(llm_scores, human_scores)
-
-print(f"Wilcoxon test statistic: {stat}, p-value: {p_value}")
+#stat, p_value = wilcoxon(llm_scores, human_scores)
+stat, p_value = mannwhitneyu(llm_scores, human_scores, alternative='two-sided')
+print(f"mannwhitneyu test statistic: {stat}, p-value: {p_value}")
 
 
 
@@ -129,7 +137,7 @@ for category in categories:
     # Ensure paired lengths
     if len(llm_scores) == len(human_scores) and len(llm_scores) > 0:
         try:
-            stat, p = wilcoxon(llm_scores, human_scores)
+            stat, p = mannwhitneyu(llm_scores, human_scores, alternative='two-sided')
             print(f"{category}: statistic = {stat:.4f}, p-value = {p:.4f}")
         except ValueError as e:
             print(f"{category}: Test failed ({e})")
@@ -143,44 +151,64 @@ for category in categories:
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy.stats import wilcoxon
 import pandas as pd
 
+# Example data (replace with your actual lists)
 # llm_list = [(score, category), ...]
 # human_list = [(score, category), ...]
 
 data = []
 
+# Use new labels: GPT-4o and Human Expert
 for score, cat in llm_list:
-    data.append({"Score": score, "Evaluator": "LLM", "Category": "Whole Dataset"})
+    data.append({"Score": score, "Evaluator": "GPT-4o", "Category": "Whole Dataset"})
 for score, cat in human_list:
-    data.append({"Score": score, "Evaluator": "Human", "Category": "Whole Dataset"})
+    data.append({"Score": score, "Evaluator": "Human Expert", "Category": "Whole Dataset"})
 
 for score, cat in llm_list:
-    data.append({"Score": score, "Evaluator": "LLM", "Category": cat})
+    data.append({"Score": score, "Evaluator": "GPT-4o", "Category": cat})
 for score, cat in human_list:
-    data.append({"Score": score, "Evaluator": "Human", "Category": cat})
+    data.append({"Score": score, "Evaluator": "Human Expert", "Category": cat})
 
 df = pd.DataFrame(data)
 
 plt.figure(figsize=(14, 7))
 sns.set(style="whitegrid")
 
+# Custom palette for new labels
+palette = {"GPT-4o": "#4c72b0", "Human Expert": "#55a868"}
 sns.violinplot(
     x="Category", y="Score", hue="Evaluator", data=df,
-    inner="quartile", palette=["#4c72b0", "#55a868"], split=False
+    inner="quartile", palette=palette, split=False
 )
 
-plt.title("Scores by Category and Evaluator (LLM vs Human)", fontsize=20)
+# Add black mean points manually
+categories = df["Category"].unique()
+offset = 0.2  # Horizontal offset for separating dots
+
+for i, cat in enumerate(categories):
+    for j, evaluator in enumerate(["GPT-4o", "Human Expert"]):
+        scores = df[(df["Category"] == cat) & (df["Evaluator"] == evaluator)]["Score"]
+        if len(scores) > 0:
+            mean_score = scores.mean()
+            x_pos = i - offset if evaluator == "GPT-4o" else i + offset
+            plt.scatter(x_pos, mean_score, color='black', marker='D', zorder=10, label="_nolegend_")
+
+# Styling
+plt.title("Scores by Category and Evaluator (GPT-4o vs Human Expert)", fontsize=20)
 plt.ylabel("Score", fontsize=16)
 plt.xlabel("Category", fontsize=16)
 plt.xticks(rotation=30, ha="right", fontsize=14)
 plt.yticks(fontsize=14)
+plt.ylim(0, 1)
 
-plt.legend(title="Evaluator", fontsize=14, title_fontsize=16,
-           loc='center left', bbox_to_anchor=(1, 0.5))
+# Legend cleanup
+handles, labels = plt.gca().get_legend_handles_labels()
+by_label = dict(zip(labels, handles))
+plt.legend(by_label.values(), by_label.keys(), title="Evaluator",
+           fontsize=14, title_fontsize=16, loc='center left', bbox_to_anchor=(1, 0.5))
 
-plt.tight_layout(rect=[0, 0, 0.85, 1])  # leave space on right for legend
+plt.tight_layout(rect=[0, 0, 0.85, 1])
 plt.show()
 
 
