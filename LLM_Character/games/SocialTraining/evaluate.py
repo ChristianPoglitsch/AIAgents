@@ -129,20 +129,23 @@ df = pd.DataFrame(data)
 categories = df["Category"].unique()
 
 print("Wilcoxon signed-rank test results by category:\n")
-
+results = {}
 for category in categories:
     llm_scores = df[(df["Category"] == category) & (df["Evaluator"] == "LLM")]["Score"].values
     human_scores = df[(df["Category"] == category) & (df["Evaluator"] == "Human")]["Score"].values
 
-    # Ensure paired lengths
     if len(llm_scores) == len(human_scores) and len(llm_scores) > 0:
         try:
             stat, p = mannwhitneyu(llm_scores, human_scores, alternative='two-sided')
-            print(f"{category}: statistic = {stat:.4f}, p-value = {p:.4f}")
+            results[category] = {"U_statistic": stat, "p_value": p}
+            print(f"{category}: U = {stat:.4f}, p = {p:.4f}")
         except ValueError as e:
             print(f"{category}: Test failed ({e})")
     else:
         print(f"{category}: Skipped (unequal or empty number of scores)")
+
+# Optional: Convert to DataFrame for easy export or visualization
+results_df = pd.DataFrame.from_dict(results, orient="index")
 
 
 # Plots

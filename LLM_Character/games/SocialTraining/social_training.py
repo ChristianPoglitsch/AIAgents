@@ -210,9 +210,7 @@ sheets = xls.sheet_names
 sheets.pop(0) #  drop Questionnaire sheet
 print(sheets)
 
-start_time = time.time()  # Start timing
-
-#index = 0
+elapsed_time = 0.0
 for sheet in sheets:
     user_id = sheet
     # load specific sheet
@@ -238,12 +236,14 @@ for sheet in sheets:
 
         query_introduction = 'Instruction:\n' + instruction + '\n\nStory:\n' + stories[story_index] + '\n\nEvaluate this response:\n\n' + split_list_as_string
         story_index = story_index + 1
-        
+        start_time = time.time()  # Start timing
         #'-'*9
         messages = AIMessages()
         message = AIMessage(message=query_introduction, role="user", class_type="MessageAI", sender="user")
         messages.add_message(message)
         query_result = wrapped_model.query_text(messages)
+        end_time = time.time()
+        elapsed_time = elapsed_time + end_time - start_time
         print(query_result)
 
         last_line = query_result.strip().split('\n')[-1]
@@ -265,6 +265,5 @@ for sheet in sheets:
             df.to_excel(writer, sheet_name=user_id, index=False)
 
 
-end_time = time.time()
-elapsed_time = end_time - start_time
+
 print(f"Execution time: {elapsed_time:.6f} seconds")
