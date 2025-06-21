@@ -1,6 +1,4 @@
-#
-
-Large language model evaluating theory of mind tasks in a gamified environment Supplementary Information Files
+# Large language model evaluating theory of mind tasks in a gamified environment Supplementary Information Files
 
 
 https://github.com/ChristianPoglitsch/AIAgents/tree/dev/LLM_Character/games/SocialTraining
