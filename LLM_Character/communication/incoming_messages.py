@@ -127,10 +127,17 @@ class UpdateUserMessage(BaseMessage):
 # class data sent from unity to python endpoint for sending intial setup data.
 
 
+class InitAvatarData(BaseModel):
+    background_story: str
+    mood: str
+    conversation_goal: str
+    
+class InitAvatar(BaseMessage):
+    data: InitAvatarData
+
 class StartData(BaseModel):
     fork_sim_code: Optional[str]
     sim_code: str
-
 
 class StartMessage(BaseMessage):
     data: StartData

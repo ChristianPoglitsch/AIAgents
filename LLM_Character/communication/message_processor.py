@@ -34,24 +34,24 @@ from LLM_Character.communication.outgoing_messages import (
 )
 from LLM_Character.communication.udp_comms import UdpComms
 from LLM_Character.llm_comms.llm_api import LLM_API
-from LLM_Character.world.dispatchers.dispatcher import BaseDispatcher
-from LLM_Character.world.dispatchers.info_dispatcher import (
+from LLM_Character.depreciated.world.dispatchers.dispatcher import BaseDispatcher
+from LLM_Character.depreciated.world.dispatchers.info_dispatcher import (
     GetMetaDataDispatcher,
     GetPersonaDetailsDispatcher,
     GetPersonasDispatcher,
     GetSavedGamesDispatcher,
     GetUsersDispatcher,
 )
-from LLM_Character.world.dispatchers.move_dispatcher import MoveDispatcher
-from LLM_Character.world.dispatchers.persona_dispatcher import AddPersonaDispatcher
-from LLM_Character.world.dispatchers.prompt_dispatcher import PromptDispatcher
-from LLM_Character.world.dispatchers.start_dispatcher import StartDispatcher
-from LLM_Character.world.dispatchers.update_dispatcher import (
+from LLM_Character.depreciated.world.dispatchers.move_dispatcher import MoveDispatcher
+from LLM_Character.depreciated.world.dispatchers.persona_dispatcher import AddPersonaDispatcher
+from LLM_Character.depreciated.world.dispatchers.prompt_dispatcher import PromptDispatcher
+from LLM_Character.depreciated.world.dispatchers.start_dispatcher import StartDispatcher
+from LLM_Character.depreciated.world.dispatchers.update_dispatcher import (
     UpdateMetaDispatcher,
     UpdatePersonaDispatcher,
     UpdateUserDispatcher,
 )
-from LLM_Character.world.game import ReverieServer
+from LLM_Character.depreciated.world.game import ReverieServer
 
 logger = logging.getLogger()
 

@@ -1,11 +1,18 @@
 import logging
 import time
+# from flask import Flask, request
+import json
+
 
 from LLM_Character.communication.comm_medium import CommMedium
 from LLM_Character.communication.message_processor import MessageProcessor
 from LLM_Character.communication.reverieserver_manager import ReverieServerManager
 from LLM_Character.llm_comms.llm_api import LLM_API
 from LLM_Character.util import LOGGER_NAME, setup_logging
+
+
+# app = Flask(__name__)
+
 
 # NOTE: ibrahim: temporary function that will be replaced in the future
 # by the hungarian team ?
@@ -41,6 +48,8 @@ def start_server(
 
 if __name__ == "__main__":
     setup_logging("python_server_endpoint")
+
+    #TODO set up flask here
     import torch
 
     from LLM_Character.communication.udp_comms import UdpComms
@@ -52,12 +61,12 @@ if __name__ == "__main__":
     model = LocalComms()
     model_id = "mistralai/Mistral-7B-Instruct-v0.2"
 
-    #model = OpenAIComms()
-    #model_id = "gpt-4"
+    model = OpenAIComms()
+    model_id = "gpt-4"
 
     model.init(model_id)
-    wrapped_model = LLM_API(model)
-
+    wrapped_model = LLM_API(model, debug = True)
+ 
     sock = UdpComms(
         udp_ip="127.0.0.1",
         port_tx=9090,
@@ -71,3 +80,6 @@ if __name__ == "__main__":
     # new process/thread that executes start_server,
     server_manager = ReverieServerManager()
     start_server(sock, server_manager, dispatcher, wrapped_model)
+
+    
+    # app.run(host='0.0.0.0', port=5000)

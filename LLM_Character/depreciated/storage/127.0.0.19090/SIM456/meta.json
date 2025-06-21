@@ -1,0 +1,13 @@
+{
+  "fork_sim_code": "FORK123",
+  "curr_time": "February 13, 2023, 00:02:40",
+  "sec_per_step": 10,
+  "persona_names": [
+    "Camila",
+    "Florian"
+  ],
+  "user_names": [
+    "Chris"
+  ],
+  "step": 11
+}

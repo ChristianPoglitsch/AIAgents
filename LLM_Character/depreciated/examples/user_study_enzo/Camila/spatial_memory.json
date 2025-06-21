@@ -1,0 +1,84 @@
+{
+    "Graz": {
+        "Saint Martin's Church": {
+            "cafe": [
+                "refrigerator",
+                "cafe customer seating",
+                "cooking area",
+                "kitchen sink",
+                "behind the cafe counter",
+                "piano"
+            ]
+        },
+        "Cool Software Inc": {
+            "office": [
+                "desk",
+                "leather chair",
+                "PC",
+                "fruit basket",
+                "plastic plant",
+                "poster with motivational quote"
+            ]
+        },
+        "Camila's apartment": {
+            "main room": [
+                "bed",
+                "desk",
+                "refrigerator",
+                "closet",
+                "shelf"
+            ],
+            "bathroom": [
+                "shower"
+            ]
+        },
+        "De Kreun": {
+            "pub": [
+                "shelf",
+                "refrigerator",
+                "bar customer seating",
+                "behind the bar counter",
+                "kitchen sink",
+                "cooking area",
+                "microphone"
+            ]
+        },
+        "Beguinage of Courtrai": {
+            "supply store": [
+                "supply store product shelf",
+                "behind the supply store counter",
+                "supply store counter"
+            ]
+        },
+        "Tiny's Hobby Shop": {
+            "store": [
+                "behind the counter",
+                "store shelf",
+                "store counter"
+            ]
+        },
+        "Broel Towers": {
+            "plaza": [
+                "bridge"
+            ]
+        },
+        "Provincial Recreation and Nature De Gavers": {
+            "park": [
+                "park garden"
+            ]
+        },
+        "Ryan Park's apartment": {
+            "bathroom": [
+                "shower",
+                "bathroom sink",
+                "toilet"
+            ],
+            "main room": [
+                "bed",
+                "cooking area",
+                "kitchen sink",
+                "refrigerator"
+            ]
+        }
+    }
+}

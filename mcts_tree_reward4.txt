@@ -1,0 +1,2002 @@
+ding others'}, 'B': {'number of conversations': 1, 'private info': 'Alignment: Good, Role: Ravenkeeper, Info: Possibly confirmed by Washerwoman'}, 'C': {'number of conversations': 0, 'private info': 'Alignment: Good, Role: Washerwoman, Info: Claimed Washerwoman and gave information about Ravenkeeper'}, 'E': {'number of conversations': 3, 'private info': 'Alignment: Good, Role: Empath, Info: Claims to be the Empath and suspects F might be the Poisoner'}, 'F': {'number of conversations': 1, 'private info': 'Alignment: Unknown, Role: Investigator, Info: Rumored to be spreading uncertainty, possibly the Poisoner'}}
+--- --- --- ---
+You are an assistant tasked with updating a player's game state based for Blood on the Clocktower. The player's private feature state contains, for each other player, the number of conversations they've had.
+
+Current Player: D
+
+Recent Conversation History:
+E: {'type': 'Message', 'Speaker': 'E', 'Audience': ['D', 'F'], 'Message': 'Given that one of my neighbors is evil, and B is confirmed as the Ravenkeeper by C, I suspect F might not be the Investigator as claimed. D, since you might also be the Ravenkeeper, let us discuss our next steps to figure out the truth and identify the Imp. F, if you have any additional information regarding A being the Poisoner, please share it.'}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['E', 'F'], 'Message': "I'm not the Ravenkeeper, but I am a good role trying to work with everyone here. Based on what E said, if F is indeed the Investigator, we need to be cautious because there's a chance they could be the Imp. Let's work together to gather more information about everyone's roles."}
+
+Current phase: Day
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Imp - Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp. Reason about the game state and manipulate good players.
+
+Your minions are A.
+
+Game state for player D:
+A: number of conversations = 1, private info = Alignment: Evil, Role: Poisoner, Info: Minion and possibly misleading others
+B: number of conversations = 1, private info = Alignment: Good, Role: Ravenkeeper, Info: Possibly confirmed by Washerwoman
+C: number of conversations = 0, private info = Alignment: Good, Role: Washerwoman, Info: Claimed Washerwoman and gave information about Ravenkeeper
+E: number of conversations = 2, private info = Alignment: Unknown, Role: Unknown, Info: None
+F: number of conversations = 0, private info = Alignment: Unknown, Role: Investigator, Info: Rumored to be spreading uncertainty
+
+First, think about the update the number of conversations, second think about an update for private info about other players.
+
+
+Based on the conversation history and the private info, reason about role and the alignment for each player and update the private info in this format:Alignment: ,Role:, Info:
+ For role write the most plausibel role as one word. Additional infos like possible roles are part of Info. If there is no new information keep the private state as it is. No extra explanation. Do not add the Current Player.
+Return the updated Feature State in JSON format with keys for each player and values being an object with 'number of conversations' and 'private info' fields. Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes.
+LLM Responds: D
+ {'A': {'number of conversations': 1, 'private info': 'Alignment: Evil, Role: Poisoner, Info: Minion and possibly misleading others'}, 'B': {'number of conversations': 1, 'private info': 'Alignment: Good, Role: Ravenkeeper, Info: Possibly confirmed by Washerwoman'}, 'C': {'number of conversations': 0, 'private info': 'Alignment: Good, Role: Washerwoman, Info: Claimed Washerwoman and gave information about Ravenkeeper'}, 'E': {'number of conversations': 3, 'private info': "Alignment: Unknown, Role: Empath, Info: Suspects neighbors, uncertain of F's claim"}, 'F': {'number of conversations': 1, 'private info': 'Alignment: Unknown, Role: Investigator, Info: Rumored to be spreading uncertainty'}}
+--- --- --- ---
+*** *** *** *** *** *** *** 494 / 2000
+{'A': <__main__.Poisoner object at 0x00000299EE94F820>, 'B': <__main__.Ravenkeeper object at 0x00000299EE94F6A0>, 'C': <__main__.Washerwoman object at 0x00000299EE94F760>, 'D': <__main__.Imp object at 0x00000299EE96B3D0>, 'E': <__main__.Empath object at 0x00000299EE94F700>, 'F': <__main__.Investigator object at 0x00000299EE94F790>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: B
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B', 'F'], 'Message': "Hey B and F, I've been thinking about what E said. Since C confirmed one of us is the Ravenkeeper, and you've claimed it, B, I believe you. But we should be cautious as there could be misinformation. F, do you have any thoughts on this? It might help us figure out who the evil player is."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Ravenkeeper - If killed at night, select one player and learn the role of this player. Reason about the game state and find the evil players.
+
+
+
+Game state for player B:
+A: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Suspected Poisoner
+C: number of conversations = 2, private info = Alignment: Good, Role: Washerwoman, Info: Confirmed Washerwoman who learned either B or D is Ravenkeeper
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Washerwoman info suggests D might be the Ravenkeeper
+E: number of conversations = 0, private info = None
+F: number of conversations = 1, private info = Alignment: Good, Role: Investigator, Info: Claims Investigator and suspects A or C as the Poisoner
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: B
+ {'type': 'Vote', 'Speaker': 'B'}
+--- --- --- ---
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: B
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B', 'F'], 'Message': "Hey B and F, I've been thinking about what E said. Since C confirmed one of us is the Ravenkeeper, and you've claimed it, B, I believe you. But we should be cautious as there could be misinformation. F, do you have any thoughts on this? It might help us figure out who the evil player is."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Ravenkeeper - If killed at night, select one player and learn the role of this player. Reason about the game state and find the evil players.
+
+
+
+Game state for player B:
+A: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Suspected Poisoner
+C: number of conversations = 2, private info = Alignment: Good, Role: Washerwoman, Info: Confirmed Washerwoman who learned either B or D is Ravenkeeper
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Washerwoman info suggests D might be the Ravenkeeper
+E: number of conversations = 0, private info = None
+F: number of conversations = 1, private info = Alignment: Good, Role: Investigator, Info: Claims Investigator and suspects A or C as the Poisoner
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: B
+ {'type': 'Vote', 'Speaker': 'B'}
+--- --- --- ---
+*** *** *** *** *** *** *** 495 / 2000
+{'A': <__main__.Poisoner object at 0x00000299EE94F820>, 'B': <__main__.Ravenkeeper object at 0x00000299EE94F6A0>, 'C': <__main__.Washerwoman object at 0x00000299EE94F760>, 'D': <__main__.Imp object at 0x00000299EE96B3D0>, 'E': <__main__.Empath object at 0x00000299EE94F700>, 'F': <__main__.Investigator object at 0x00000299EE94F790>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: D
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Good
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+E: {'type': 'Message', 'Speaker': 'E', 'Audience': ['D', 'F'], 'Message': "Hey D and F, I need to share some insights as the Empath. I've sensed that 1 of my alive neighbors is evil. Since B is claiming to be the Ravenkeeper and C has confirmed that B or D is the Ravenkeeper, it might imply that either B or D is not who they claim to be. F, you were also mentioned as a potential bluffing risk. Let's discuss this and see if we can deduce something from these hints to identify the Imp or another evil role."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B', 'F'], 'Message': "Hey B and F, I've been thinking about what E said. Since C confirmed one of us is the Ravenkeeper, and you've claimed it, B, I believe you. But we should be cautious as there could be misinformation. F, do you have any thoughts on this? It might help us figure out who the evil player is."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Imp - Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp. Reason about the game state and manipulate good players.
+
+Your minions are A.
+
+Game state for player D:
+A: number of conversations = 0, private info = Alignment: Evil, Role: Minion, Info: Minion to the Imp
+B: number of conversations = 1, private info = Alignment: Good, Role: Ravenkeeper, Info: Confirmed by C or possible bluff
+C: number of conversations = 0, private info = Alignment: Good, Role: Investigator, Info: Confirmed B or D as Ravenkeeper
+E: number of conversations = 1, private info = Alignment: Good, Role: Empath, Info: Claims 1 evil neighbor
+F: number of conversations = 2, private info = Alignment: Unknown, Role: Unknown, Info: Mentioned as a potential bluffing risk by E
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: D
+ {'type': 'No Action', 'Speaker': 'D'}
+--- --- --- ---
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: D
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Good
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+E: {'type': 'Message', 'Speaker': 'E', 'Audience': ['D', 'F'], 'Message': "Hey D and F, I need to share some insights as the Empath. I've sensed that 1 of my alive neighbors is evil. Since B is claiming to be the Ravenkeeper and C has confirmed that B or D is the Ravenkeeper, it might imply that either B or D is not who they claim to be. F, you were also mentioned as a potential bluffing risk. Let's discuss this and see if we can deduce something from these hints to identify the Imp or another evil role."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B', 'F'], 'Message': "Hey B and F, I've been thinking about what E said. Since C confirmed one of us is the Ravenkeeper, and you've claimed it, B, I believe you. But we should be cautious as there could be misinformation. F, do you have any thoughts on this? It might help us figure out who the evil player is."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Imp - Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp. Reason about the game state and manipulate good players.
+
+Your minions are A.
+
+Game state for player D:
+A: number of conversations = 0, private info = Alignment: Evil, Role: Minion, Info: Minion to the Imp
+B: number of conversations = 1, private info = Alignment: Good, Role: Ravenkeeper, Info: Confirmed by C or possible bluff
+C: number of conversations = 0, private info = Alignment: Good, Role: Investigator, Info: Confirmed B or D as Ravenkeeper
+E: number of conversations = 1, private info = Alignment: Good, Role: Empath, Info: Claims 1 evil neighbor
+F: number of conversations = 2, private info = Alignment: Unknown, Role: Unknown, Info: Mentioned as a potential bluffing risk by E
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: D
+ {'type': 'Vote', 'Speaker': 'D'}
+--- --- --- ---
+*** *** *** *** *** *** *** 496 / 2000
+{'A': <__main__.Poisoner object at 0x00000299EE94F820>, 'B': <__main__.Ravenkeeper object at 0x00000299EE94F6A0>, 'C': <__main__.Washerwoman object at 0x00000299EE94F760>, 'D': <__main__.Imp object at 0x00000299EE96B3D0>, 'E': <__main__.Empath object at 0x00000299EE94F700>, 'F': <__main__.Investigator object at 0x00000299EE94F790>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: B
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B', 'E'], 'Message': "I need to clear up some confusion. I'm actually the Soldier. This means I can't be killed at night by the Demon. I think that might be why C mistakenly identified B or me as the Ravenkeeper. E, your Empath information is crucial, but it seems like it might be pointing to F. Let's discuss this further and see if we can figure out the evil team."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Ravenkeeper - If killed at night, select one player and learn the role of this player. Reason about the game state and find the evil players.
+
+
+
+Game state for player B:
+A: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Suspected Poisoner
+C: number of conversations = 2, private info = Alignment: Good, Role: Washerwoman, Info: Confirmed Washerwoman who learned either B or D is Ravenkeeper
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Washerwoman info suggests D might be the Ravenkeeper
+E: number of conversations = 0, private info = None
+F: number of conversations = 1, private info = Alignment: Good, Role: Investigator, Info: Claims Investigator and suspects A or C as the Poisoner
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: B
+ {'type': 'Vote', 'Speaker': 'B'}
+--- --- --- ---
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: B
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B', 'E'], 'Message': "I need to clear up some confusion. I'm actually the Soldier. This means I can't be killed at night by the Demon. I think that might be why C mistakenly identified B or me as the Ravenkeeper. E, your Empath information is crucial, but it seems like it might be pointing to F. Let's discuss this further and see if we can figure out the evil team."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Ravenkeeper - If killed at night, select one player and learn the role of this player. Reason about the game state and find the evil players.
+
+
+
+Game state for player B:
+A: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Suspected Poisoner
+C: number of conversations = 2, private info = Alignment: Good, Role: Washerwoman, Info: Confirmed Washerwoman who learned either B or D is Ravenkeeper
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Washerwoman info suggests D might be the Ravenkeeper
+E: number of conversations = 0, private info = None
+F: number of conversations = 1, private info = Alignment: Good, Role: Investigator, Info: Claims Investigator and suspects A or C as the Poisoner
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: B
+ {'type': 'Vote', 'Speaker': 'B'}
+--- --- --- ---
+*** *** *** *** *** *** *** 497 / 2000
+{'A': <__main__.Poisoner object at 0x00000299EE94F820>, 'B': <__main__.Ravenkeeper object at 0x00000299EE94F6A0>, 'C': <__main__.Washerwoman object at 0x00000299EE94F760>, 'D': <__main__.Imp object at 0x00000299EE96B3D0>, 'E': <__main__.Empath object at 0x00000299EE94F700>, 'F': <__main__.Investigator object at 0x00000299EE94F790>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: D
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Good
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+E: {'type': 'Message', 'Speaker': 'E', 'Audience': ['D', 'F'], 'Message': "Hey D and F, I need to share some insights as the Empath. I've sensed that 1 of my alive neighbors is evil. Since B is claiming to be the Ravenkeeper and C has confirmed that B or D is the Ravenkeeper, it might imply that either B or D is not who they claim to be. F, you were also mentioned as a potential bluffing risk. Let's discuss this and see if we can deduce something from these hints to identify the Imp or another evil role."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B', 'E'], 'Message': "I need to clear up some confusion. I'm actually the Soldier. This means I can't be killed at night by the Demon. I think that might be why C mistakenly identified B or me as the Ravenkeeper. E, your Empath information is crucial, but it seems like it might be pointing to F. Let's discuss this further and see if we can figure out the evil team."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Imp - Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp. Reason about the game state and manipulate good players.
+
+Your minions are A.
+
+Game state for player D:
+A: number of conversations = 0, private info = Alignment: Evil, Role: Minion, Info: Possible bluffs are Investigator, Poisoner, or Washerwoman.
+B: number of conversations = 1, private info = Alignment: Good, Role: Ravenkeeper, Info: Confirmed by C and claiming Ravenkeeper.
+C: number of conversations = 0, private info = Alignment: Good, Role: Unknown, Info: Confirmed that B or D is Ravenkeeper.
+E: number of conversations = 1, private info = Alignment: Good, Role: Empath, Info: Claims that 1 neighbor is evil and highlighted B or D.
+F: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Mentioned as potential bluffing risk by E.
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: D
+ {'type': 'No Action', 'Speaker': 'D'}
+--- --- --- ---
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: D
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Good
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+E: {'type': 'Message', 'Speaker': 'E', 'Audience': ['D', 'F'], 'Message': "Hey D and F, I need to share some insights as the Empath. I've sensed that 1 of my alive neighbors is evil. Since B is claiming to be the Ravenkeeper and C has confirmed that B or D is the Ravenkeeper, it might imply that either B or D is not who they claim to be. F, you were also mentioned as a potential bluffing risk. Let's discuss this and see if we can deduce something from these hints to identify the Imp or another evil role."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B', 'E'], 'Message': "I need to clear up some confusion. I'm actually the Soldier. This means I can't be killed at night by the Demon. I think that might be why C mistakenly identified B or me as the Ravenkeeper. E, your Empath information is crucial, but it seems like it might be pointing to F. Let's discuss this further and see if we can figure out the evil team."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Imp - Each night, chooses a player to die. If you kill yourself this way, a Minion becomes the Imp. Reason about the game state and manipulate good players.
+
+Your minions are A.
+
+Game state for player D:
+A: number of conversations = 0, private info = Alignment: Evil, Role: Minion, Info: Possible bluffs are Investigator, Poisoner, or Washerwoman.
+B: number of conversations = 1, private info = Alignment: Good, Role: Ravenkeeper, Info: Confirmed by C and claiming Ravenkeeper.
+C: number of conversations = 0, private info = Alignment: Good, Role: Unknown, Info: Confirmed that B or D is Ravenkeeper.
+E: number of conversations = 1, private info = Alignment: Good, Role: Empath, Info: Claims that 1 neighbor is evil and highlighted B or D.
+F: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Mentioned as potential bluffing risk by E.
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: D
+ {'type': 'Vote', 'Speaker': 'B'}
+--- --- --- ---
+*** *** *** *** *** *** *** 498 / 2000
+{'A': <__main__.Poisoner object at 0x00000299EE94F820>, 'B': <__main__.Ravenkeeper object at 0x00000299EE94F6A0>, 'C': <__main__.Washerwoman object at 0x00000299EE94F760>, 'D': <__main__.Imp object at 0x00000299EE96B3D0>, 'E': <__main__.Empath object at 0x00000299EE94F700>, 'F': <__main__.Investigator object at 0x00000299EE94F790>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: E
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B', 'E'], 'Message': "I need to clear up some confusion. I'm actually the Soldier. This means I can't be killed at night by the Demon. I think that might be why C mistakenly identified B or me as the Ravenkeeper. E, your Empath information is crucial, but it seems like it might be pointing to F. Let's discuss this further and see if we can figure out the evil team."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Empath - Learns how many of their two alive neighbors are evil. Reason about the game state and find the evil players.
+
+You sense that 1 of your alive neighbors are evil.
+
+Game state for player E:
+A: number of conversations = 1, private info = Alignment: Good, Role: Unknown, Info: Dead player
+B: number of conversations = 0, private info = Alignment: Unknown, Role: Ravenkeeper, Info: Claims Ravenkeeper
+C: number of conversations = 0, private info = Alignment: Good, Role: Unknown, Info: Dead player
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Only 1 of B or D is evil based on Empath info
+F: number of conversations = 2, private info = Alignment: Unknown, Role: Unknown, Info: Mentioned as potential bluffing risk
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: E
+ {'type': 'Vote', 'Speaker': 'E'}
+--- --- --- ---
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: E
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B', 'E'], 'Message': "I need to clear up some confusion. I'm actually the Soldier. This means I can't be killed at night by the Demon. I think that might be why C mistakenly identified B or me as the Ravenkeeper. E, your Empath information is crucial, but it seems like it might be pointing to F. Let's discuss this further and see if we can figure out the evil team."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Empath - Learns how many of their two alive neighbors are evil. Reason about the game state and find the evil players.
+
+You sense that 1 of your alive neighbors are evil.
+
+Game state for player E:
+A: number of conversations = 1, private info = Alignment: Good, Role: Unknown, Info: Dead player
+B: number of conversations = 0, private info = Alignment: Unknown, Role: Ravenkeeper, Info: Claims Ravenkeeper
+C: number of conversations = 0, private info = Alignment: Good, Role: Unknown, Info: Dead player
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Only 1 of B or D is evil based on Empath info
+F: number of conversations = 2, private info = Alignment: Unknown, Role: Unknown, Info: Mentioned as potential bluffing risk
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: E
+ {'type': 'Vote', 'Speaker': 'E'}
+--- --- --- ---
+*** *** *** *** *** *** *** 499 / 2000
+{'A': <__main__.Poisoner object at 0x00000299EE94F820>, 'B': <__main__.Ravenkeeper object at 0x00000299EE94F6A0>, 'C': <__main__.Washerwoman object at 0x00000299EE94F760>, 'D': <__main__.Imp object at 0x00000299EE96B3D0>, 'E': <__main__.Empath object at 0x00000299EE94F700>, 'F': <__main__.Investigator object at 0x00000299EE94F790>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: F
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+E: {'type': 'Message', 'Speaker': 'E', 'Audience': ['D', 'F'], 'Message': "Hey D and F, I need to share some insights as the Empath. I've sensed that 1 of my alive neighbors is evil. Since B is claiming to be the Ravenkeeper and C has confirmed that B or D is the Ravenkeeper, it might imply that either B or D is not who they claim to be. F, you were also mentioned as a potential bluffing risk. Let's discuss this and see if we can deduce something from these hints to identify the Imp or another evil role."}
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Investigator - Learns that one of two players is a specific Minion. Reason about the game state and find the evil players.
+
+You learn that A or C is a Poisoner
+
+Game state for player F:
+A: number of conversations = 0, private info = Alignment: Unknown, Role: Unknown, Info: Possible Poisoner
+B: number of conversations = 2, private info = Alignment: Unknown, Role: Ravenkeeper, Info: None
+C: number of conversations = 0, private info = Alignment: Evil, Role: Poisoner, Info: Confirmed by Investigator information
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: None
+E: number of conversations = 2, private info = Alignment: Good, Role: Empath, Info: Sensed 1 evil neighbor
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: F
+ {'type': 'Vote', 'Speaker': 'F'}
+--- --- --- ---
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: F
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+E: {'type': 'Message', 'Speaker': 'E', 'Audience': ['D', 'F'], 'Message': "Hey D and F, I need to share some insights as the Empath. I've sensed that 1 of my alive neighbors is evil. Since B is claiming to be the Ravenkeeper and C has confirmed that B or D is the Ravenkeeper, it might imply that either B or D is not who they claim to be. F, you were also mentioned as a potential bluffing risk. Let's discuss this and see if we can deduce something from these hints to identify the Imp or another evil role."}
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Investigator - Learns that one of two players is a specific Minion. Reason about the game state and find the evil players.
+
+You learn that A or C is a Poisoner
+
+Game state for player F:
+A: number of conversations = 0, private info = Alignment: Unknown, Role: Unknown, Info: Possible Poisoner
+B: number of conversations = 2, private info = Alignment: Unknown, Role: Ravenkeeper, Info: None
+C: number of conversations = 0, private info = Alignment: Evil, Role: Poisoner, Info: Confirmed by Investigator information
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: None
+E: number of conversations = 2, private info = Alignment: Good, Role: Empath, Info: Sensed 1 evil neighbor
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: F
+ {'type': 'Vote', 'Speaker': 'F'}
+--- --- --- ---
+*** *** *** *** *** *** *** 500 / 2000
+{'A': <__main__.Poisoner object at 0x00000299EE94F820>, 'B': <__main__.Ravenkeeper object at 0x00000299EE94F6A0>, 'C': <__main__.Washerwoman object at 0x00000299EE94F760>, 'D': <__main__.Imp object at 0x00000299EE96B3D0>, 'E': <__main__.Empath object at 0x00000299EE94F700>, 'F': <__main__.Investigator object at 0x00000299EE94F790>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: E
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B', 'E'], 'Message': "I need to clear up some confusion. I'm actually the Soldier. This means I can't be killed at night by the Demon. I think that might be why C mistakenly identified B or me as the Ravenkeeper. E, your Empath information is crucial, but it seems like it might be pointing to F. Let's discuss this further and see if we can figure out the evil team."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Empath - Learns how many of their two alive neighbors are evil. Reason about the game state and find the evil players.
+
+You sense that 1 of your alive neighbors are evil.
+
+Game state for player E:
+A: number of conversations = 1, private info = Alignment: Good, Role: Unknown, Info: Dead player
+B: number of conversations = 0, private info = Alignment: Unknown, Role: Ravenkeeper, Info: Claims Ravenkeeper
+C: number of conversations = 0, private info = Alignment: Good, Role: Unknown, Info: Dead player
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Only 1 of B or D is evil based on Empath info
+F: number of conversations = 2, private info = Alignment: Unknown, Role: Unknown, Info: Mentioned as potential bluffing risk
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: E
+ {'type': 'Vote', 'Speaker': 'E'}
+--- --- --- ---
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: E
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B', 'E'], 'Message': "I need to clear up some confusion. I'm actually the Soldier. This means I can't be killed at night by the Demon. I think that might be why C mistakenly identified B or me as the Ravenkeeper. E, your Empath information is crucial, but it seems like it might be pointing to F. Let's discuss this further and see if we can figure out the evil team."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Empath - Learns how many of their two alive neighbors are evil. Reason about the game state and find the evil players.
+
+You sense that 1 of your alive neighbors are evil.
+
+Game state for player E:
+A: number of conversations = 1, private info = Alignment: Good, Role: Unknown, Info: Dead player
+B: number of conversations = 0, private info = Alignment: Unknown, Role: Ravenkeeper, Info: Claims Ravenkeeper
+C: number of conversations = 0, private info = Alignment: Good, Role: Unknown, Info: Dead player
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Only 1 of B or D is evil based on Empath info
+F: number of conversations = 2, private info = Alignment: Unknown, Role: Unknown, Info: Mentioned as potential bluffing risk
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: E
+ {'type': 'Vote', 'Speaker': 'E'}
+--- --- --- ---
+*** *** *** *** *** *** *** 501 / 2000
+{'A': <__main__.Poisoner object at 0x00000299EE94F820>, 'B': <__main__.Ravenkeeper object at 0x00000299EE94F6A0>, 'C': <__main__.Washerwoman object at 0x00000299EE94F760>, 'D': <__main__.Imp object at 0x00000299EE96B3D0>, 'E': <__main__.Empath object at 0x00000299EE94F700>, 'F': <__main__.Investigator object at 0x00000299EE94F790>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: A
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Action", "Description": "Each night, poison one player.", "Speaker": None, "Target": "None", "Effect": "Poison"}
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+B: {'type': 'Message', 'Speaker': 'B', 'Audience': ['A', 'C'], 'Message': 'C has revealed that I might be the Ravenkeeper. I can confirm that part of their information is correct. I am indeed the Ravenkeeper, and this makes me think we should keep an eye on A and C, since they were both pointed out as potential Poisoners by F and the information could be manipulated.'}
+A: {'type': 'Message', 'Speaker': 'A', 'Audience': ['E', 'F'], 'Message': "I just wanted to share that B is claiming to be the Ravenkeeper. However, their information could be compromised as F suggested A or C might be Poisoners. Let's think carefully about our next move, and maybe test another player's claim to verify their role."}
+
+Current phase: Night
+Players: A (Dead), B (Alive), C (Dead), D (Dead), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Poisoner - Each night, poison one player. Reason about the game state and manipulate good players.
+
+The Demon is D.
+
+Game state for player A:
+B: number of conversations = 2, private info = Alignment: Good, Role: Ravenkeeper, Info: Claimed to be the Ravenkeeper. Involved in conversation about F being Investigator.
+C: number of conversations = 1, private info = Alignment: Good, Role: Unknown, Info: Involved in conversation about F being Investigator.
+D: number of conversations = 0, private info = None
+E: number of conversations = 1, private info = None
+F: number of conversations = 1, private info = Alignment: Good, Role: Investigator, Info: Claimed Investigator and suggested A or C might be Poisoner.
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: A
+ {'type': 'No Action', 'Speaker': 'A'}
+--- --- --- ---
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: A
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Action", "Description": "Each night, poison one player.", "Speaker": None, "Target": "None", "Effect": "Poison"}
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+B: {'type': 'Message', 'Speaker': 'B', 'Audience': ['A', 'C'], 'Message': 'C has revealed that I might be the Ravenkeeper. I can confirm that part of their information is correct. I am indeed the Ravenkeeper, and this makes me think we should keep an eye on A and C, since they were both pointed out as potential Poisoners by F and the information could be manipulated.'}
+A: {'type': 'Message', 'Speaker': 'A', 'Audience': ['E', 'F'], 'Message': "I just wanted to share that B is claiming to be the Ravenkeeper. However, their information could be compromised as F suggested A or C might be Poisoners. Let's think carefully about our next move, and maybe test another player's claim to verify their role."}
+
+Current phase: Night
+Players: A (Dead), B (Alive), C (Dead), D (Dead), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Poisoner - Each night, poison one player. Reason about the game state and manipulate good players.
+
+The Demon is D.
+
+Game state for player A:
+B: number of conversations = 2, private info = Alignment: Good, Role: Ravenkeeper, Info: Claimed to be the Ravenkeeper. Involved in conversation about F being Investigator.
+C: number of conversations = 1, private info = Alignment: Good, Role: Unknown, Info: Involved in conversation about F being Investigator.
+D: number of conversations = 0, private info = None
+E: number of conversations = 1, private info = None
+F: number of conversations = 1, private info = Alignment: Good, Role: Investigator, Info: Claimed Investigator and suggested A or C might be Poisoner.
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: A
+ {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'A', 'Target': 'F', 'Effect': 'Poison'}
+--- --- --- ---
+*** *** *** *** *** *** *** 502 / 2000
+{'A': <__main__.Poisoner object at 0x00000299EE94F820>, 'B': <__main__.Ravenkeeper object at 0x00000299EE94F6A0>, 'C': <__main__.Washerwoman object at 0x00000299EE94F760>, 'D': <__main__.Imp object at 0x00000299EE96B3D0>, 'E': <__main__.Empath object at 0x00000299EE94F700>, 'F': <__main__.Investigator object at 0x00000299EE94F790>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: F
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+E: {'type': 'Message', 'Speaker': 'E', 'Audience': ['D', 'F'], 'Message': "Hey D and F, I need to share some insights as the Empath. I've sensed that 1 of my alive neighbors is evil. Since B is claiming to be the Ravenkeeper and C has confirmed that B or D is the Ravenkeeper, it might imply that either B or D is not who they claim to be. F, you were also mentioned as a potential bluffing risk. Let's discuss this and see if we can deduce something from these hints to identify the Imp or another evil role."}
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Investigator - Learns that one of two players is a specific Minion. Reason about the game state and find the evil players.
+
+You learn that A or C is a Poisoner
+
+Game state for player F:
+A: number of conversations = 0, private info = Alignment: Unknown, Role: Unknown, Info: Possible Poisoner
+B: number of conversations = 2, private info = Alignment: Unknown, Role: Ravenkeeper, Info: None
+C: number of conversations = 0, private info = Alignment: Evil, Role: Poisoner, Info: Confirmed by Investigator information
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: None
+E: number of conversations = 2, private info = Alignment: Good, Role: Empath, Info: Sensed 1 evil neighbor
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: F
+ {'type': 'Vote', 'Speaker': 'F'}
+--- --- --- ---
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: F
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+E: {'type': 'Message', 'Speaker': 'E', 'Audience': ['D', 'F'], 'Message': "Hey D and F, I need to share some insights as the Empath. I've sensed that 1 of my alive neighbors is evil. Since B is claiming to be the Ravenkeeper and C has confirmed that B or D is the Ravenkeeper, it might imply that either B or D is not who they claim to be. F, you were also mentioned as a potential bluffing risk. Let's discuss this and see if we can deduce something from these hints to identify the Imp or another evil role."}
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Investigator - Learns that one of two players is a specific Minion. Reason about the game state and find the evil players.
+
+You learn that A or C is a Poisoner
+
+Game state for player F:
+A: number of conversations = 0, private info = Alignment: Unknown, Role: Unknown, Info: Possible Poisoner
+B: number of conversations = 2, private info = Alignment: Unknown, Role: Ravenkeeper, Info: None
+C: number of conversations = 0, private info = Alignment: Evil, Role: Poisoner, Info: Confirmed by Investigator information
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: None
+E: number of conversations = 2, private info = Alignment: Good, Role: Empath, Info: Sensed 1 evil neighbor
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: F
+ {'type': 'Vote', 'Speaker': 'F'}
+--- --- --- ---
+*** *** *** *** *** *** *** 503 / 2000
+{'A': <__main__.Poisoner object at 0x00000299EE94F820>, 'B': <__main__.Ravenkeeper object at 0x00000299EE94F6A0>, 'C': <__main__.Washerwoman object at 0x00000299EE94F760>, 'D': <__main__.Imp object at 0x00000299EE96B3D0>, 'E': <__main__.Empath object at 0x00000299EE94F700>, 'F': <__main__.Investigator object at 0x00000299EE94F790>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: A
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Action", "Description": "Each night, poison one player.", "Speaker": None, "Target": "None", "Effect": "Poison"}
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+B: {'type': 'Message', 'Speaker': 'B', 'Audience': ['A', 'C'], 'Message': 'C has revealed that I might be the Ravenkeeper. I can confirm that part of their information is correct. I am indeed the Ravenkeeper, and this makes me think we should keep an eye on A and C, since they were both pointed out as potential Poisoners by F and the information could be manipulated.'}
+A: {'type': 'Message', 'Speaker': 'A', 'Audience': ['E', 'F'], 'Message': "I just wanted to share that B is claiming to be the Ravenkeeper. However, their information could be compromised as F suggested A or C might be Poisoners. Let's think carefully about our next move, and maybe test another player's claim to verify their role."}
+
+Current phase: Night
+Players: A (Dead), B (Alive), C (Dead), D (Dead), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Poisoner - Each night, poison one player. Reason about the game state and manipulate good players.
+
+The Demon is D.
+
+Game state for player A:
+B: number of conversations = 2, private info = Alignment: Good, Role: Ravenkeeper, Info: Claimed to be the Ravenkeeper. Involved in conversation about F being Investigator.
+C: number of conversations = 1, private info = Alignment: Good, Role: Unknown, Info: Involved in conversation about F being Investigator.
+D: number of conversations = 0, private info = None
+E: number of conversations = 1, private info = None
+F: number of conversations = 1, private info = Alignment: Good, Role: Investigator, Info: Claimed Investigator and suggested A or C might be Poisoner.
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: A
+ {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'A', 'Target': 'B', 'Effect': 'Poison'}
+--- --- --- ---
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: A
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Action", "Description": "Each night, poison one player.", "Speaker": None, "Target": "None", "Effect": "Poison"}
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+B: {'type': 'Message', 'Speaker': 'B', 'Audience': ['A', 'C'], 'Message': 'C has revealed that I might be the Ravenkeeper. I can confirm that part of their information is correct. I am indeed the Ravenkeeper, and this makes me think we should keep an eye on A and C, since they were both pointed out as potential Poisoners by F and the information could be manipulated.'}
+A: {'type': 'Message', 'Speaker': 'A', 'Audience': ['E', 'F'], 'Message': "I just wanted to share that B is claiming to be the Ravenkeeper. However, their information could be compromised as F suggested A or C might be Poisoners. Let's think carefully about our next move, and maybe test another player's claim to verify their role."}
+
+Current phase: Night
+Players: A (Dead), B (Alive), C (Dead), D (Dead), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Poisoner - Each night, poison one player. Reason about the game state and manipulate good players.
+
+The Demon is D.
+
+Game state for player A:
+B: number of conversations = 2, private info = Alignment: Good, Role: Ravenkeeper, Info: Claimed to be the Ravenkeeper. Involved in conversation about F being Investigator.
+C: number of conversations = 1, private info = Alignment: Good, Role: Unknown, Info: Involved in conversation about F being Investigator.
+D: number of conversations = 0, private info = None
+E: number of conversations = 1, private info = None
+F: number of conversations = 1, private info = Alignment: Good, Role: Investigator, Info: Claimed Investigator and suggested A or C might be Poisoner.
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: A
+ {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'A', 'Target': 'E', 'Effect': 'Poison'}
+--- --- --- ---
+*** *** *** *** *** *** *** 504 / 2000
+{'A': <__main__.Poisoner object at 0x00000299EE94F820>, 'B': <__main__.Ravenkeeper object at 0x00000299EE94F6A0>, 'C': <__main__.Washerwoman object at 0x00000299EE94F760>, 'D': <__main__.Imp object at 0x00000299EE96B3D0>, 'E': <__main__.Empath object at 0x00000299EE94F700>, 'F': <__main__.Investigator object at 0x00000299EE94F790>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: F
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Message", "Speaker": None, "Audience": None, "Message": None, "Message-Type": None}
+ Collect information about other players. Message-Type: Truth-Telling (reveal your game state and role), Bluff, Fishing, Claim, Misdirection
+{"type": "Nominate", "Speaker": None, "Nominee": None}
+ Based on the game state nominate players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+E: {'type': 'Message', 'Speaker': 'E', 'Audience': ['D', 'F'], 'Message': "Hey D and F, I need to share some insights as the Empath. I've sensed that 1 of my alive neighbors is evil. Since B is claiming to be the Ravenkeeper and C has confirmed that B or D is the Ravenkeeper, it might imply that either B or D is not who they claim to be. F, you were also mentioned as a potential bluffing risk. Let's discuss this and see if we can deduce something from these hints to identify the Imp or another evil role."}
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['E', 'D'], 'Message': "As the Investigator, I found out early in the game that one of A or C is the Poisoner. Since A is dead, and C confirmed B or D as the Ravenkeeper, there's a good chance that A was the Poisoner. This means B or D could still be suspicious. E, since you're the Empath, and you've sensed one evil player next to you, I suspect it could be B if A was not the Poisoner. Let's focus on testing B's claim somehow."}
+
+Current phase: Day
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Investigator - Learns that one of two players is a specific Minion. Reason about the game state and find the evil players.
+
+You learn that A or C is a Poisoner
+
+Game state for player F:
+A: number of conversations = 0, private info = Alignment: Unknown, Role: Unknown, Info: Possible Poisoner
+B: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Possible Ravenkeeper or Imp
+C: number of conversations = 0, private info = Alignment: Unknown, Role: Unknown, Info: Possible Poisoner
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Possible Ravenkeeper or Imp
+E: number of conversations = 1, private info = Alignment: Good, Role: Empath, Info: None
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: F
+ {'type': 'Nominate', 'Speaker': 'F', 'Nominee': 'B'}
+--- --- --- ---
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: F
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Message", "Speaker": None, "Audience": None, "Message": None, "Message-Type": None}
+ Collect information about other players. Message-Type: Truth-Telling (reveal your game state and role), Bluff, Fishing, Claim, Misdirection
+{"type": "Nominate", "Speaker": None, "Nominee": None}
+ Based on the game state nominate players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+E: {'type': 'Message', 'Speaker': 'E', 'Audience': ['D', 'F'], 'Message': "Hey D and F, I need to share some insights as the Empath. I've sensed that 1 of my alive neighbors is evil. Since B is claiming to be the Ravenkeeper and C has confirmed that B or D is the Ravenkeeper, it might imply that either B or D is not who they claim to be. F, you were also mentioned as a potential bluffing risk. Let's discuss this and see if we can deduce something from these hints to identify the Imp or another evil role."}
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['E', 'D'], 'Message': "As the Investigator, I found out early in the game that one of A or C is the Poisoner. Since A is dead, and C confirmed B or D as the Ravenkeeper, there's a good chance that A was the Poisoner. This means B or D could still be suspicious. E, since you're the Empath, and you've sensed one evil player next to you, I suspect it could be B if A was not the Poisoner. Let's focus on testing B's claim somehow."}
+
+Current phase: Day
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Investigator - Learns that one of two players is a specific Minion. Reason about the game state and find the evil players.
+
+You learn that A or C is a Poisoner
+
+Game state for player F:
+A: number of conversations = 0, private info = Alignment: Unknown, Role: Unknown, Info: Possible Poisoner
+B: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Possible Ravenkeeper or Imp
+C: number of conversations = 0, private info = Alignment: Unknown, Role: Unknown, Info: Possible Poisoner
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Possible Ravenkeeper or Imp
+E: number of conversations = 1, private info = Alignment: Good, Role: Empath, Info: None
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: F
+ {'type': 'Nominate', 'Speaker': 'F', 'Nominee': 'B'}
+--- --- --- ---
+*** *** *** *** *** *** *** 505 / 2000
+{'A': <__main__.Poisoner object at 0x00000299EE94F820>, 'B': <__main__.Ravenkeeper object at 0x00000299EE94F6A0>, 'C': <__main__.Washerwoman object at 0x00000299EE94F760>, 'D': <__main__.Imp object at 0x00000299EE96B3D0>, 'E': <__main__.Empath object at 0x00000299EE94F700>, 'F': <__main__.Investigator object at 0x00000299EE94F790>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: B
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B', 'E'], 'Message': "I need to clear up some confusion. I'm actually the Soldier. This means I can't be killed at night by the Demon. I think that might be why C mistakenly identified B or me as the Ravenkeeper. E, your Empath information is crucial, but it seems like it might be pointing to F. Let's discuss this further and see if we can figure out the evil team."}
+
+Current phase: Nominate
+Nominated is B
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Ravenkeeper - If killed at night, select one player and learn the role of this player. Reason about the game state and find the evil players.
+
+
+
+Game state for player B:
+A: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Suspected Poisoner
+C: number of conversations = 2, private info = Alignment: Good, Role: Washerwoman, Info: Confirmed Washerwoman who learned either B or D is Ravenkeeper
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Washerwoman info suggests D might be the Ravenkeeper
+E: number of conversations = 0, private info = None
+F: number of conversations = 1, private info = Alignment: Good, Role: Investigator, Info: Claims Investigator and suspects A or C as the Poisoner
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: B
+ {'type': 'No Action', 'Speaker': 'B'}
+--- --- --- ---
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: B
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B', 'E'], 'Message': "I need to clear up some confusion. I'm actually the Soldier. This means I can't be killed at night by the Demon. I think that might be why C mistakenly identified B or me as the Ravenkeeper. E, your Empath information is crucial, but it seems like it might be pointing to F. Let's discuss this further and see if we can figure out the evil team."}
+
+Current phase: Nominate
+Nominated is B
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Ravenkeeper - If killed at night, select one player and learn the role of this player. Reason about the game state and find the evil players.
+
+
+
+Game state for player B:
+A: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Suspected Poisoner
+C: number of conversations = 2, private info = Alignment: Good, Role: Washerwoman, Info: Confirmed Washerwoman who learned either B or D is Ravenkeeper
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Washerwoman info suggests D might be the Ravenkeeper
+E: number of conversations = 0, private info = None
+F: number of conversations = 1, private info = Alignment: Good, Role: Investigator, Info: Claims Investigator and suspects A or C as the Poisoner
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: B
+ {'type': 'Vote', 'Speaker': 'B'}
+--- --- --- ---
+*** *** *** *** *** *** *** 506 / 2000
+{'A': <__main__.Poisoner object at 0x00000299EE94F820>, 'B': <__main__.Ravenkeeper object at 0x00000299EE94F6A0>, 'C': <__main__.Washerwoman object at 0x00000299EE94F760>, 'D': <__main__.Imp object at 0x00000299EE96B3D0>, 'E': <__main__.Empath object at 0x00000299EE94F700>, 'F': <__main__.Investigator object at 0x00000299EE94F790>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: E
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+E: {'type': 'Message', 'Speaker': 'E', 'Audience': ['D', 'F'], 'Message': "Hey D and F, I need to share some insights as the Empath. I've sensed that 1 of my alive neighbors is evil. Since B is claiming to be the Ravenkeeper and C has confirmed that B or D is the Ravenkeeper, it might imply that either B or D is not who they claim to be. F, you were also mentioned as a potential bluffing risk. Let's discuss this and see if we can deduce something from these hints to identify the Imp or another evil role."}
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Empath - Learns how many of their two alive neighbors are evil. Reason about the game state and find the evil players.
+
+You sense that 1 of your alive neighbors are evil.
+
+Game state for player E:
+A: number of conversations = 1, private info = Alignment: Good, Role: Unknown, Info: Dead player
+B: number of conversations = 0, private info = Alignment: Unknown, Role: Ravenkeeper, Info: Claims Ravenkeeper
+C: number of conversations = 0, private info = Alignment: Good, Role: Unknown, Info: Dead player
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Only 1 of B or D is evil based on Empath info
+F: number of conversations = 2, private info = Alignment: Unknown, Role: Unknown, Info: Mentioned as potential bluffing risk
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: E
+ {'type': 'Vote', 'Speaker': 'E'}
+--- --- --- ---
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: E
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+E: {'type': 'Message', 'Speaker': 'E', 'Audience': ['D', 'F'], 'Message': "Hey D and F, I need to share some insights as the Empath. I've sensed that 1 of my alive neighbors is evil. Since B is claiming to be the Ravenkeeper and C has confirmed that B or D is the Ravenkeeper, it might imply that either B or D is not who they claim to be. F, you were also mentioned as a potential bluffing risk. Let's discuss this and see if we can deduce something from these hints to identify the Imp or another evil role."}
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Empath - Learns how many of their two alive neighbors are evil. Reason about the game state and find the evil players.
+
+You sense that 1 of your alive neighbors are evil.
+
+Game state for player E:
+A: number of conversations = 1, private info = Alignment: Good, Role: Unknown, Info: Dead player
+B: number of conversations = 0, private info = Alignment: Unknown, Role: Ravenkeeper, Info: Claims Ravenkeeper
+C: number of conversations = 0, private info = Alignment: Good, Role: Unknown, Info: Dead player
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: Only 1 of B or D is evil based on Empath info
+F: number of conversations = 2, private info = Alignment: Unknown, Role: Unknown, Info: Mentioned as potential bluffing risk
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: E
+ {'type': 'Vote', 'Speaker': 'E'}
+--- --- --- ---
+*** *** *** *** *** *** *** 507 / 2000
+{'A': <__main__.Poisoner object at 0x00000299EE94F820>, 'B': <__main__.Ravenkeeper object at 0x00000299EE94F6A0>, 'C': <__main__.Washerwoman object at 0x00000299EE94F760>, 'D': <__main__.Imp object at 0x00000299EE96B3D0>, 'E': <__main__.Empath object at 0x00000299EE94F700>, 'F': <__main__.Investigator object at 0x00000299EE94F790>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: F
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B', 'F'], 'Message': "Hey B and F, I've been thinking about what E said. Since C confirmed one of us is the Ravenkeeper, and you've claimed it, B, I believe you. But we should be cautious as there could be misinformation. F, do you have any thoughts on this? It might help us figure out who the evil player is."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Investigator - Learns that one of two players is a specific Minion. Reason about the game state and find the evil players.
+
+You learn that A or C is a Poisoner
+
+Game state for player F:
+A: number of conversations = 0, private info = Alignment: Unknown, Role: Unknown, Info: Possible Poisoner
+B: number of conversations = 2, private info = Alignment: Unknown, Role: Ravenkeeper, Info: None
+C: number of conversations = 0, private info = Alignment: Evil, Role: Poisoner, Info: Confirmed by Investigator information
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: None
+E: number of conversations = 2, private info = Alignment: Good, Role: Empath, Info: Sensed 1 evil neighbor
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: F
+ {'type': 'Vote', 'Speaker': 'F'}
+--- --- --- ---
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: F
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Vote", "Speaker": None}
+ Based on the game state vote for the players you believe are Evil
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+F: {'type': 'Message', 'Speaker': 'F', 'Audience': ['B', 'E'], 'Message': "Hey B and E, I think it's important to share that as the Investigator, I learned that one of A or C is the Poisoner. Since A is dead, it's likely C was the Poisoner. This might mean B's claim as the Ravenkeeper is true unless they were somehow misled. E, since you're the Empath, has there been any change in your readings? This could help us identify if there's another evil player among us."}
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['B', 'F'], 'Message': "Hey B and F, I've been thinking about what E said. Since C confirmed one of us is the Ravenkeeper, and you've claimed it, B, I believe you. But we should be cautious as there could be misinformation. F, do you have any thoughts on this? It might help us figure out who the evil player is."}
+
+Current phase: Nominate
+Nominated is D
+Players: A (Dead), B (Alive), C (Dead), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Investigator - Learns that one of two players is a specific Minion. Reason about the game state and find the evil players.
+
+You learn that A or C is a Poisoner
+
+Game state for player F:
+A: number of conversations = 0, private info = Alignment: Unknown, Role: Unknown, Info: Possible Poisoner
+B: number of conversations = 2, private info = Alignment: Unknown, Role: Ravenkeeper, Info: None
+C: number of conversations = 0, private info = Alignment: Evil, Role: Poisoner, Info: Confirmed by Investigator information
+D: number of conversations = 1, private info = Alignment: Unknown, Role: Unknown, Info: None
+E: number of conversations = 2, private info = Alignment: Good, Role: Empath, Info: Sensed 1 evil neighbor
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: F
+ {'type': 'Vote', 'Speaker': 'F'}
+--- --- --- ---
+*** *** *** *** *** *** *** 508 / 2000
+{'A': <__main__.Poisoner object at 0x00000299EE94F820>, 'B': <__main__.Ravenkeeper object at 0x00000299EE94F6A0>, 'C': <__main__.Washerwoman object at 0x00000299EE94F760>, 'D': <__main__.Imp object at 0x00000299EE96B3D0>, 'E': <__main__.Empath object at 0x00000299EE94F700>, 'F': <__main__.Investigator object at 0x00000299EE94F790>}
+*** *** *** *** *** *** ***
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: A
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Action", "Description": "Each night, poison one player.", "Speaker": None, "Target": "None", "Effect": "Poison"}
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+B: {'type': 'Message', 'Speaker': 'B', 'Audience': ['A', 'C'], 'Message': 'C has revealed that I might be the Ravenkeeper. I can confirm that part of their information is correct. I am indeed the Ravenkeeper, and this makes me think we should keep an eye on A and C, since they were both pointed out as potential Poisoners by F and the information could be manipulated.'}
+A: {'type': 'Message', 'Speaker': 'A', 'Audience': ['E', 'F'], 'Message': "I just wanted to share that B is claiming to be the Ravenkeeper. However, their information could be compromised as F suggested A or C might be Poisoners. Let's think carefully about our next move, and maybe test another player's claim to verify their role."}
+
+Current phase: Night
+Players: A (Dead), B (Alive), C (Dead), D (Dead), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Poisoner - Each night, poison one player. Reason about the game state and manipulate good players.
+
+The Demon is D.
+
+Game state for player A:
+B: number of conversations = 2, private info = Alignment: Good, Role: Ravenkeeper, Info: Claimed to be the Ravenkeeper. Involved in conversation about F being Investigator.
+C: number of conversations = 1, private info = Alignment: Good, Role: Unknown, Info: Involved in conversation about F being Investigator.
+D: number of conversations = 0, private info = None
+E: number of conversations = 1, private info = None
+F: number of conversations = 1, private info = Alignment: Good, Role: Investigator, Info: Claimed Investigator and suggested A or C might be Poisoner.
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: A
+ {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'A', 'Target': 'F', 'Effect': 'Poison'}
+--- --- --- ---
+You are a helpful board game AI assistant for Blood on the Clocktower.
+Current Player: A
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+{"type": "Action", "Description": "Each night, poison one player.", "Speaker": None, "Target": "None", "Effect": "Poison"}
+{"type": "No Action", "Speaker": None}
+
+Chronological conversation History:
+B: {'type': 'Message', 'Speaker': 'B', 'Audience': ['A', 'C'], 'Message': 'C has revealed that I might be the Ravenkeeper. I can confirm that part of their information is correct. I am indeed the Ravenkeeper, and this makes me think we should keep an eye on A and C, since they were both pointed out as potential Poisoners by F and the information could be manipulated.'}
+A: {'type': 'Message', 'Speaker': 'A', 'Audience': ['E', 'F'], 'Message': "I just wanted to share that B is claiming to be the Ravenkeeper. However, their information could be compromised as F suggested A or C might be Poisoners. Let's think carefully about our next move, and maybe test another player's claim to verify their role."}
+
+Current phase: Night
+Players: A (Dead), B (Alive), C (Dead), D (Dead), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Poisoner - Each night, poison one player. Reason about the game state and manipulate good players.
+
+The Demon is D.
+
+Game state for player A:
+B: number of conversations = 2, private info = Alignment: Good, Role: Ravenkeeper, Info: Claimed to be the Ravenkeeper. Involved in conversation about F being Investigator.
+C: number of conversations = 1, private info = Alignment: Good, Role: Unknown, Info: Involved in conversation about F being Investigator.
+D: number of conversations = 0, private info = None
+E: number of conversations = 1, private info = None
+F: number of conversations = 1, private info = Alignment: Good, Role: Investigator, Info: Claimed Investigator and suggested A or C might be Poisoner.
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+
+LLM Responds: A
+ {'type': 'Action', 'Description': 'Each night, poison one player.', 'Speaker': 'A', 'Target': 'F', 'Effect': 'Poison'}
+--- --- --- ---
+*** *** *** *** *** *** *** 509 / 2000
+{'A': <__main__.Poisoner object at 0x00000299EE94F820>, 'B': <__main__.Ravenkeeper object at 0x00000299EE94F6A0>, 'C': <__main__.Washerwoman object at 0x00000299EE94F760>, 'D': <__main__.Imp object at 0x00000299EE96B3D0>, 'E': <__main__.Empath object at 0x00000299EE94F700>, 'F': <__main__.Investigator object at 0x00000299EE94F790>}
+*** *** *** *** *** *** ***
+- Visits: 830, Value: 217.00
+  - Visits: 829, Value: 217.00
+    - Visits: 467, Value: 133.00
+      - Visits: 363, Value: 112.00
+        - Visits: 52, Value: 9.00
+          - Visits: 30, Value: 6.00
+            - Visits: 18, Value: 4.00
+              - Visits: 5, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+              - Visits: 12, Value: 3.00
+                - Visits: 8, Value: 3.00
+                  - Visits: 7, Value: 2.00
+                    - Visits: 6, Value: 2.00
+                      - Visits: 5, Value: 1.00
+                        - Visits: 2, Value: 0.00
+                          - Visits: 2, Value: 0.00
+                            - Visits: 1, Value: 0.00
+                        - Visits: 2, Value: 0.00
+                          - Visits: 1, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+            - Visits: 11, Value: 1.00
+              - Visits: 5, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+              - Visits: 5, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+          - Visits: 21, Value: 3.00
+            - Visits: 11, Value: 1.00
+              - Visits: 5, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+              - Visits: 5, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+            - Visits: 9, Value: 1.00
+              - Visits: 5, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+              - Visits: 3, Value: 0.00
+                - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+        - Visits: 310, Value: 102.00
+          - Visits: 119, Value: 34.00
+            - Visits: 87, Value: 27.00
+              - Visits: 77, Value: 26.00
+                - Visits: 7, Value: 0.00
+                  - Visits: 3, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                  - Visits: 3, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                - Visits: 69, Value: 26.00
+                  - Visits: 68, Value: 25.00
+                    - Visits: 67, Value: 25.00
+                      - Visits: 66, Value: 24.00
+                        - Visits: 65, Value: 23.00
+                          - Visits: 65, Value: 23.00
+                            - Visits: 64, Value: 23.00
+                              - Visits: 63, Value: 23.00
+                                - Visits: 57, Value: 23.00
+                                  - Visits: 56, Value: 23.00
+                                    - Visits: 48, Value: 20.00
+                                      - Visits: 32, Value: 14.00
+                                        - Visits: 16, Value: 7.00
+                                          - Visits: 11, Value: 5.00
+                                            - Visits: 10, Value: 4.00
+                                              - Visits: 9, Value: 3.00
+                                                - Visits: 5, Value: 1.00
+                                                  - Visits: 4, Value: 1.00
+                                                    - Visits: 3, Value: 0.00
+                                                      - Visits: 1, Value: 0.00 (Terminal) Good Win
+                                                      - Visits: 1, Value: 0.00 (Terminal) Good Win
+                                                - Visits: 3, Value: 1.00
+                                                  - Visits: 3, Value: 1.00
+                                                    - Visits: 2, Value: 0.00
+                                                      - Visits: 1, Value: 0.00 (Terminal) Good Win
+                                          - Visits: 4, Value: 1.00
+                                            - Visits: 3, Value: 0.00
+                                              - Visits: 2, Value: 0.00
+                                                - Visits: 0, Value: 0.00
+                                                - Visits: 1, Value: 0.00
+                                        - Visits: 15, Value: 7.00
+                                          - Visits: 9, Value: 5.00
+                                            - Visits: 8, Value: 4.00
+                                              - Visits: 7, Value: 3.00
+                                                - Visits: 3, Value: 1.00
+                                                  - Visits: 2, Value: 1.00
+                                                    - Visits: 1, Value: 0.00
+                                                - Visits: 3, Value: 1.00
+                                                  - Visits: 3, Value: 1.00
+                                                    - Visits: 2, Value: 0.00
+                                                      - Visits: 1, Value: 0.00 (Terminal) Good Win
+                                          - Visits: 5, Value: 1.00
+                                            - Visits: 3, Value: 0.00
+                                              - Visits: 1, Value: 0.00
+                                              - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                      - Visits: 15, Value: 5.00
+                                        - Visits: 9, Value: 4.00
+                                          - Visits: 7, Value: 3.00
+                                            - Visits: 3, Value: 2.00
+                                              - Visits: 1, Value: 0.00
+                                              - Visits: 1, Value: 0.00
+                                            - Visits: 3, Value: 1.00
+                                              - Visits: 1, Value: 0.00
+                                              - Visits: 1, Value: 0.00
+                                          - Visits: 1, Value: 0.00
+                                        - Visits: 5, Value: 1.00
+                                          - Visits: 3, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                          - Visits: 1, Value: 0.00
+                                    - Visits: 7, Value: 1.00
+                                      - Visits: 3, Value: 0.00
+                                        - Visits: 1, Value: 0.00
+                                        - Visits: 1, Value: 0.00
+                                      - Visits: 3, Value: 0.00
+                                        - Visits: 1, Value: 0.00
+                                        - Visits: 1, Value: 0.00
+                                - Visits: 5, Value: 0.00
+                                  - Visits: 4, Value: 0.00
+                                    - Visits: 3, Value: 0.00
+                                      - Visits: 1, Value: 0.00
+                                      - Visits: 1, Value: 0.00
+                                    - Visits: 1, Value: 0.00
+              - Visits: 9, Value: 0.00
+                - Visits: 5, Value: 0.00
+                  - Visits: 3, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+            - Visits: 31, Value: 6.00
+              - Visits: 7, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+              - Visits: 23, Value: 5.00
+                - Visits: 5, Value: 0.00
+                  - Visits: 3, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 17, Value: 5.00
+                  - Visits: 9, Value: 2.00
+                    - Visits: 8, Value: 2.00
+                      - Visits: 7, Value: 1.00
+                        - Visits: 4, Value: 0.00
+                          - Visits: 4, Value: 0.00
+                            - Visits: 3, Value: 0.00
+                              - Visits: 1, Value: 0.00
+                              - Visits: 1, Value: 0.00
+                        - Visits: 2, Value: 0.00
+                          - Visits: 1, Value: 0.00
+                  - Visits: 7, Value: 2.00
+                    - Visits: 7, Value: 2.00
+                      - Visits: 6, Value: 1.00
+                        - Visits: 5, Value: 0.00
+                          - Visits: 4, Value: 0.00
+                            - Visits: 3, Value: 0.00
+                              - Visits: 2, Value: 0.00
+                                - Visits: 1, Value: 0.00
+          - Visits: 190, Value: 68.00
+            - Visits: 165, Value: 63.00
+              - Visits: 146, Value: 59.00
+                - Visits: 145, Value: 59.00
+                  - Visits: 144, Value: 58.00
+                    - Visits: 143, Value: 58.00
+                      - Visits: 142, Value: 57.00
+                        - Visits: 141, Value: 56.00
+                          - Visits: 140, Value: 56.00
+                            - Visits: 139, Value: 56.00
+                              - Visits: 138, Value: 56.00
+                                - Visits: 81, Value: 35.00
+                                  - Visits: 80, Value: 35.00
+                                    - Visits: 34, Value: 14.00
+                                      - Visits: 13, Value: 5.00
+                                        - Visits: 3, Value: 1.00
+                                          - Visits: 1, Value: 0.00
+                                          - Visits: 1, Value: 0.00
+                                        - Visits: 9, Value: 4.00
+                                          - Visits: 1, Value: 0.00
+                                          - Visits: 7, Value: 3.00
+                                            - Visits: 3, Value: 1.00
+                                              - Visits: 1, Value: 0.00
+                                              - Visits: 1, Value: 0.00
+                                            - Visits: 3, Value: 1.00
+                                              - Visits: 1, Value: 0.00
+                                              - Visits: 1, Value: 0.00
+                                      - Visits: 20, Value: 9.00
+                                        - Visits: 9, Value: 4.00
+                                          - Visits: 3, Value: 1.00
+                                            - Visits: 1, Value: 1.00
+                                            - Visits: 1, Value: 0.00
+                                          - Visits: 5, Value: 2.00
+                                            - Visits: 3, Value: 1.00
+                                              - Visits: 1, Value: 0.00
+                                              - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 1.00
+                                        - Visits: 10, Value: 5.00
+                                          - Visits: 2, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                          - Visits: 7, Value: 4.00
+                                            - Visits: 1, Value: 0.00
+                                            - Visits: 5, Value: 3.00
+                                              - Visits: 4, Value: 2.00
+                                                - Visits: 2, Value: 1.00
+                                                  - Visits: 2, Value: 1.00
+                                                    - Visits: 1, Value: 0.00
+                                                - Visits: 1, Value: 0.00
+                                    - Visits: 46, Value: 21.00
+                                      - Visits: 28, Value: 14.00
+                                        - Visits: 5, Value: 1.00
+                                          - Visits: 2, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                          - Visits: 2, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                        - Visits: 22, Value: 12.00
+                                          - Visits: 8, Value: 4.00
+                                            - Visits: 6, Value: 4.00
+                                              - Visits: 5, Value: 3.00
+                                                - Visits: 3, Value: 2.00
+                                                  - Visits: 3, Value: 2.00
+                                                    - Visits: 2, Value: 1.00
+                                                      - Visits: 1, Value: 0.00 (Terminal) Good Win
+                                                - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                          - Visits: 13, Value: 7.00
+                                            - Visits: 2, Value: 0.00
+                                              - Visits: 0, Value: 0.00
+                                              - Visits: 1, Value: 0.00
+                                            - Visits: 10, Value: 7.00
+                                              - Visits: 9, Value: 6.00
+                                                - Visits: 3, Value: 2.00
+                                                  - Visits: 3, Value: 2.00
+                                                    - Visits: 2, Value: 1.00
+                                                      - Visits: 0, Value: 0.00 (Terminal) Good Win
+                                                      - Visits: 1, Value: 0.00 (Terminal) Good Win
+                                                - Visits: 5, Value: 3.00
+                                                  - Visits: 4, Value: 2.00
+                                                    - Visits: 3, Value: 1.00
+                                                      - Visits: 1, Value: 0.00 (Terminal) Good Win
+                                                      - Visits: 1, Value: 0.00 (Terminal) Good Win
+                                      - Visits: 17, Value: 7.00
+                                        - Visits: 9, Value: 3.00
+                                          - Visits: 5, Value: 1.00
+                                            - Visits: 3, Value: 0.00
+                                              - Visits: 1, Value: 0.00
+                                              - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                          - Visits: 3, Value: 1.00
+                                            - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                        - Visits: 7, Value: 3.00
+                                          - Visits: 3, Value: 1.00
+                                            - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                          - Visits: 3, Value: 1.00
+                                            - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                - Visits: 56, Value: 21.00
+                                  - Visits: 55, Value: 21.00
+                                    - Visits: 17, Value: 5.00
+                                      - Visits: 13, Value: 5.00
+                                        - Visits: 7, Value: 2.00
+                                          - Visits: 3, Value: 1.00
+                                            - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                          - Visits: 3, Value: 1.00
+                                            - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                        - Visits: 5, Value: 2.00
+                                          - Visits: 3, Value: 1.00
+                                            - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                          - Visits: 1, Value: 1.00
+                                      - Visits: 3, Value: 0.00
+                                        - Visits: 1, Value: 0.00
+                                        - Visits: 1, Value: 0.00
+                                    - Visits: 37, Value: 14.00
+                                      - Visits: 19, Value: 7.00
+                                        - Visits: 9, Value: 3.00
+                                          - Visits: 5, Value: 1.00
+                                            - Visits: 3, Value: 0.00
+                                              - Visits: 1, Value: 0.00
+                                              - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                          - Visits: 3, Value: 1.00
+                                            - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                        - Visits: 9, Value: 3.00
+                                          - Visits: 5, Value: 1.00
+                                            - Visits: 3, Value: 0.00
+                                              - Visits: 1, Value: 0.00
+                                              - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                          - Visits: 3, Value: 1.00
+                                            - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                      - Visits: 17, Value: 7.00
+                                        - Visits: 9, Value: 3.00
+                                          - Visits: 5, Value: 1.00
+                                            - Visits: 3, Value: 0.00
+                                              - Visits: 1, Value: 0.00
+                                              - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                          - Visits: 3, Value: 1.00
+                                            - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                        - Visits: 7, Value: 3.00
+                                          - Visits: 3, Value: 1.00
+                                            - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+                                          - Visits: 3, Value: 1.00
+                                            - Visits: 1, Value: 0.00
+                                            - Visits: 1, Value: 0.00
+              - Visits: 18, Value: 3.00
+                - Visits: 17, Value: 3.00
+                  - Visits: 16, Value: 2.00
+                    - Visits: 15, Value: 2.00
+                      - Visits: 14, Value: 1.00
+                        - Visits: 13, Value: 0.00
+                          - Visits: 12, Value: 0.00
+                            - Visits: 11, Value: 0.00
+                              - Visits: 5, Value: 0.00
+                                - Visits: 3, Value: 0.00
+                                  - Visits: 2, Value: 0.00
+                                    - Visits: 1, Value: 0.00
+                                    - Visits: 1, Value: 0.00
+                                - Visits: 1, Value: 0.00
+                              - Visits: 5, Value: 0.00
+                                - Visits: 3, Value: 0.00
+                                  - Visits: 2, Value: 0.00
+                                    - Visits: 1, Value: 0.00
+                                    - Visits: 1, Value: 0.00
+                                - Visits: 1, Value: 0.00
+            - Visits: 24, Value: 4.00
+              - Visits: 16, Value: 3.00
+                - Visits: 15, Value: 2.00
+                  - Visits: 15, Value: 2.00
+                    - Visits: 14, Value: 1.00
+                      - Visits: 6, Value: 0.00
+                        - Visits: 3, Value: 0.00
+                          - Visits: 2, Value: 0.00
+                            - Visits: 1, Value: 0.00
+                        - Visits: 3, Value: 0.00
+                          - Visits: 3, Value: 0.00
+                            - Visits: 2, Value: 0.00
+                              - Visits: 1, Value: 0.00
+                      - Visits: 7, Value: 0.00
+                        - Visits: 6, Value: 0.00
+                          - Visits: 5, Value: 0.00
+                            - Visits: 4, Value: 0.00
+                              - Visits: 3, Value: 0.00
+                                - Visits: 2, Value: 0.00
+                                  - Visits: 1, Value: 0.00
+                                  - Visits: 1, Value: 0.00
+              - Visits: 7, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+      - Visits: 103, Value: 21.00
+        - Visits: 47, Value: 9.00
+          - Visits: 19, Value: 3.00
+            - Visits: 9, Value: 1.00
+              - Visits: 5, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+              - Visits: 3, Value: 0.00
+                - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+            - Visits: 9, Value: 1.00
+              - Visits: 5, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+              - Visits: 3, Value: 0.00
+                - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+          - Visits: 27, Value: 6.00
+            - Visits: 9, Value: 1.00
+              - Visits: 5, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+              - Visits: 3, Value: 0.00
+                - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+            - Visits: 17, Value: 4.00
+              - Visits: 5, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+              - Visits: 11, Value: 3.00
+                - Visits: 10, Value: 2.00
+                  - Visits: 9, Value: 2.00
+                    - Visits: 8, Value: 1.00
+                      - Visits: 7, Value: 0.00
+                        - Visits: 6, Value: 0.00
+                          - Visits: 5, Value: 0.00
+                            - Visits: 4, Value: 0.00
+                              - Visits: 3, Value: 0.00
+                                - Visits: 2, Value: 0.00
+                                  - Visits: 1, Value: 0.00
+                                  - Visits: 1, Value: 0.00
+        - Visits: 55, Value: 11.00
+          - Visits: 35, Value: 8.00
+            - Visits: 19, Value: 4.00
+              - Visits: 13, Value: 3.00
+                - Visits: 9, Value: 3.00
+                  - Visits: 8, Value: 2.00
+                    - Visits: 7, Value: 2.00
+                      - Visits: 6, Value: 1.00
+                        - Visits: 5, Value: 0.00
+                          - Visits: 4, Value: 0.00
+                            - Visits: 3, Value: 0.00
+                              - Visits: 1, Value: 0.00
+                              - Visits: 1, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+              - Visits: 5, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+            - Visits: 15, Value: 3.00
+              - Visits: 7, Value: 1.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+              - Visits: 7, Value: 1.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+          - Visits: 19, Value: 3.00
+            - Visits: 13, Value: 2.00
+              - Visits: 3, Value: 0.00
+                - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+              - Visits: 9, Value: 2.00
+                - Visits: 5, Value: 1.00
+                  - Visits: 3, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 3, Value: 1.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+            - Visits: 5, Value: 0.00
+              - Visits: 3, Value: 0.00
+                - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+              - Visits: 1, Value: 0.00
+    - Visits: 361, Value: 84.00
+      - Visits: 253, Value: 63.00
+        - Visits: 31, Value: 3.00
+          - Visits: 21, Value: 3.00
+            - Visits: 11, Value: 2.00
+              - Visits: 7, Value: 2.00
+                - Visits: 3, Value: 1.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 3, Value: 1.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+              - Visits: 3, Value: 0.00
+                - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+            - Visits: 9, Value: 1.00
+              - Visits: 5, Value: 1.00
+                - Visits: 3, Value: 1.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+              - Visits: 3, Value: 0.00
+                - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+          - Visits: 9, Value: 0.00
+            - Visits: 5, Value: 0.00
+              - Visits: 3, Value: 0.00
+                - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+              - Visits: 1, Value: 0.00
+            - Visits: 3, Value: 0.00
+              - Visits: 1, Value: 0.00
+              - Visits: 1, Value: 0.00
+        - Visits: 221, Value: 59.00
+          - Visits: 153, Value: 44.00
+            - Visits: 71, Value: 20.00
+              - Visits: 30, Value: 8.00
+                - Visits: 13, Value: 3.00
+                  - Visits: 7, Value: 1.00
+                    - Visits: 3, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                    - Visits: 3, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                  - Visits: 5, Value: 1.00
+                    - Visits: 3, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                - Visits: 16, Value: 5.00
+                  - Visits: 5, Value: 1.00
+                    - Visits: 3, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                  - Visits: 10, Value: 3.00
+                    - Visits: 4, Value: 1.00
+                      - Visits: 2, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                    - Visits: 5, Value: 1.00
+                      - Visits: 3, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+              - Visits: 40, Value: 12.00
+                - Visits: 21, Value: 7.00
+                  - Visits: 7, Value: 1.00
+                    - Visits: 3, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                    - Visits: 3, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                  - Visits: 13, Value: 5.00
+                    - Visits: 7, Value: 2.00
+                      - Visits: 3, Value: 1.00
+                        - Visits: 1, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                      - Visits: 3, Value: 1.00
+                        - Visits: 1, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                    - Visits: 5, Value: 2.00
+                      - Visits: 2, Value: 1.00
+                        - Visits: 1, Value: 0.00
+                      - Visits: 2, Value: 1.00
+                        - Visits: 1, Value: 0.00
+                - Visits: 18, Value: 5.00
+                  - Visits: 7, Value: 1.00
+                    - Visits: 3, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                    - Visits: 3, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                  - Visits: 10, Value: 3.00
+                    - Visits: 5, Value: 1.00
+                      - Visits: 2, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                      - Visits: 2, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                    - Visits: 4, Value: 1.00
+                      - Visits: 2, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+            - Visits: 81, Value: 24.00
+              - Visits: 47, Value: 15.00
+                - Visits: 24, Value: 8.00
+                  - Visits: 13, Value: 5.00
+                    - Visits: 7, Value: 2.00
+                      - Visits: 3, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                      - Visits: 3, Value: 1.00
+                        - Visits: 1, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                    - Visits: 5, Value: 2.00
+                      - Visits: 3, Value: 1.00
+                        - Visits: 2, Value: 0.00
+                          - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                  - Visits: 10, Value: 3.00
+                    - Visits: 5, Value: 1.00
+                      - Visits: 3, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                    - Visits: 4, Value: 1.00
+                      - Visits: 2, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                - Visits: 22, Value: 7.00
+                  - Visits: 11, Value: 4.00
+                    - Visits: 4, Value: 1.00
+                      - Visits: 2, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                    - Visits: 6, Value: 2.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 4, Value: 1.00
+                        - Visits: 3, Value: 0.00
+                          - Visits: 1, Value: 0.00
+                          - Visits: 1, Value: 0.00
+                  - Visits: 10, Value: 3.00
+                    - Visits: 4, Value: 1.00
+                      - Visits: 2, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                    - Visits: 5, Value: 1.00
+                      - Visits: 3, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+              - Visits: 33, Value: 9.00
+                - Visits: 17, Value: 5.00
+                  - Visits: 9, Value: 3.00
+                    - Visits: 5, Value: 1.00
+                      - Visits: 3, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                    - Visits: 3, Value: 1.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                  - Visits: 7, Value: 2.00
+                    - Visits: 3, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                    - Visits: 3, Value: 1.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                - Visits: 15, Value: 4.00
+                  - Visits: 7, Value: 2.00
+                    - Visits: 3, Value: 1.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                    - Visits: 3, Value: 1.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                  - Visits: 7, Value: 2.00
+                    - Visits: 3, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                    - Visits: 3, Value: 1.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+          - Visits: 67, Value: 15.00
+            - Visits: 31, Value: 7.00
+              - Visits: 7, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+              - Visits: 23, Value: 6.00
+                - Visits: 11, Value: 3.00
+                  - Visits: 7, Value: 2.00
+                    - Visits: 3, Value: 1.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                    - Visits: 3, Value: 1.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                  - Visits: 3, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                - Visits: 11, Value: 3.00
+                  - Visits: 7, Value: 2.00
+                    - Visits: 3, Value: 1.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                    - Visits: 3, Value: 1.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                  - Visits: 3, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                    - Visits: 1, Value: 0.00
+            - Visits: 35, Value: 8.00
+              - Visits: 11, Value: 1.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 7, Value: 1.00
+                  - Visits: 3, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                  - Visits: 3, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                    - Visits: 1, Value: 0.00
+              - Visits: 23, Value: 6.00
+                - Visits: 15, Value: 5.00
+                  - Visits: 3, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                  - Visits: 11, Value: 4.00
+                    - Visits: 4, Value: 1.00
+                      - Visits: 1, Value: 0.00
+                      - Visits: 2, Value: 1.00
+                        - Visits: 1, Value: 0.00
+                    - Visits: 6, Value: 2.00
+                      - Visits: 3, Value: 1.00
+                        - Visits: 1, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                      - Visits: 2, Value: 1.00
+                        - Visits: 1, Value: 0.00
+                - Visits: 7, Value: 1.00
+                  - Visits: 6, Value: 0.00
+                    - Visits: 3, Value: 0.00
+                      - Visits: 2, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                          - Visits: 1, Value: 0.00
+                    - Visits: 2, Value: 0.00
+                      - Visits: 2, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                        - Visits: 0, Value: 0.00
+      - Visits: 107, Value: 21.00
+        - Visits: 63, Value: 13.00
+          - Visits: 35, Value: 8.00
+            - Visits: 19, Value: 5.00
+              - Visits: 9, Value: 2.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 5, Value: 2.00
+                  - Visits: 4, Value: 1.00
+                    - Visits: 3, Value: 1.00
+                      - Visits: 2, Value: 0.00
+                        - Visits: 2, Value: 0.00
+                          - Visits: 1, Value: 0.00
+              - Visits: 9, Value: 2.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 5, Value: 2.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 3, Value: 1.00
+                    - Visits: 3, Value: 1.00
+                      - Visits: 1, Value: 0.00
+                        - Visits: 0, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                      - Visits: 1, Value: 0.00
+            - Visits: 15, Value: 3.00
+              - Visits: 5, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+              - Visits: 9, Value: 2.00
+                - Visits: 4, Value: 1.00
+                  - Visits: 4, Value: 1.00
+                    - Visits: 3, Value: 0.00
+                      - Visits: 3, Value: 0.00
+                        - Visits: 2, Value: 0.00
+                          - Visits: 1, Value: 0.00
+                - Visits: 4, Value: 1.00
+                  - Visits: 3, Value: 1.00
+                    - Visits: 1, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                      - Visits: 0, Value: 0.00
+                      - Visits: 1, Value: 0.00
+          - Visits: 27, Value: 5.00
+            - Visits: 15, Value: 3.00
+              - Visits: 7, Value: 1.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+              - Visits: 7, Value: 1.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+            - Visits: 11, Value: 2.00
+              - Visits: 6, Value: 1.00
+                - Visits: 2, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+              - Visits: 4, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 2, Value: 0.00
+                    - Visits: 1, Value: 0.00
+                    - Visits: 0, Value: 0.00
+        - Visits: 43, Value: 7.00
+          - Visits: 19, Value: 3.00
+            - Visits: 9, Value: 1.00
+              - Visits: 5, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+              - Visits: 3, Value: 0.00
+                - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+            - Visits: 9, Value: 1.00
+              - Visits: 8, Value: 0.00
+                - Visits: 7, Value: 0.00
+                  - Visits: 6, Value: 0.00
+                    - Visits: 3, Value: 0.00
+                      - Visits: 2, Value: 0.00
+                        - Visits: 1, Value: 0.00
+                    - Visits: 2, Value: 0.00
+                      - Visits: 2, Value: 0.00
+                        - Visits: 1, Value: 0.00
+          - Visits: 23, Value: 4.00
+            - Visits: 13, Value: 2.00
+              - Visits: 8, Value: 1.00
+                - Visits: 4, Value: 0.00
+                  - Visits: 3, Value: 0.00
+                    - Visits: 2, Value: 0.00
+                      - Visits: 1, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                  - Visits: 1, Value: 0.00
+              - Visits: 4, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 2, Value: 0.00
+                    - Visits: 0, Value: 0.00
+                    - Visits: 1, Value: 0.00
+            - Visits: 9, Value: 1.00
+              - Visits: 4, Value: 0.00
+                - Visits: 3, Value: 0.00
+                  - Visits: 2, Value: 0.00
+                    - Visits: 1, Value: 0.00
+              - Visits: 4, Value: 0.00
+                - Visits: 2, Value: 0.00
+                  - Visits: 1, Value: 0.00
+                - Visits: 1, Value: 0.00
+  - Visits: 1, Value: 0.00
+None
+Alive players: Players: A (Alive), B (Alive), C (Alive), D (Alive), E (Alive), F (Alive)
+Good win: False
+Evil win: False
+<__main__.Poisoner object at 0x0000029A06551D90>
+<__main__.Ravenkeeper object at 0x0000029A06551C70>
+<__main__.Washerwoman object at 0x0000029A0650C460>
+<__main__.Imp object at 0x0000029A0650CEE0>
+<__main__.Empath object at 0x0000029A0650C100>
+<__main__.Investigator object at 0x0000029A0650CC70>
+Good wins: 25 / Evil wins: 0
+Good wins: 25 / Evil wins: 0
+Execution time: 41143.920403 seconds
+Errors: 13
+Press any key to continue . . .

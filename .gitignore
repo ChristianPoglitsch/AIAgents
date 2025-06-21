@@ -141,6 +141,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+*.tar
 
 # Spyder project settings
 .spyderproject
@@ -177,3 +178,10 @@ cython_debug/
 .vs/
 
 LLM_Character/trained/*
+*.pkl
+training_botc/*
+training_botc_basic/*
+mcts_tree_temp.zip
+training_botc_basic_training/*
+training_botc_basic_self_mistral/*
+LLM_Character/games/SocialTraining/data/*

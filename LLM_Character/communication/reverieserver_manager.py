@@ -1,4 +1,4 @@
-from LLM_Character.world.game import ReverieServer
+from LLM_Character.depreciated.world.game import ReverieServer
 
 
 class ReverieServerManager:

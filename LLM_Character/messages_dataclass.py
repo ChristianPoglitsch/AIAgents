@@ -7,15 +7,15 @@ from typing import List
 class AIMessage:
     """A single message of a chat."""
 
-    def __init__(self, sender: str, message: str, role: str, class_type: str):
+    def __init__(self,  message: str, sender: str = 'user', role : str ='user', class_type : str = 'MessageAI'):
         """
         Initializes the AIMessage instance.
 
         Args:
             message (str): The message sent in the chat.
+            sender (str): Name of sender. Can be a user/usename/avatar name.
             role (str): The sender of the message, either `user` or `assistant`.
-            kwargs (dict): Includes the field `class_type` to indicate if this message
-            is part of the system background for the LLM. (e.g. `MessageAI` or `Introduction`)
+            class_type (str): Field `class_type` to indicate if this message to indicate if message is part of the system background for the LLM. (e.g. `MessageAI` or `Introduction`)
         """
         self.message = message
         self.role = role
@@ -94,18 +94,14 @@ class AIMessages:
     def __init__(self):
         self.messages: List[AIMessage] = []
 
-    def add_message(self, message: str, sender: str, role: str, class_type: str):
+    def add_message(self, message: AIMessage):
         """
         Creates an AIMessage instance with the given `message` and `role`.
 
         Args:
-            message (str): The content of the message.
-            role (str): The role of the sender (e.g., 'user' or 'assistant').
-
-        Returns:
-            AIMessage: The created AIMessage instance.
-        """
-        self.messages.append(AIMessage(sender, message, role, class_type))
+            message (AIMessage): The content of the message.
+        """        
+        self.messages.append(message)
 
     def get_messages(self) -> List[AIMessage]:
         """
@@ -115,6 +111,13 @@ class AIMessages:
             List[AIMessage]: A list of AIMessage instances representing the chat history.
         """
         return self.messages
+
+    def remove_item(self, index : int):
+        """
+        Remove item at index from list
+
+        """
+        self.messages.pop(index)
 
     def get_formatted(self) -> List[dict]:
         """
@@ -222,16 +225,16 @@ class AIMessages:
 if __name__ == "__main__":
     from LLM_Character.communication.incoming_messages import PromptMessage
 
-    pm = PromptMessage(1, "Hallo Wereld")
-    print("JSON ", pm.toJSON())
+    # pm = PromptMessage(1, "Hallo Wereld")
+    # print("JSON ", pm.toJSON())
 
     print("\n")
     print("--------------------")
     print("\n")
 
-    ai_message = AIMessage("Hallo", "user", class_type="MessageAI")
-    print("message_formatted: ", ai_message.get_message_formatted())
-    print("print_message: ", ai_message.print_message())
+    ai_message = AIMessage(message="Hallo")
+    print("message_formatted: ", ai_message.get_formatted())
+    print("print_message: ", ai_message.print_message_role())
     print("get_user_message: ", ai_message.get_user_message())
     print("get_role: ", ai_message.get_role())
     print("get_type: ", ai_message.get_type())
@@ -241,19 +244,20 @@ if __name__ == "__main__":
     print("\n")
 
     aimessages = AIMessages()
-    aimessages.add_message(AIMessage("Hello", "user"))
-    aimessages.add_message(AIMessage("Hi", "assistant"))
-    aimessages.add_message(AIMessage("How are you?", "user"))
+    aimessages.add_message(AIMessage(message="Hello", sender='user', role="user", class_type='MessageAI'))
+    aimessages.add_message(AIMessage(message="Hi", sender="assistant", role="assistant", class_type='MessageAI'))
+    aimessages.add_message(AIMessage(message="How are you?", sender="user", role="user", class_type='MessageAI'))
+    aimessages.add_message(ai_message)
 
-    print("get_messages_formatted: ", aimessages.get_messages_formatted())
+    print("get_messages_formatted: ", aimessages.prints_messages_role())
 
-    file_path = "dialogues/test_messages.json"
+    file_path = "test_messages.json"
     aimessages.write_messages_to_json(file_path)
     print(f"written to {file_path}")
 
     print(
         "read from JSON: ",
-        AIMessages.read_messages_from_json(file_path).prints_messages(),
+        AIMessages.read_messages_from_json(file_path).prints_messages_role(),
     )
 
     print("\n")
@@ -270,7 +274,7 @@ if __name__ == "__main__":
 
     serialised_message = json.dumps(struct_message)
     m = AIMessage(serialised_message, "assistant")
-    messages_dict = m.get_message_formatted()
+    messages_dict = m.print_message_role()
     print("serialised_message: ", messages_dict)
 
     print("\n")
@@ -284,7 +288,7 @@ if __name__ == "__main__":
     aimessages.add_message(AIMessage("How are you?", "user"))
 
     # b = [i.__dict__ for i in aimessages.get_messages()]
-    b = aimessages.get_messages_formatted()
+    b = aimessages.prints_messages_role()
     print(b)
     print("--------------------")
 

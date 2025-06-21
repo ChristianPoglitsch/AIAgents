@@ -66,6 +66,9 @@ def load_and_train_mistral_example():
 
         print_generated_text("\n after fine tuning", prompt, text1, text2)
 
+    del tokenizer
+    torch.cuda.empty_cache()
+
 
 def load_mistral_example():
     model, tokenizer = load_mistral_instr_model()
@@ -78,6 +81,9 @@ def load_mistral_example():
 
     text1 = generate_text(question, model, tokenizer, generation_config, 50)
     print_generated_text("\n after fine tuning", question, text1, "")
+    
+    del tokenizer
+    torch.cuda.empty_cache()
 
 
 def run_formatting_example(model_id):
@@ -121,6 +127,9 @@ def run_formatting_example(model_id):
     # inputs = tokenizer(formatted_prompt, return_tensors="pt").to(model.device)
     # outputs = model.generate(inputs=inputs.input_ids, max_new_tokens=60)
     # print(tokenizer.decode(outputs[0], skip_special_tokens=True))
+
+    del tokenizer
+    torch.cuda.empty_cache()
 
 
 def run_train_model_example(model_id, trained_path):
@@ -181,14 +190,11 @@ def run_train_model_example(model_id, trained_path):
     )
     model.config.torch_dtype = torch.bfloat16
 
-    trainer = train_model(model, tokenizer, trained_path)
+    _ = train_model(model, tokenizer, dataset, trained_path)
+    
+    del tokenizer
+    torch.cuda.empty_cache()
 
-    prompt = "Ich habe extreme Schmerzen im unteren Rücken."
-    formatted_prompt = get_formatted_prompt(prompt)
-
-    inputs = tokenizer(formatted_prompt, return_tensors="pt").to(model.device)
-    outputs = model.generate(inputs=inputs.input_ids, max_new_tokens=300)
-    print(tokenizer.decode(outputs[0], skip_special_tokens=True))
 
 
 def run_trained_model(model_id, trained_path):
@@ -200,10 +206,22 @@ def run_trained_model(model_id, trained_path):
     )
 
     prompt = "Ich habe extreme Schmerzen im unteren Rücken."
+    prompt = "The capital of Austria?"
     formatted_prompt = get_formatted_prompt(prompt)
 
     inputs = tokenizer(formatted_prompt, return_tensors="pt").to(model.device)
-    outputs = model.generate(inputs=inputs.input_ids, max_new_tokens=300)
+    #outputs = model.generate(inputs=inputs.input_ids, max_new_tokens=300)
+
+    generation_config = GenerationConfig(
+        do_sample=True,
+        temperature=0.2,  # 1.0
+        pad_token_id=tokenizer.eos_token_id,
+        max_new_tokens=50,
+    )
+    generation_config.eos_token_id = tokenizer.eos_token_id
+
+    outputs = model.generate(input_ids=inputs["input_ids"], generation_config=generation_config)
+
     print(tokenizer.decode(outputs[0], skip_special_tokens=True))
 
 
@@ -213,14 +231,15 @@ if __name__ == "__main__":
     # Extracting all the contents in the directory corresponding to path
     l_files = os.listdir(path)
 
-    load_and_train_mistral_example()
-    load_mistral_example()
+    # load_and_train_mistral_example()
+    # load_mistral_example()
 
     model_id = "openlm-research/open_llama_7b_v2"
-    model_id = "mistralai/Mistral-7B-Instruct-v0.2"
-    # trained_path = "thisserand/health_care_german"
+    model_id = "mistralai/Mistral-7B-Instruct-v0.3"
+    trained_path = "trained\\Mistral-7b-v2-finetune"
+    trained_path = "trained/health_care_german"
+    trained_path = "trained\\Mistral-7b-v3-finetune"
 
-    run_formatting_example(model_id)
-    # FIXME:
+    # run_formatting_example(model_id)
     # run_train_model_example(model_id, trained_path)
-    # run_trained_model(model_id, trained_path)
+    run_trained_model(model_id, trained_path)

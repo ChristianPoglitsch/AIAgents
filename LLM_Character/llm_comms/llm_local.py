@@ -38,10 +38,11 @@ class LocalComms(LLMComms):
         self._model: PreTrainedModel = None
         self._tokenizer: PreTrainedTokenizer = None
         self._embedding_model: SentenceTransformer = None
+        self._model_name = ''
 
         self.max_tokens = 100
         self.temperature = 0.8
-        self.top_p = 1
+        self.top_p = 1        
 
     def init(self, base_model_id: str, finetuned_model_id: str = None):
         """
@@ -65,13 +66,23 @@ class LocalComms(LLMComms):
             self._model, self._tokenizer = self._load_model_hf(base_model_id)
 
         # FIXME: cannot use mistral, since it is not an embedding model.
-        self._embedding_model = SentenceTransformer(
-            "sentence-transformers/all-MiniLM-L6-v2"
-        )
+        #self._embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+        self._model_name = base_model_id
+
+    def set_temperature(self, temperature: float):
+        self.temperature = temperature
+
+    def get_model_name(self) -> str:
+        """Get model name/id
+
+        Returns:
+            str: model name
+        """
+        return self._model_name
 
     def send_text(self, prompt: AIMessages, max_length=100) -> Optional[str]:
         """
-        send a prompt to openAI endpoint for chat completions.
+        send a prompt to local endpoint for chat completions.
         """
         if len(prompt) == 0:
             return None
@@ -159,17 +170,37 @@ class LocalComms(LLMComms):
         return False
 
     def _check_local(self, finetuned_model_id):
-        return os.path.isdir(f"trained\\{finetuned_model_id}")
+        return os.path.isdir(f"{finetuned_model_id}")
 
     def _load_model_loc(
-        self, model_id: str, finetuned_model_id: str
+        self, model_id: str, adapters_id: str
     ) -> tuple[PreTrainedModel, PreTrainedTokenizer]:
-        base_model = load_base_model(model_id)
-        path = f"trained\\{finetuned_model_id}"
-        model = PeftModel.from_pretrained(base_model, path)
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_id, padding_side="right", use_fast=False
+        # 4-bit Quantization Config
+        quantization_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.bfloat16,  # More stable
+            bnb_4bit_use_double_quant=True,  # Efficient
         )
+
+        # Load Base Model
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            quantization_config=quantization_config,
+            torch_dtype=torch.bfloat16,  # Matches quantization
+            device_map="auto"  # Ensures optimal device placement
+        )
+
+        # Load Adapters if provided
+        if adapters_id:
+            model = PeftModel.from_pretrained(model, adapters_id)
+
+        # Adjust model settings
+        model.config.sliding_window = 4096  # Not needed for Mistral/DeepSeek, but OK if required
+
+        # Load Tokenizer
+        tokenizer = AutoTokenizer.from_pretrained(model_id)
+        tokenizer.pad_token = tokenizer.eos_token  # Set padding token
+
         return model, tokenizer
 
     def _load_model_hf(
@@ -180,27 +211,27 @@ class LocalComms(LLMComms):
 
         Returns:
             tuple: A tuple containing the model and tokenizer.
-        """
-
-        # The `load_in_4bit` and `load_in_8bit` arguments
-        # are deprecated and will be removed in the future versions.
-        # Please, pass a `BitsAndBytesConfig` object in `quantization_config`
-        # argument instead.
-        quantization_config = BitsAndBytesConfig(load_in_4bit=True)
-
-        model = AutoModelForCausalLM.from_pretrained(  # device_map="auto"
-            model_id,
-            quantization_config=quantization_config,
-            torch_dtype=torch.bfloat16,
+        """        
+        quantization_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.bfloat16,  # Ensures stable quantization
+            bnb_4bit_use_double_quant=True,  # Improves efficiency
         )
 
-        model.config.sliding_window = 4096
-        tokenizer = AutoTokenizer.from_pretrained(model_id)
-        # tokenizer.bos_token = "<bos>"
-        # tokenizer.pad_token = "<pad>"
-        tokenizer.cls_token = "<cls>"
-        tokenizer.sep_token = "<s>"
-        tokenizer.mask_token = "<mask>"
+        # Load Base Model with Auto Device Placement
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            quantization_config=quantization_config,
+            torch_dtype=torch.bfloat16,  
+            device_map="auto"  # Automatically assigns to GPU/CPU
+        )
+
+        # Load Tokenizer
+        tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+
+        # Set Proper Padding Token (Prevents Issues)
+        tokenizer.pad_token = tokenizer.eos_token
+
         return model, tokenizer
 
     def _request(
@@ -225,19 +256,25 @@ class LocalComms(LLMComms):
 
         device = "cuda"
         inputs = tokenizer.apply_chat_template(
-            message.get_formatted(), return_tensors="pt"
+            message.get_formatted(), return_tensors="pt", add_generation_prompt=True
         ).to(device)  # tokenize=False)
 
         generation_config = GenerationConfig(
             do_sample=True,
-            temperature=0.2,  # 1.0
+            temperature=self.temperature,
             pad_token_id=tokenizer.eos_token_id,
             max_new_tokens=max_length,
         )
         generation_config.eos_token_id = tokenizer.eos_token_id
 
         outputs = model.generate(inputs, generation_config=generation_config)
-        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        #outputs = model.generate(input_ids=inputs["input_ids"], generation_config=generation_config)
+        #response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        
+        # Temp for Mistral 7 v03
+        prompt_length = inputs.shape[1]
+        response = tokenizer.decode(outputs[0][prompt_length:], skip_special_tokens=True)
+        #response = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
         # print("Processing time: " + str(time.process_time() - start_time) + " sec")
         return response

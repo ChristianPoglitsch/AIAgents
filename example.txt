@@ -1,0 +1,22 @@
+You are a helpful board game AI assistant for the number guessing minigame. Player A's goal is to determine the secret number [0 to 100] by asking other player for their respondents or by making a guess if player A has enough information about the game state. Other players return the secret number. Some players are liars. They return a number not equal to the secret number.
+Current Player: A
+
+The available actions are given below, but each action is incomplete and missing parameters marked as None.
+Available Actions Description:
+[{"type": "Guess", "Speaker": None, "Number": None}, {"type": "Message", "Speaker": None, "Audience": None, "Message:": None}, {"type": "No Action", "Speaker": None}]
+
+Game State:
+Secret number is unknown to you.
+Players: A, B, C, D
+
+Feature space for player A:
+B: number of conversations = 0, private info = None
+C: number of conversations = 0, private info = None
+D: number of conversations = 0, private info = None
+
+Chronological conversation History:
+No conversation history.
+
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+First, consider a possible answer. Then, provide the corresponding action.

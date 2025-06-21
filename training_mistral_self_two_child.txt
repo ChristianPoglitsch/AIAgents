@@ -1,0 +1,89 @@
+ Chronological conversation History:
+D: {'type': 'Message', 'Speaker': 'D', 'Audience': ['A', 'B', 'C', 'E', 'F'], 'Message': "I've heard some rumors that one of you might be the Slayer or the Poisoner. I think it's crucial we work together to root them out before it's too late. Let's start sharing information about each other."}
+C: {'type': 'Message', 'Speaker': 'C', 'Audience': ['A', 'B', 'D', 'E', 'F'], 'Message': "I have been gathering information and I believe one of us might be working with the darkness. Let's share what we know to root out the evil before it's too late."}
+
+Current phase: Day
+Players: A (Alive), B (Alive), C (Alive), D (Alive), E (Alive), F (Alive). This list also represents the seating order. The first and last players are seated next to each other.
+These roles are in the game: Empath, Imp, Investigator, Poisoner, Ravenkeeper, Slayer, Soldier, Washerwoman. You can use the rules to bluff.
+Your role: Washerwoman - Learns that one of two players is a specific Townsfolk. Reason about the game state and find the evil players.
+
+You learn that B or E is a Soldier
+
+Game state for player E:
+A: number of conversations = 0, private info = None
+B: number of conversations = 0, private info = None
+C: number of conversations = 0, private info = None
+D: number of conversations = 0, private info = None
+F: number of conversations = 0, private info = None
+
+Based on the Game State select an action to win the game. Audience of the messages can only be other players. You can write to multiple other players. Do not use All.
+Please output one complete possible action from the Available Actions Description list in JSON format.
+Do NOT use any markdown formatting (e.g., ```json) in your response and use double quotes. Replace all None parts in the action.
+*** *** ***
+{"type": "Message", "Speaker": "E", "Audience": ["B"], "Message": "I've been observing our group carefully during the day, and I believe it's crucial we work together to root out the evil. I have reason to believe that one of us might be a Soldier. Let's share what we know to find the truth.", "Message-Type": "Truth-Telling"}
+--- --- ---
+Loading checkpoint shards: 100%|█████████████████████████████████████████████████████████| 3/3 [00:12<00:00,  4.22s/it]
+Map: 100%|████████████████████████████████████████████████████████████████| 1526/1526 [00:00<00:00, 4337.03 examples/s]
+Map: 100%|██████████████████████████████████████████████████████████████████| 170/170 [00:00<00:00, 3084.75 examples/s]
+{'loss': 1.2942, 'grad_norm': 0.7332629561424255, 'learning_rate': 0.0002, 'epoch': 0.02617801047120419}
+{'loss': 0.4252, 'grad_norm': 0.4568001329898834, 'learning_rate': 0.0002, 'epoch': 0.05235602094240838}
+{'loss': 0.3202, 'grad_norm': 0.3134753406047821, 'learning_rate': 0.0002, 'epoch': 0.07853403141361257}
+{'loss': 0.2742, 'grad_norm': 0.25847718119621277, 'learning_rate': 0.0002, 'epoch': 0.10471204188481675}
+{'loss': 0.2523, 'grad_norm': 0.2908066511154175, 'learning_rate': 0.0002, 'epoch': 0.13089005235602094}
+{'loss': 0.2503, 'grad_norm': 0.25171321630477905, 'learning_rate': 0.0002, 'epoch': 0.15706806282722513}
+{'loss': 0.2327, 'grad_norm': 0.2228814661502838, 'learning_rate': 0.0002, 'epoch': 0.18324607329842932}
+{'loss': 0.2354, 'grad_norm': 0.22893133759498596, 'learning_rate': 0.0002, 'epoch': 0.2094240837696335}
+{'loss': 0.2132, 'grad_norm': 0.19330433011054993, 'learning_rate': 0.0002, 'epoch': 0.2356020942408377}
+{'loss': 0.2045, 'grad_norm': 0.26117274165153503, 'learning_rate': 0.0002, 'epoch': 0.2617801047120419}
+{'loss': 0.2043, 'grad_norm': 0.23239575326442719, 'learning_rate': 0.0002, 'epoch': 0.2879581151832461}
+{'loss': 0.1956, 'grad_norm': 0.3487643897533417, 'learning_rate': 0.0002, 'epoch': 0.31413612565445026}
+{'loss': 0.1714, 'grad_norm': 0.2179047167301178, 'learning_rate': 0.0002, 'epoch': 0.3403141361256545}
+{'loss': 0.1923, 'grad_norm': 0.23443926870822906, 'learning_rate': 0.0002, 'epoch': 0.36649214659685864}
+{'loss': 0.1787, 'grad_norm': 0.2382851392030716, 'learning_rate': 0.0002, 'epoch': 0.39267015706806285}
+{'loss': 0.1638, 'grad_norm': 0.29607126116752625, 'learning_rate': 0.0002, 'epoch': 0.418848167539267}
+{'loss': 0.1841, 'grad_norm': 0.1714889258146286, 'learning_rate': 0.0002, 'epoch': 0.44502617801047123}
+{'loss': 0.1751, 'grad_norm': 0.28791099786758423, 'learning_rate': 0.0002, 'epoch': 0.4712041884816754}
+{'loss': 0.1898, 'grad_norm': 0.21989375352859497, 'learning_rate': 0.0002, 'epoch': 0.4973821989528796}
+{'loss': 0.1626, 'grad_norm': 0.21611294150352478, 'learning_rate': 0.0002, 'epoch': 0.5235602094240838}
+{'loss': 0.1523, 'grad_norm': 0.2686941623687744, 'learning_rate': 0.0002, 'epoch': 0.5497382198952879}
+{'loss': 0.1402, 'grad_norm': 0.21860866248607635, 'learning_rate': 0.0002, 'epoch': 0.5759162303664922}
+{'loss': 0.1485, 'grad_norm': 0.26528966426849365, 'learning_rate': 0.0002, 'epoch': 0.6020942408376964}
+{'loss': 0.1463, 'grad_norm': 0.32802867889404297, 'learning_rate': 0.0002, 'epoch': 0.6282722513089005}
+{'loss': 0.1344, 'grad_norm': 0.19552625715732574, 'learning_rate': 0.0002, 'epoch': 0.6544502617801047}
+{'loss': 0.1337, 'grad_norm': 0.1717289686203003, 'learning_rate': 0.0002, 'epoch': 0.680628272251309}
+{'loss': 0.1433, 'grad_norm': 0.27761149406433105, 'learning_rate': 0.0002, 'epoch': 0.7068062827225131}
+{'loss': 0.1516, 'grad_norm': 0.23416095972061157, 'learning_rate': 0.0002, 'epoch': 0.7329842931937173}
+{'loss': 0.1436, 'grad_norm': 0.2669127881526947, 'learning_rate': 0.0002, 'epoch': 0.7591623036649214}
+{'loss': 0.1358, 'grad_norm': 0.295552134513855, 'learning_rate': 0.0002, 'epoch': 0.7853403141361257}
+{'loss': 0.1208, 'grad_norm': 0.3284667730331421, 'learning_rate': 0.0002, 'epoch': 0.8115183246073299}
+{'loss': 0.1348, 'grad_norm': 0.21223169565200806, 'learning_rate': 0.0002, 'epoch': 0.837696335078534}
+{'loss': 0.1412, 'grad_norm': 0.1977822333574295, 'learning_rate': 0.0002, 'epoch': 0.8638743455497382}
+{'loss': 0.1362, 'grad_norm': 0.24679599702358246, 'learning_rate': 0.0002, 'epoch': 0.8900523560209425}
+{'loss': 0.1203, 'grad_norm': 0.23935075104236603, 'learning_rate': 0.0002, 'epoch': 0.9162303664921466}
+{'loss': 0.1192, 'grad_norm': 0.24485167860984802, 'learning_rate': 0.0002, 'epoch': 0.9424083769633508}
+{'loss': 0.1229, 'grad_norm': 0.1647193729877472, 'learning_rate': 0.0002, 'epoch': 0.9685863874345549}
+{'loss': 0.1127, 'grad_norm': 0.26519837975502014, 'learning_rate': 0.0002, 'epoch': 0.9947643979057592}
+{'eval_loss': 0.11782000213861465, 'eval_runtime': 145.6033, 'eval_samples_per_second': 1.168, 'eval_steps_per_second': 0.151, 'epoch': 1.0}
+{'loss': 0.101, 'grad_norm': 0.22022715210914612, 'learning_rate': 0.0002, 'epoch': 1.0209424083769634}
+{'loss': 0.1023, 'grad_norm': 0.25517797470092773, 'learning_rate': 0.0002, 'epoch': 1.0471204188481675}
+{'loss': 0.1022, 'grad_norm': 0.10647086054086685, 'learning_rate': 0.0002, 'epoch': 1.0732984293193717}
+{'loss': 0.0948, 'grad_norm': 0.2697638273239136, 'learning_rate': 0.0002, 'epoch': 1.0994764397905759}
+{'loss': 0.1081, 'grad_norm': 0.2738494873046875, 'learning_rate': 0.0002, 'epoch': 1.12565445026178}
+{'loss': 0.1083, 'grad_norm': 0.16309313476085663, 'learning_rate': 0.0002, 'epoch': 1.1518324607329844}
+{'loss': 0.0914, 'grad_norm': 0.2616950571537018, 'learning_rate': 0.0002, 'epoch': 1.1780104712041886}
+{'loss': 0.0959, 'grad_norm': 0.16497181355953217, 'learning_rate': 0.0002, 'epoch': 1.2041884816753927}
+{'loss': 0.0936, 'grad_norm': 0.14626024663448334, 'learning_rate': 0.0002, 'epoch': 1.2303664921465969}
+{'loss': 0.0992, 'grad_norm': 0.22741301357746124, 'learning_rate': 0.0002, 'epoch': 1.256544502617801}
+{'loss': 0.101, 'grad_norm': 0.3490714132785797, 'learning_rate': 0.0002, 'epoch': 1.2827225130890052}
+{'loss': 0.0989, 'grad_norm': 0.21414417028427124, 'learning_rate': 0.0002, 'epoch': 1.3089005235602094}
+{'loss': 0.0947, 'grad_norm': 0.22909434139728546, 'learning_rate': 0.0002, 'epoch': 1.3350785340314135}
+{'loss': 0.0887, 'grad_norm': 0.20077800750732422, 'learning_rate': 0.0002, 'epoch': 1.3612565445026177}
+{'loss': 0.0933, 'grad_norm': 0.22516889870166779, 'learning_rate': 0.0002, 'epoch': 1.387434554973822}
+{'loss': 0.0978, 'grad_norm': 0.18850550055503845, 'learning_rate': 0.0002, 'epoch': 1.4136125654450262}
+{'loss': 0.1032, 'grad_norm': 0.23382258415222168, 'learning_rate': 0.0002, 'epoch': 1.4397905759162304}
+{'loss': 0.0922, 'grad_norm': 0.264020711183548, 'learning_rate': 0.0002, 'epoch': 1.4659685863874345}
+{'loss': 0.0937, 'grad_norm': 0.19171211123466492, 'learning_rate': 0.0002, 'epoch': 1.4921465968586387}
+{'eval_loss': 0.10092910379171371, 'eval_runtime': 191.3704, 'eval_samples_per_second': 0.888, 'eval_steps_per_second': 0.115, 'epoch': 1.5}
+{'train_runtime': 13831.7111, 'train_samples_per_second': 0.165, 'train_steps_per_second': 0.041, 'train_loss': 0.17181590365905827, 'epoch': 1.5}
+Execution time: 13848.012059 seconds
+Press any key to continue . . .
