@@ -19,9 +19,9 @@ https://github.com/ChristianPoglitsch/AIAgents/tree/dev/LLM_Character/games/Soci
 Includes full descriptions of all Theory of Mind tasks used in the study, along with their corresponding questions.
 
 
+The game Social training is available at: https://github.com/ChristianPoglitsch/AIAgents
 
 
-# EmpathicAgents
 
 ## installation guide
 
