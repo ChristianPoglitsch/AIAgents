@@ -1,6 +1,8 @@
 import pickle
 from botc_base import *
 from botc import *
+import re
+from collections import defaultdict
 
 mcts_all = None
 mcts_all2 = None
@@ -32,9 +34,21 @@ errors = 0
 elapsed_time = 0
 num_trees_terminal_state = 0
 
+# Counter dictionary
+message_type_counts = defaultdict(int)
+categories = ["Truth-Telling", "Bluff", "Fishing", "Claim", "Misdirection"]
+
 index = 0
 for mcts in mcts_all:
     mcts.print_tree()
+
+
+    all_nodes = mcts.get_all_terminal_nodes(mcts.get_root_node())
+    for node in all_nodes:
+        for m in node.conversation_manager.prompt_outcome_log:
+            for cat in categories:
+                if cat in m[1]:
+                    message_type_counts[cat] += 1
 
     nodes = mcts.get_all_terminal_nodes(mcts.get_root_node())
     #nodes = mcts.get_all_nodes(mcts.get_root_node())
