@@ -60,16 +60,5 @@ Code for training and results can be found under LLM_Character/games/BotC
 
 # Toxi
 
-https://user-images.githubusercontent.com/6877923/123006036-64e2e780-d3b7-11eb-922e-018994b32da5.mov
+[Watch the video](docs/ToxiTrailer.mov)
 
-https://raw.githubusercontent.com/GameLabGrazTrainee/Toxi/main/docs/ToxiTrailer.mov
-
-<video controls width="600">
-  <source src="https://raw.githubusercontent.com/GameLabGrazTrainee/Toxi/main/docs/ToxiTrailer.mov" type="video/quicktime">
-  Your browser does not support the video tag.
-</video>
-
-<video controls width="600">
-  <source src="https://raw.githubusercontent.com/GameLabGrazTrainee/ToxicMessages/main/docs/AleahsToxiTrailer.mov" type="video/quicktime">
-  Your browser does not support the video tag.
-</video>
