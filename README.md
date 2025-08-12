@@ -58,7 +58,3 @@ Code for training and results can be found under LLM_Character/games/BotC
 - Christian Poglitsch
 
 
-# Toxi
-
-[Watch the video](docs/ToxiTrailer.mp4)
-
