@@ -51,7 +51,7 @@ start webSocketServer.py
 
 # Training compact language models for artificial emotional intelligence: from bluffing to trust in a social deduction game
 
-
+Code for training and results can be found under LLM_Character/games/BotC
 
 ## Authors
 
@@ -60,12 +60,13 @@ start webSocketServer.py
 
 # Toxi
 
+
 <video controls width="600">
-  <source src="https://github.com/GameLabGrazTrainee/Toxi/blob/main/docs/ToxiTrailer.mov" type="video/mp4">
+  <source src="https://github.com/GameLabGrazTrainee/Toxi/blob/main/docs/ToxiTrailer.mov" type="video/quicktime">
   Your browser does not support the video tag.
 </video>
 
 <video controls width="600">
-  <source src="https://github.com/GameLabGrazTrainee/ToxicMessages/tree/main/docs/AleahsToxiTrailer.mov" type="video/mp4">
+  <source src="https://github.com/GameLabGrazTrainee/ToxicMessages/tree/main/docs/AleahsToxiTrailer.mov" type="video/quicktime">
   Your browser does not support the video tag.
 </video>
