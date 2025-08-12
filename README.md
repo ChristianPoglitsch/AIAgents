@@ -48,8 +48,24 @@ Define a fine-grained token and set env HF_TOKEN
 **5. (Optional) Simple WebSocket**
 start webSocketServer.py
 
+
+# Training compact language models for artificial emotional intelligence: from bluffing to trust in a social deduction game
+
+
+
 ## Authors
 
 - Christian Poglitsch
 
-   
+
+# Toxi
+
+<video controls width="600">
+  <source src="https://github.com/GameLabGrazTrainee/Toxi/blob/main/docs/ToxiTrailer.mov" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
+<video controls width="600">
+  <source src="https://github.com/GameLabGrazTrainee/ToxicMessages/tree/main/docs/AleahsToxiTrailer.mov" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
