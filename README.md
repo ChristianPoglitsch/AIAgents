@@ -1,4 +1,4 @@
-# Large language model evaluating theory of mind tasks in a gamified environment Supplementary Information Files
+# Large language models for autism: Evaluating theory of mind tasks in a gamified environment
 
 
 https://github.com/ChristianPoglitsch/AIAgents/tree/dev/LLM_Character/games/SocialTraining
@@ -20,6 +20,14 @@ Includes full descriptions of all Theory of Mind tasks used in the study, along 
 
 
 The game Social training is available at: https://tom.gamelabgraz.at/
+
+
+
+
+# Training compact language models for artificial emotional intelligence: from bluffing to trust in a social deduction game
+
+Code for training and results can be found under LLM_Character/games/BotC
+
 
 
 
@@ -48,10 +56,6 @@ Define a fine-grained token and set env HF_TOKEN
 **5. (Optional) Simple WebSocket**
 start webSocketServer.py
 
-
-# Training compact language models for artificial emotional intelligence: from bluffing to trust in a social deduction game
-
-Code for training and results can be found under LLM_Character/games/BotC
 
 ## Authors
 
