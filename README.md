@@ -28,7 +28,9 @@ The game Social training is available at: https://tom.gamelabgraz.at/
 
 Code for training and results can be found under LLM_Character/games/BotC
 
+Play the game starting with botc.py
 
+Train the game starting training.py
 
 
 ## installation guide
