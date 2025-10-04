@@ -36,3 +36,5 @@ git+https://github.com/huggingface/parler-tts.git
 #parler_tts
 torch_geometric
 huggingface-hub==0.24.7
+soundfile
+fastapi
