@@ -37,5 +37,5 @@ async def transcribe(file: UploadFile):
     waveform, sample_rate = torchaudio.load(audio_path)
 
     # Pass raw waveform to the pipeline instead of file path
-    result = pipe({"array": waveform, "sampling_rate": sample_rate}, return_timestamps=True)
+    result = pipe({"array": waveform.squeeze().numpy(), "sampling_rate": sample_rate}, return_timestamps=True)
     return {"text": result["text"]}
