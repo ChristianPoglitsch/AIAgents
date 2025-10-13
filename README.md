@@ -28,9 +28,13 @@ The game Social training is available at: https://tom.gamelabgraz.at/
 
 Code for training and results can be found under LLM_Character/games/BotC
 
-Play the game starting with botc.py
+1) Play the game starting using botc.py
 
-Train the game starting training.py
+Results are stores as .pkl file and in a subfolder with test and train data
+
+2) Train the model starting training.py
+
+3) Merge original model with trained data using merge_model_adapter.py
 
 
 ## installation guide

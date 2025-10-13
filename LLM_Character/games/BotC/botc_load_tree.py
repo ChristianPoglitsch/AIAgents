@@ -10,18 +10,18 @@ mcts_all2 = None
 with open('mcts_tree_mistral_training_trained-basic.pkl', 'rb') as f:
     mcts_all = pickle.load(f)
 
-with open('mcts_tree_reward2.pkl', 'rb') as f:
-    mcts_all2 = pickle.load(f)
-mcts_all = mcts_all + mcts_all2
-with open('mcts_tree_reward2.pkl', 'rb') as f:
-    mcts_all2 = pickle.load(f)
-mcts_all = mcts_all + mcts_all2
-with open('mcts_tree_reward3.pkl', 'rb') as f:
-    mcts_all2 = pickle.load(f)
-mcts_all = mcts_all + mcts_all2
-with open('mcts_tree_reward4.pkl', 'rb') as f:
-    mcts_all2 = pickle.load(f)
-mcts_all = mcts_all + mcts_all2
+#with open('mcts_tree_reward2.pkl', 'rb') as f:
+#    mcts_all2 = pickle.load(f)
+#mcts_all = mcts_all + mcts_all2
+#with open('mcts_tree_reward2.pkl', 'rb') as f:
+#    mcts_all2 = pickle.load(f)
+#mcts_all = mcts_all + mcts_all2
+#with open('mcts_tree_reward3.pkl', 'rb') as f:
+#    mcts_all2 = pickle.load(f)
+#mcts_all = mcts_all + mcts_all2
+#with open('mcts_tree_reward4.pkl', 'rb') as f:
+#    mcts_all2 = pickle.load(f)
+#mcts_all = mcts_all + mcts_all2
 
 ##with open('mcts_tree.pkl', 'wb') as f:
 ##    pickle.dump(mcts_all, f)
