@@ -22,6 +22,9 @@ Includes full descriptions of all Theory of Mind tasks used in the study, along 
 The game Social training is available at: https://tom.gamelabgraz.at/
 
 
+The associated research paper is published in *Scientific Reports* (Nature):  
+https://www.nature.com/articles/s41598-025-18608-4
+
 
 
 # Training compact language models for artificial emotional intelligence: from bluffing to trust in a social deduction game
