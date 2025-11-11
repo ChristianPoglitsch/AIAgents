@@ -22,6 +22,8 @@ Includes full descriptions of all Theory of Mind tasks used in the study, along 
 The game Social training is available at: https://tom.gamelabgraz.at/
 
 
+# Paper
+
 The associated research paper is published in *Scientific Reports* (Nature):  
 https://www.nature.com/articles/s41598-025-18608-4
 
@@ -38,6 +40,12 @@ Results are stores as .pkl file and in a subfolder with test and train data
 2) Train the model starting training.py
 
 3) Merge original model with trained data using merge_model_adapter.py
+
+
+# Paper (Draft)
+
+The associated research paper is published in *Scientific Reports* (Nature):  
+https://www.researchsquare.com/article/rs-7348060/v1
 
 
 ## installation guide
