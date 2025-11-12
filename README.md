@@ -1,22 +1,23 @@
 # Large language models for autism: Evaluating theory of mind tasks in a gamified environment
 
-
+Provide file for evaluating with LLM:
 https://github.com/ChristianPoglitsch/AIAgents/tree/dev/LLM_Character/games/SocialTraining
-Provide file for evaluating with LLM
-Provide file to compute statistic
 
 
+Provides comprehensive scoring guidelines used by both human experts and the Large Language Model for each individual question across all tasks:
 https://github.com/ChristianPoglitsch/AIAgents/tree/dev/LLM_Character/games/SocialTraining/Supplementary/detailed_scoring_information.pdf
-Provides comprehensive scoring guidelines used by both human experts and the Large Language Model for each individual question across all tasks.
 
+
+Contains general instructions and evaluation criteria specific to the Faux Pas tasks:
 https://github.com/ChristianPoglitsch/AIAgents/tree/dev/LLM_Character/games/SocialTraining/Supplementary/Fauxpas.pdf
-Contains general instructions and evaluation criteria specific to the Faux Pas tasks.
 
+
+A structured sample dataset illustrating the input format used for LLM evaluation, including participant responses and associated metadata:
 https://github.com/ChristianPoglitsch/AIAgents/tree/dev/LLM_Character/games/SocialTraining/Supplementary/sample_dataset.xlsx
-A structured sample dataset illustrating the input format used for LLM evaluation, including participant responses and associated metadata.
 
+
+Includes full descriptions of all Theory of Mind tasks used in the study, along with their corresponding questions:
 https://github.com/ChristianPoglitsch/AIAgents/tree/dev/LLM_Character/games/SocialTraining/Supplementary/ToM_Tasks.pdf
-Includes full descriptions of all Theory of Mind tasks used in the study, along with their corresponding questions.
 
 
 The game Social training is available at: https://tom.gamelabgraz.at/
@@ -44,11 +45,11 @@ Results are stores as .pkl file and in a subfolder with test and train data
 
 # Paper (Draft)
 
-The associated research paper is published in *Scientific Reports* (Nature):  
+The associated paper draft is published on Research Square:  
 https://www.researchsquare.com/article/rs-7348060/v1
 
 
-## installation guide
+# Installation Guide
 
 **1. Python requirements**
 
