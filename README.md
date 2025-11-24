@@ -75,6 +75,10 @@ Define a fine-grained token and set env HF_TOKEN
 start webSocketServer.py
 
 
+** To create Speech2Text server app apply:
+
+pyinstaller --onefile tts_server_app.py
+
 ## Authors
 
 - Christian Poglitsch
