@@ -2,27 +2,25 @@
 # To install:
 # pip install -r requirements.txt
 # 
+# Install Cuda first if GPU is required
 # For Windows please install AFTER all other dependencies
-# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# pip install --index-url https://download.pytorch.org/whl/cu124 torch torchvision torchaudio
 
-accelerate==0.33.0
+accelerate==0.34.2
 bitsandbytes==0.43.2
-datasets==2.20.0
+datasets
 einops==0.6.1
-gradio==4.14.0
-peft==0.6
-protobuf==4.23.4
-#protobuf==3.20.0
+gradio>=5.31.0
+peft
+protobuf==3.20
 scipy==1.11.1
 sentencepiece==0.1.99
-transformers==4.43.3
-trl==0.9.6
-# azure-cognitiveservices-speech==1.38.0
+transformers
+trl
 sentence-transformers==3.0.1
 openai==1.37.1
-httpx==0.27.2
+httpx
 python-dotenv==1.0.1
-# gpt4all
 torch[cuda]
 websockets
 websocket
@@ -32,9 +30,9 @@ flask_sock
 waitress
 soundfile
 requests
-git+https://github.com/huggingface/parler-tts.git
+#git+https://github.com/huggingface/parler-tts.git
 #parler_tts
 torch_geometric
-huggingface-hub==0.24.7
+huggingface-hub
 soundfile
 fastapi
