@@ -2,11 +2,15 @@
 
 """
 SimVille TLX Auswertung – Konsolen-Version
-2×2 ANOVA: NPC × Schwierigkeit
+KORREKT: 2×2 Repeated Measures ANOVA (NPC × Difficulty)
 
-- Datei: SimVille.xlsx (gleicher Ordner wie Skript)
-- Keine Outputs auf Disk
-- Alle Ergebnisse direkt in der Konsole
+Annahme:
+- Die ersten 4 Zeilen gehören zu User 1
+- Die nächsten 4 Zeilen gehören zu User 2
+- ...
+- insgesamt 25 User → 100 Zeilen
+
+Outputs nur Konsole.
 """
 
 from __future__ import annotations
@@ -16,8 +20,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
-from statsmodels.formula.api import ols
+from statsmodels.stats.anova import AnovaRM
 
 
 # --------------------------------------------------
@@ -53,21 +56,46 @@ def derive_factors(enter_scene: str) -> tuple[str, str]:
     return npc, difficulty
 
 
-def partial_eta_squared(aov: pd.DataFrame, effect: str) -> float:
-    ss_effect = float(aov.loc[effect, "sum_sq"])
-    ss_error = float(aov.loc["Residual", "sum_sq"])
-    return ss_effect / (ss_effect + ss_error)
+def compute_partial_eta2(F: float, df_num: float, df_den: float) -> float:
+    """
+    partial eta squared from F and dfs:
+    ηp² = (F * df_num) / (F * df_num + df_den)
+    """
+    return (F * df_num) / (F * df_num + df_den)
 
 
-def run_anova(df: pd.DataFrame, dv_col: str):
-    tmp = df[[dv_col, "NPC", "Difficulty"]].dropna()
+def run_rm_anova(df: pd.DataFrame, dv_col: str):
+    """
+    Correct RM-ANOVA: within-subjects 2x2 design.
+    Needs columns: dv_col, NPC, Difficulty, Participant
+    """
+    tmp = df[["Participant", dv_col, "NPC", "Difficulty"]].dropna().copy()
 
-    model = ols(f'Q("{dv_col}") ~ C(NPC) * C(Difficulty)', data=tmp).fit()
-    aov = sm.stats.anova_lm(model, typ=2)
+    # RM-ANOVA
+    res = AnovaRM(
+        data=tmp,
+        depvar=dv_col,
+        subject="Participant",
+        within=["NPC", "Difficulty"],
+    ).fit()
 
-    for eff in ["C(NPC)", "C(Difficulty)", "C(NPC):C(Difficulty)"]:
-        aov.loc[eff, "partial_eta2"] = partial_eta_squared(aov, eff)
+    # Table format
+    aov = res.anova_table.copy()
+    aov = aov.rename(
+        columns={
+            "F Value": "F",
+            "Num DF": "df_num",
+            "Den DF": "df_den",
+            "Pr > F": "p",
+        }
+    )
 
+    aov["partial_eta2"] = aov.apply(
+        lambda r: compute_partial_eta2(r["F"], r["df_num"], r["df_den"]),
+        axis=1,
+    )
+
+    # Cell descriptives
     cell_desc = (
         tmp.groupby(["NPC", "Difficulty"])[dv_col]
         .agg(N="count", Mean="mean", SD="std")
@@ -91,6 +119,20 @@ def main():
     print("\n📄 Lade Datei:", data_path.name)
 
     df = pd.read_excel(data_path)
+
+    # --------------------------------------------------
+    # Participant-ID erzeugen: jeweils 4 Zeilen = 1 Person
+    # --------------------------------------------------
+    if len(df) % 4 != 0:
+        raise ValueError(
+            f"Zeilenanzahl ist nicht durch 4 teilbar: {len(df)}.\n"
+            "Bitte prüfen, ob wirklich 4 Zeilen pro Person vorhanden sind."
+        )
+
+    df["Participant"] = (np.arange(len(df)) // 4) + 1  # 1..25
+
+    n_participants = df["Participant"].nunique()
+    print(f"✅ Participant IDs generiert: {n_participants} Personen")
 
     # Faktoren erzeugen
     df["Enter scene"] = df["Enter scene"].apply(normalize_enter_scene)
@@ -118,15 +160,15 @@ def main():
     # TLX Gesamt
     # --------------------------------------------------
     print("\n==============================")
-    print("TLX GESAMTWERT")
+    print("TLX GESAMTWERT (RM-ANOVA)")
     print("==============================")
 
-    aov_total, cell_total = run_anova(df, "TLX_Total")
+    aov_total, cell_total = run_rm_anova(df, "TLX_Total")
 
     print("\nDeskriptive Statistiken:")
     print(cell_total.to_string(index=False))
 
-    print("\nANOVA (Typ II, inkl. partial η²):")
+    print("\nRM-ANOVA (within-subject), inkl. partial η²:")
     print(aov_total.round(4).to_string())
 
     # --------------------------------------------------
@@ -134,15 +176,15 @@ def main():
     # --------------------------------------------------
     for dim_name, col in TLX_COLS.items():
         print("\n" + "=" * 30)
-        print(f"{dim_name.upper()}")
+        print(f"{dim_name.upper()} (RM-ANOVA)")
         print("=" * 30)
 
-        aov, cell = run_anova(df, col)
+        aov, cell = run_rm_anova(df, col)
 
         print("\nDeskriptive Statistiken:")
         print(cell.to_string(index=False))
 
-        print("\nANOVA (Typ II, inkl. partial η²):")
+        print("\nRM-ANOVA (within-subject), inkl. partial η²:")
         print(aov.round(4).to_string())
 
     print("\n✅ Analyse abgeschlossen")
