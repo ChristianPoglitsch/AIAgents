@@ -1,4 +1,4 @@
-# Python 3.10
+# Python 3.11
 # To install:
 # pip install -r requirements.txt
 # 
