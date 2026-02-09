@@ -7,10 +7,10 @@ from collections import defaultdict
 mcts_all = None
 mcts_all2 = None
 # Load from file
-with open('mcts_tree_gpt4o.pkl', 'rb') as f:
+with open('mcts_tree_gpt4o.pkl', 'rb') as f: # mcts_tree_gpt4o
     mcts_all = pickle.load(f)
 
-with open('mcts_tree_reward2.pkl', 'rb') as f:
+with open('mcts_tree_reward1.pkl', 'rb') as f:
     mcts_all2 = pickle.load(f)
 mcts_all = mcts_all + mcts_all2
 with open('mcts_tree_reward2.pkl', 'rb') as f:
@@ -23,8 +23,17 @@ with open('mcts_tree_reward4.pkl', 'rb') as f:
     mcts_all2 = pickle.load(f)
 mcts_all = mcts_all + mcts_all2
 
-with open('mcts_tree.pkl', 'wb') as f:
-    pickle.dump(mcts_all, f)
+with open('2026_r1.pkl', 'rb') as f:
+    mcts_all2 = pickle.load(f)
+mcts_all = mcts_all + mcts_all2
+
+with open('2026_r2.pkl', 'rb') as f:
+    mcts_all2 = pickle.load(f)
+mcts_all = mcts_all + mcts_all2
+
+with open('mcts_tree_gtp4o-vs-mistral_trained_base_self_all_good.pkl', 'rb') as f:
+    mcts_all2 = pickle.load(f)
+mcts_all = mcts_all + mcts_all2
 
 good_wins = 0
 evil_wins = 0
@@ -41,7 +50,6 @@ categories = ["Truth-Telling", "Bluff", "Fishing", "Claim", "Misdirection"]
 index = 0
 for mcts in mcts_all:
     mcts.print_tree()
-
 
     all_nodes = mcts.get_all_terminal_nodes(mcts.get_root_node())
     for node in all_nodes:
@@ -63,12 +71,13 @@ for mcts in mcts_all:
                 num_trees_terminal_state = num_trees_terminal_state + 1
                 has_terminal_state = True
             conversationManager.append_prompt_outcomes(node.conversation_manager.get_prompt_outcomes())
-        if index <= 100 and node.state.evil_win():
-            evil_wins = evil_wins + 1
-            #if not has_terminal_state:
-            #    num_trees_terminal_state = num_trees_terminal_state + 1
-            #    has_terminal_state = True
-            conversationManager.append_prompt_outcomes(node.conversation_manager.get_prompt_outcomes())
+        #if index <= 100 and node.state.evil_win():
+        #    evil_wins = evil_wins + 1
+        #    #if not has_terminal_state:
+        #    #    num_trees_terminal_state = num_trees_terminal_state + 1
+        #    #    has_terminal_state = True
+        #    conversationManager.append_prompt_outcomes(node.conversation_manager.get_prompt_outcomes())
+            
         index = index + 1
 
 

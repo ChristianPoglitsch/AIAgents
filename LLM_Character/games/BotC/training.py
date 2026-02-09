@@ -2,7 +2,7 @@
 import time
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from transformers import DataCollatorForSeq2Seq, Trainer, TrainingArguments
-from trl import SFTTrainer
+from trl import SFTTrainer, SFTConfig
 
 from datasets import load_dataset
 from datasets import load_from_disk
@@ -41,7 +41,7 @@ def train_model(model, tokenizer, instruct_tune_dataset, target_modules, save_mo
         num_train_epochs=1.5, # 2 5
         # max_steps=500, # 500   # comment out this line if you want to train in epochs - 100+ recommended
         save_strategy="epoch",
-        evaluation_strategy="epoch",
+        eval_strategy="epoch",
         #evaluation_strategy="steps",
         #eval_steps=1010,  # comment out this line if you want to evaluate at the end of each epoch
         learning_rate=2e-4,
@@ -61,18 +61,33 @@ def train_model(model, tokenizer, instruct_tune_dataset, target_modules, save_mo
         # max_grad_norm = 0.3
     )
 
-    # max_seq_length = 2048
+    sft_args = SFTConfig(
+        output_dir="./output",
+
+        per_device_train_batch_size=4,
+        num_train_epochs=1.5,
+
+        save_strategy="epoch",
+        eval_strategy="epoch",   # note: eval_strategy (not evaluation_strategy)
+
+        learning_rate=2e-4,
+        warmup_steps=0,
+        lr_scheduler_type="constant",
+        bf16=True,
+        logging_steps=10,
+
+        dataset_text_field="text",
+        max_length=2048,         # <-- use max_length here (or None)
+        packing=False,
+    )
 
     trainer = SFTTrainer(
         model=model,
         train_dataset=instruct_tune_dataset["train"],
         eval_dataset=instruct_tune_dataset["test"],
         peft_config=peft_config,
-        max_seq_length=None,
-        dataset_text_field="text",
-        tokenizer=tokenizer,
-        args=args,
-        packing=False,
+        args=sft_args,
+        processing_class=tokenizer,  # newer TRL uses this
     )
 
     trainer.train()
@@ -171,7 +186,7 @@ if __name__ == "__main__":
     #target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
     #target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
 
-    model_id = "mistralai/Mistral-7B-Instruct-v0.3"
+    model_id = "mistralai/Mistral-7B-Instruct-v0.3" # "trained\\Mistral-7B-Instruct-v0.3_merged"
     #model_id = "deepseek-ai/deepseek-llm-7b-chat"
     #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
     api = LocalComms()
@@ -179,7 +194,7 @@ if __name__ == "__main__":
     model = api._model
     tokenizer = api._tokenizer
     
-    save_model = "trained\\Mistral-7b-v3-finetune"
+    save_model = "trained\\Mistral-7b-v3-finetune2"
     #save_model = "trained\\deepseek-llm-7b-chat"
     #save_model = "trained\\Teuken-7B-instruct-research-v0.4"   
     train_model(model, tokenizer, dataset, target_modules, save_model)
