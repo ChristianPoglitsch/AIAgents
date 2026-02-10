@@ -9,6 +9,24 @@ from datasets import load_from_disk
 from LLM_Character.llm_comms.llm_openai import OpenAIComms
 from LLM_Character.llm_comms.llm_local import LocalComms
 
+import inspect
+
+def make_sft_config(**kwargs):
+    sig = inspect.signature(SFTConfig.__init__)
+    if "max_length" in sig.parameters and "max_seq_length" in kwargs:
+        kwargs["max_length"] = kwargs.pop("max_seq_length")
+    elif "max_seq_length" in sig.parameters and "max_length" in kwargs:
+        kwargs["max_seq_length"] = kwargs.pop("max_length")
+    return SFTConfig(**kwargs)
+
+def make_trainer_kwargs(tokenizer):
+    sig = inspect.signature(SFTTrainer.__init__)
+    if "processing_class" in sig.parameters:
+        return {"processing_class": tokenizer}
+    if "tokenizer" in sig.parameters:
+        return {"tokenizer": tokenizer}
+    return {}  # last resort
+
 def train_model(model, tokenizer, instruct_tune_dataset, target_modules, save_model: str) -> SFTTrainer:
     """is trained with SFFT
 
@@ -61,23 +79,19 @@ def train_model(model, tokenizer, instruct_tune_dataset, target_modules, save_mo
         # max_grad_norm = 0.3
     )
 
-    sft_args = SFTConfig(
+    sft_args = make_sft_config(
         output_dir="./output",
-
         per_device_train_batch_size=4,
         num_train_epochs=1.5,
-
         save_strategy="epoch",
-        eval_strategy="epoch",   # note: eval_strategy (not evaluation_strategy)
-
+        eval_strategy="epoch",
         learning_rate=2e-4,
         warmup_steps=0,
         lr_scheduler_type="constant",
         bf16=True,
         logging_steps=10,
-
         dataset_text_field="text",
-        max_length=2048,         # <-- use max_length here (or None)
+        max_seq_length=2048,   # you can keep writing this
         packing=False,
     )
 
@@ -87,7 +101,7 @@ def train_model(model, tokenizer, instruct_tune_dataset, target_modules, save_mo
         eval_dataset=instruct_tune_dataset["test"],
         peft_config=peft_config,
         args=sft_args,
-        processing_class=tokenizer,  # newer TRL uses this
+        **make_trainer_kwargs(tokenizer),
     )
 
     trainer.train()
