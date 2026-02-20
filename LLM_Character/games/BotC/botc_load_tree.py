@@ -7,6 +7,15 @@ from botc import *
 GOOD_RE = re.compile(r"\bgood\b", re.IGNORECASE)
 EVIL_RE = re.compile(r"\bevil\b", re.IGNORECASE)
 
+def _get_winner_from_state(game_state):
+    """
+    Returns: "Good", "Evil", or None (unknown)
+    Uses the same mechanism as your previous working script.
+    """
+    try:
+        return "Good" if game_state.good_win() else "Evil"
+    except Exception:
+        return None
 
 # ============================================================
 # Ground truth extraction
@@ -100,6 +109,72 @@ def _predict_role_from_text(text, role_res):
     for role_name, rx in role_res:
         if rx.search(text):
             return role_name
+    return None
+
+
+# ============================================================
+# Winner extraction (NEW)
+# ============================================================
+
+def _normalize_team(x):
+    if x is None:
+        return None
+    if isinstance(x, bool):
+        # ambiguous unless you know which team it refers to, so don't guess
+        return None
+    if not isinstance(x, str):
+        x = str(x)
+    s = x.strip().lower()
+    if "good" in s or s in {"g", "town", "townsfolk"}:
+        return "Good"
+    if "evil" in s or s in {"e", "demon", "minion"}:
+        return "Evil"
+    return None
+
+
+def _get_winner_alignment(game_state):
+    """
+    Best-effort winner detection across common field names / shapes.
+    Returns: "Good", "Evil", or None.
+    """
+
+    # 1) Try common direct attributes
+    for attr in (
+        "winner_alignment",
+        "winning_alignment",
+        "winner",
+        "winning_team",
+        "winning_side",
+        "win_team",
+        "result",
+        "outcome",
+        "game_result",
+        "final_result",
+    ):
+        val = getattr(game_state, attr, None)
+        norm = _normalize_team(val)
+        if norm:
+            return norm
+
+    # 2) Try dict-like payloads
+    for attr in ("result", "outcome", "game_result", "final_result", "summary"):
+        val = getattr(game_state, attr, None)
+        if isinstance(val, dict):
+            for k in ("winner", "winning_team", "winning_side", "alignment", "team"):
+                norm = _normalize_team(val.get(k))
+                if norm:
+                    return norm
+
+    # 3) Try boolean flags (only if explicit)
+    for good_attr in ("good_won", "good_win", "is_good_win"):
+        v = getattr(game_state, good_attr, None)
+        if v is True:
+            return "Good"
+    for evil_attr in ("evil_won", "evil_win", "is_evil_win"):
+        v = getattr(game_state, evil_attr, None)
+        if v is True:
+            return "Evil"
+
     return None
 
 
@@ -198,7 +273,6 @@ def _acc(c, t):
 # ============================================================
 # Main
 # ============================================================
-
 def main():
     with open("2026_r6.pkl", "rb") as f:
         mcts_all = pickle.load(f)
@@ -212,12 +286,24 @@ def main():
                  "evil_obs": 0, "evil_cor": 0},
     }
 
+    # NEW: win counters (episode-level)
+    win_counts = {"Good": 0, "Evil": 0, "Unknown": 0}
+
     for episode, mcts in enumerate(mcts_all, 1):
         root = mcts.get_root_node()
         terminals = mcts.get_all_terminal_nodes(root)
         node = terminals[0] if terminals else root
 
         print(f"\n===== Episode {episode} =====")
+
+        # NEW: winner (same as your working script)
+        winner = _get_winner_from_state(node.state)
+        if winner is None:
+            win_counts["Unknown"] += 1
+            print("Winner: UNKNOWN")
+        else:
+            win_counts[winner] += 1
+            print(f"Winner: {winner}")
 
         for alignment in ["Good", "Evil"]:
             rep = analyze_all_pairs_gamestate_correctness_for_alignment(node.state, alignment)
@@ -254,7 +340,17 @@ def main():
             f"= {_acc(s['evil_cor'], s['evil_obs']):.4f}"
         )
 
-
+    # NEW: Win rate summary
+    total_eps = len(mcts_all)
+    known = win_counts["Good"] + win_counts["Evil"]
+    print("\n--- Win Rates (by episode) ---")
+    print(f"Episodes: {total_eps}")
+    print(f"Good wins: {win_counts['Good']}")
+    print(f"Evil wins: {win_counts['Evil']}")
+    print(f"Unknown result episodes: {win_counts['Unknown']}")
+    print(f"Good win rate (known only): {_acc(win_counts['Good'], known):.4f}")
+    print(f"Evil win rate (known only): {_acc(win_counts['Evil'], known):.4f}")
+    
 if __name__ == "__main__":
     main()
     
