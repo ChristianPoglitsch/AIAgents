@@ -168,24 +168,16 @@ class OpenAIComms(LLMComms):
             Optional[str]: the completion of the provided chat.
         """
         try:
-            response = self.client.with_options(
-                max_retries=self.max_retry_attempts
-            ).chat.completions.create(
-                messages=messages,
-                model=self.model_name,
-                max_tokens=self.max_tokens,
-                n=self.n,
-                temperature=self.temperature
-                # FIXME: this could be very usefull for us, since we do use json object
-                # in which we want the reponse to be in, and the trust level, etc...
-                # response_format= ? "Must be one of `text` or `json_object`."
-                # bv. response_format={"type": "json_object"}
-                # temperature: float | NotGiven | None = NOT_GIVEN,
-                # top_p: float | NotGiven | None = NOT_GIVEN,
-                # frequency_penalty
-                # presence_penalty
-                # stop
+            resp = self.client.responses.create(
+                model="gpt-5.2",
+                input=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    *messages,  # falls messages schon [{"role":..., "content":...}, ...] ist
+                ],
+                max_output_tokens=self.max_tokens,
+                temperature=self.temperature,
             )
+            response = resp.output_text
         except Exception as e:
             logger.error("openAI request failed")
             logger.error(e)
@@ -198,7 +190,7 @@ class OpenAIComms(LLMComms):
 
         # choose first message option if there are multiple options, see n
         # parameter
-        return response.choices[0].message.content
+        return response
 
     def _requese_emb(
         self, keywords: str, model_name="text-embedding-3-small"

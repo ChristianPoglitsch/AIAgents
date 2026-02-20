@@ -27,7 +27,7 @@ def init_model(model_id : str, server_based: str, max_token : int) -> LLM_API:
 
 def init_model_server(max_token : int) -> LLM_API:
     model = OpenAIComms()
-    model_id = "gpt-4o"
+    model_id = "gpt-5.2-chat-latest"
     model.max_tokens = max_token
     model.init(model_id)
     wrapped_model = LLM_API(model)

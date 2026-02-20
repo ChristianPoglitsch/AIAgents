@@ -30,20 +30,22 @@ reward_evil_action      = 0.0 # 1.0
 reward_node             = 0.5
 
 num_child_node = 1 # 2
-num_games = 10 # 100
-num_iterations = 250 # 250 - 2000
+num_games = 6 # 100
+num_iterations = 200 # 250 - 2000
 
 print_output = True
 max_token = 500
 num_conv_history_action = 2
 
-model_id = "mistralai/Mistral-7B-Instruct-v0.3"
+#model_id = "mistralai/Mistral-7B-Instruct-v0.3"
 #model_id = "deepseek-ai/deepseek-llm-7b-chat"
 #model_id = "openGPT-X/Teuken-7B-instruct-research-v0.4"
-model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
+#model_id = "trained/Mistral-7B-Instruct-v0.3_merged"
 #model_id = "trained/Mistral-7B-Instruct-v0.3_merged_advanced"
 #model_id = "trained/deepseek-llm-7b-chat_merged"
 #model_id = "trained\\Teuken-7B-instruct-research-v0.4_merged"
+
+model_id = "trained\\Mistral-7B-Instruct-v0.3_merged2"
 
 # --- --- game --- ---
 
@@ -989,10 +991,12 @@ def play_game():
     folder_path = 'training_botc'
     conversationManager = ConversationManager()
 
-    num_correct_games = 0
-    model = init_model(model_id, server_based, max_token)
     # server model
     model_server = init_model(model_id, True, max_token)
+    
+    num_correct_games = 0
+    model = init_model(model_id, server_based, max_token)
+
     model = [model, model_server]
     #model = [model]
 
@@ -1001,7 +1005,7 @@ def play_game():
     num_errors = 0
 
     mcts_all_nodes = []
-    filename = 'mcts_tree_gtp4o-vs-mistral_trained_base_self_all_good.pkl' # mcts_tree_mistral_untrained-vs-gtp4   mcts_tree_gtp4o-vs-mistral_trained_base_self_all_good
+    filename = '2026_r6.pkl' # 2026_r2
     
     # Load from file
     if os.path.exists(filename) and store_data:

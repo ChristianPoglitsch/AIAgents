@@ -18,7 +18,7 @@ sentencepiece==0.2.1
 transformers
 trl
 sentence-transformers==3.0.1
-openai==1.37.1
+openai
 httpx
 python-dotenv==1.0.1
 torch[cuda]
