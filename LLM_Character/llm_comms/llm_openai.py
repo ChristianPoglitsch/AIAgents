@@ -48,11 +48,6 @@ class OpenAIComms(LLMComms):
         """
         if model name is not valid, it raises a value exception error.
         """
-        if not self._check_valid_model_chat(model):
-            raise ValueError(
-                "The model type does not exist or is not \
-                camptabible for chat completion."
-            )
 
         self.model_name = model
         #print("Key: %s" % API_KEY)
