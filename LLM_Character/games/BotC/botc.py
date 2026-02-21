@@ -45,7 +45,7 @@ num_conv_history_action = 2
 #model_id = "trained/deepseek-llm-7b-chat_merged"
 #model_id = "trained\\Teuken-7B-instruct-research-v0.4_merged"
 
-model_id = "trained\\Mistral-7B-Instruct-v0.3_merged2"
+model_id = "trained\\Mistral-7B-Instruct-v0.3_merged"
 
 # --- --- game --- ---
 
