@@ -12,6 +12,153 @@ from statsmodels.stats.anova import AnovaRM
 import matplotlib.pyplot as plt
 from scipy.stats import ttest_rel
 
+# --------------------------------------------------
+# VIOLIN PLOTTING
+# --------------------------------------------------
+def plot_nasa_tlx_violins_like_paper(df: pd.DataFrame, tlx_cols: dict[str, str]):
+    df = add_condition_labels(df)
+
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10), sharey=True)
+    axes = axes.ravel()
+
+    x_labels = list(COND_ORDER)  # left-to-right
+    x_pos = {lab: i for i, lab in enumerate(x_labels)}
+
+    for ax, (dim_name, col) in zip(axes, tlx_cols.items()):
+        tmp = df[["Participant", "Condition", col, "NPC", "Difficulty"]].dropna().copy()
+
+        # --- RM-ANOVA p-values
+        p_npc = p_diff = p_int = None
+        try:
+            aov, _ = run_rm_anova(df, col)
+            p_npc = float(aov.loc["NPC", "p"]) if "NPC" in aov.index else None
+            p_diff = float(aov.loc["Difficulty", "p"]) if "Difficulty" in aov.index else None
+            p_int = float(aov.loc["NPC:Difficulty", "p"]) if "NPC:Difficulty" in aov.index else None
+        except Exception:
+            pass
+
+        ax.set_title(dim_name)
+
+        # ---------------------------------
+        # VIOLINS (VERTICAL)
+        # ---------------------------------
+        data_for_plot = []
+        positions = []
+
+        for i, cond in enumerate(x_labels):
+            sub = tmp[tmp["Condition"] == cond][col]
+            if len(sub) > 0:
+                data_for_plot.append(sub)
+                positions.append(i)
+
+        parts = ax.violinplot(
+            data_for_plot,
+            positions=positions,
+            vert=True,          # <-- vertical
+            showmeans=True,
+            showextrema=False,
+            widths=0.8,
+        )
+
+        # Color each violin
+        for i, pc in enumerate(parts["bodies"]):
+            cond = x_labels[i]
+            pc.set_facecolor(ROW_COLORS.get(cond, "#3182bd"))
+            pc.set_edgecolor("black")
+            pc.set_alpha(0.7)
+
+        # ---------------------------------
+        # AXES STYLING
+        # ---------------------------------
+        ax.set_ylim(1, 7)
+        ax.set_yticks(range(1, 8))
+        ax.tick_params(axis="y", labelsize=14)
+
+        ax.set_xticks(range(len(x_labels)))
+
+        # Only bottom row gets x labels (vertical equivalent of "only left column gets labels")
+        if ax in axes[3:]:  # bottom row in 2x3 layout: axes 3,4,5
+            ax.set_xticklabels(x_labels, rotation=25, ha="right")
+            ax.tick_params(axis="x", labelsize=14)
+        else:
+            ax.set_xticklabels([])
+            ax.tick_params(axis="x", length=0)
+
+        ax.grid(True, alpha=0.25)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+        # ---------------------------------
+        # SIGNIFICANCE BRACKETS (TOP)
+        # ---------------------------------
+        # We'll draw "horizontal" brackets above violins:
+        # NPC: between Multiparty + and Multiparty -
+        # Difficulty: between Dyadic + and Dyadic -
+        # Interaction: between Dyadic - and Multiparty +
+        def draw_h_bracket(ax, x1, x2, y, text, cap=0.12, lw=1.3):
+            x_low, x_high = (x1, x2) if x1 < x2 else (x2, x1)
+            ax.plot([x_low, x_high], [y, y], lw=lw, color="black", zorder=10, clip_on=False)
+            ax.plot([x_low, x_low], [y, y - cap], lw=lw, color="black", zorder=10, clip_on=False)
+            ax.plot([x_high, x_high], [y, y - cap], lw=lw, color="black", zorder=10, clip_on=False)
+            ax.text(
+                (x_low + x_high) / 2,
+                y + 0.05,
+                text,
+                ha="center",
+                va="bottom",
+                fontsize=10,
+                weight="bold",
+                zorder=11,
+                clip_on=False,
+            )
+
+        bracket_y0 = 7.35     # start above top of scale
+        bracket_step = 0.35   # stack upward
+        k = 0
+
+        if (p_npc is not None) and (p_npc < ALPHA):
+            y = bracket_y0 + k * bracket_step
+            k += 1
+            x1 = x_pos["Multiparty – Positive"]
+            x2 = x_pos["Multiparty – Negative"]
+            label = f"{p_to_marker(p_npc)}\nSetting\np={format_p(p_npc)}"
+            draw_h_bracket(ax, x1, x2, y=y, text=label)
+
+        if (p_diff is not None) and (p_diff < ALPHA):
+            y = bracket_y0 + k * bracket_step
+            k += 1
+            x1 = x_pos["Dyadic – Positive"]
+            x2 = x_pos["Dyadic – Negative"]
+            label = f"{p_to_marker(p_diff)}\nEmotional Tone\np={format_p(p_diff)}"
+            draw_h_bracket(ax, x1, x2, y=y, text=label)
+
+        if (p_int is not None) and (p_int < ALPHA):
+            y = bracket_y0 + k * bracket_step
+            k += 1
+            x1 = x_pos["Dyadic – Negative"]
+            x2 = x_pos["Multiparty – Positive"]
+            label = f"{p_to_marker(p_int)}\nSetting × Emotional Tone\np={format_p(p_int)}"
+            draw_h_bracket(ax, x1, x2, y=y, text=label)
+
+        # Make sure the bracket text isn't cut off
+        ax.set_ylim(1, 8.6)
+
+    fig.suptitle(
+        "NASA-TLX Distributions (Violin Plots)",
+        y=0.98,
+        fontsize=16,
+    )
+
+    fig.text(
+        0.5,
+        0.93,
+        "Setting = Dyadic vs Multiparty     Emotional Tone = Positive vs Negative     Interaction = Setting × Emotional Tone",
+        ha="center",
+        fontsize=14,
+    )
+
+    fig.tight_layout(rect=[0, 0, 1, 0.92])
+    plt.show()
 
 # --------------------------------------------------
 # KONFIGURATION
@@ -163,7 +310,6 @@ def draw_bracket(ax, y1, y2, x, text, cap=0.15, lw=1.3):
     )
 
 
-
 # --------------------------------------------------
 # PLOTTING
 # --------------------------------------------------
@@ -226,7 +372,7 @@ def plot_nasa_tlx_bubbles_like_paper(df: pd.DataFrame, tlx_cols: dict[str, str])
                     ax.text(
                         x, y, str(t),
                         ha="center", va="center",
-                        fontsize=11,
+                        fontsize=8,
                         color="white",
                         weight="bold",
                         zorder=3,
@@ -237,6 +383,11 @@ def plot_nasa_tlx_bubbles_like_paper(df: pd.DataFrame, tlx_cols: dict[str, str])
         ax.set_xticks(x_vals)
         ax.set_yticks(range(len(y_labels)))
         ax.set_yticklabels(y_labels)
+
+        # >>> INCREASE AXIS FONT SIZES HERE <<<
+        ax.tick_params(axis='x', labelsize=14)   # x-axis tick labels bigger
+        ax.tick_params(axis='y', labelsize=14)   # y-axis tick labels bigger
+
         ax.grid(True, alpha=0.25, zorder=1)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
@@ -356,7 +507,8 @@ def main():
 
     print("\n✅ Analyse abgeschlossen")
 
-    plot_nasa_tlx_bubbles_like_paper(df, TLX_COLS)
+    #plot_nasa_tlx_bubbles_like_paper(df, TLX_COLS)
+    plot_nasa_tlx_violins_like_paper(df, TLX_COLS)
 
 
 if __name__ == "__main__":
