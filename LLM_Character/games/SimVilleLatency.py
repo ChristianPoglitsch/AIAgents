@@ -316,7 +316,7 @@ class LatencyRMReader:
 
 def main() -> None:
     # IMPORTANT: set this to the correct folder that actually contains the logs
-    logs_root = r"C:\Development\EmpathicAgents\LLM_Character\games\logs"
+    logs_root = r"D:\Development\EmpathicAgents\LLM_Character\games\logs"
 
     reader = LatencyRMReader(
         logs_root=logs_root,

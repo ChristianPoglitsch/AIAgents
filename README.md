@@ -30,24 +30,31 @@ https://www.nature.com/articles/s41598-025-18608-4
 
 
 
-# Training compact language models for artificial emotional intelligence: from bluffing to trust in a social deduction game
+# Training Compact Language Models with Minimal Search for Social Deduction Games
 
-Code for training and results can be found under LLM_Character/games/BotC
+This repository contains the code and experimental setup for our paper:
 
-1) Play the game starting using botc.py
+**"Training Compact Language Models with Minimal Search for Social Deduction Games"**  
+Accepted at *IEEE Conference on Games (CoG) 2026*
 
-Results are stores as .pkl file and in a subfolder with test and train data
+---
 
-2) Train the model starting training.py
+## Usage
 
-3) Merge original model with trained data using merge_model_adapter.py
+All relevant code for the Blood on the Clocktower (BotC) environment is located in:
+
+LLM_Character/games/BotC
+
+### 1) Run Game Simulations
+
+```bash
+python botc.py
 
 
-# Paper (Draft)
+### 2) Train Game
 
-The associated paper draft is published on Research Square:  
-https://www.researchsquare.com/article/rs-7348060/v1
-
+```bash
+python training.py
 
 # Installation Guide
 

@@ -660,7 +660,7 @@ def pretty_print_anova(title: str, anova_table: pd.DataFrame) -> None:
 
 if __name__ == "__main__":
     reader = LogReader(
-        folder_path=r"C:\Development\EmpathicAgents\LLM_Character\games\logs/",
+        folder_path=r"D:\Development\EmpathicAgents\LLM_Character\games\logs/",
         start_quest=0,
         start_difficulty="Challenging",
     )
